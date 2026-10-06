@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 import socket
 import subprocess
 import sys
@@ -49,12 +50,12 @@ def run_command(arguments: Sequence[str]) -> int:
     return completed.returncode
 
 
-def task_setup() -> int:
+def task_setup(*, asr: bool = False) -> int:
     env_dir = ROOT / ".venv"
     if not env_dir.exists():
         venv.EnvBuilder(with_pip=True).create(env_dir)
     python = task_python()
-    return run_command(
+    development_status = run_command(
         [
             str(python),
             "-m",
@@ -65,6 +66,99 @@ def task_setup() -> int:
             str(ROOT / "requirements-lock.txt"),
             "--requirement",
             str(REQUIREMENTS),
+        ]
+    )
+    if development_status != 0 or not asr:
+        return development_status
+    return task_setup_asr(python)
+
+
+def task_setup_asr(python: Path) -> int:
+    """Install the optional, pinned ASR stack without changing dev requirements."""
+    nvidia_smi = shutil.which("nvidia-smi")
+    cuda_capable = False
+    if nvidia_smi is not None:
+        probe = subprocess.run(
+            [nvidia_smi, "--query-gpu=name", "--format=csv,noheader"],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+            env=safe_child_environment(),
+        )
+        cuda_capable = probe.returncode == 0 and bool(probe.stdout.strip())
+
+    if cuda_capable:
+        install_status = run_command(
+            [
+                str(python),
+                "-m",
+                "pip",
+                "install",
+                "--disable-pip-version-check",
+                "--index-url",
+                "https://download.pytorch.org/whl/cu128",
+                "torch==2.8.0+cu128",
+                "torchaudio==2.8.0+cu128",
+                "torchvision==0.23.0+cu128",
+            ]
+        )
+        if install_status == 0:
+            check = subprocess.run(
+                [
+                    str(python),
+                    "-c",
+                    "import torch; raise SystemExit(0 if torch.cuda.is_available() else 1)",
+                ],
+                cwd=ROOT,
+                check=False,
+                capture_output=True,
+                env=safe_child_environment(),
+            )
+            install_status = check.returncode
+        if install_status != 0:
+            print("CUDA PyTorch unavailable after official-wheel attempt; falling back to CPU.")
+            install_status = run_command(
+                [
+                    str(python),
+                    "-m",
+                    "pip",
+                    "install",
+                    "--disable-pip-version-check",
+                    "--index-url",
+                    "https://download.pytorch.org/whl/cpu",
+                    "torch==2.8.0+cpu",
+                    "torchaudio==2.8.0+cpu",
+                    "torchvision==0.23.0+cpu",
+                ]
+            )
+    else:
+        print("No NVIDIA GPU was detected; installing the official PyTorch CPU wheels.")
+        install_status = run_command(
+            [
+                str(python),
+                "-m",
+                "pip",
+                "install",
+                "--disable-pip-version-check",
+                "--index-url",
+                "https://download.pytorch.org/whl/cpu",
+                "torch==2.8.0+cpu",
+                "torchaudio==2.8.0+cpu",
+                "torchvision==0.23.0+cpu",
+            ]
+        )
+    if install_status != 0:
+        return install_status
+    return run_command(
+        [
+            str(python),
+            "-m",
+            "pip",
+            "install",
+            "--disable-pip-version-check",
+            "--requirement",
+            str(ROOT / "requirements-asr.txt"),
         ]
     )
 
@@ -612,6 +706,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         "integration",
     ):
         subparser = subparsers.add_parser(name)
+        if name == "setup":
+            subparser.add_argument(
+                "--asr", action="store_true", help="also install optional WhisperX dependencies"
+            )
         if name == "dry-run":
             subparser.add_argument("--video", required=False)
             subparser.add_argument("--max-seconds", type=int, default=120)
@@ -659,7 +757,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return run_command([str(project_python), str(ROOT / "tasks.py"), *forwarded])
 
     if args.task == "setup":
-        return task_setup()
+        return task_setup(asr=args.asr)
     if args.task == "lint":
         return task_lint()
     if args.task == "test":

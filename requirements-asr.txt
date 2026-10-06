@@ -1,0 +1,6 @@
+# Optional direct ASR dependencies. PyTorch is installed separately from the official
+# CPU or CUDA wheel index by `python tasks.py setup --asr`.
+whisperx==3.8.6
+faster-whisper==1.2.1
+numpy==2.5.3
+soundfile==0.14.0
