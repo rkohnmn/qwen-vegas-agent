@@ -8,7 +8,8 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["orchestrator"]
+explicit_package_bases = true
+files = ["orchestrator", "perception"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit"]

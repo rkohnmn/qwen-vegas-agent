@@ -189,7 +189,15 @@ def task_lint() -> int:
             "tests/integration",
             "tasks.py",
         ],
-        [python, "-m", "mypy", "--strict", "orchestrator"],
+        [
+            python,
+            "-m",
+            "mypy",
+            "--strict",
+            "--explicit-package-bases",
+            "orchestrator",
+            "perception",
+        ],
     ]
     for check in checks:
         status = run_command(check)
