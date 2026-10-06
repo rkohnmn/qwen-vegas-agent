@@ -78,6 +78,12 @@ def test_baseline_pack_and_compile_are_id_only_and_frame_safe(tmp_path: Path) ->
     assert len(report["snaps"]) == 4
     assert any(item["code"] == "E_PACING_GAP" for item in report["rejected_items"])
     outcomes = {item["item_id"]: item for item in report["item_outcomes"]}
+    proposed_items = [*edl["cuts"], *edl["gap_actions"]]
+    assert set(outcomes) == {item["id"] for item in proposed_items}
+    assert len(outcomes) == len(proposed_items)
+    assert all(item["status"] in {"applied", "adjusted", "rejected"} for item in outcomes.values())
+    for action in edl["gap_actions"]:
+        assert outcomes[action["id"]]["item_type"] == "gap_action"
     assert outcomes["c1"]["status"] == "rejected"
     assert outcomes["c1"]["code"] == "E_PACING_GAP"
     assert outcomes["c2"]["status"] == "applied"
