@@ -63,9 +63,9 @@ The selected smoke candidate is identified in tracked documentation only by its 
 | Preflight warnings | No warning codes emitted; preflight stopped with `ffprobe is not installed or not available on PATH` |
 | Detected language / confidence | Not measured; ASR did not start |
 
-No pipeline run was performed on the video. Its SHA-256 was identical before and after the read-only preflight attempt.
+A baseline dry-run was attempted, stopped during preflight, and wrote only a blocked `run_manifest.json`; it produced no transcript, plan, review, or audio artifacts. The manifest records identical source hashes and a preflight-stage timing. The source SHA-256 was unchanged.
 
-The current shell still lacks `ffmpeg` and `ffprobe`; preflight stops before audio extraction. The source hash was unchanged. Install both locally, then rerun preflight, extraction, and the smoke benchmark. The project does not fetch binaries.
+The current shell still lacks `ffmpeg` and `ffprobe`; preflight stops before audio extraction. Install both locally, then rerun preflight, extraction, and the smoke benchmark. The project does not fetch binaries.
 
 ## ASR benchmark and run outputs
 

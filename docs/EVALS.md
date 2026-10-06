@@ -42,7 +42,7 @@ No real joins were measured: preflight stopped because `ffprobe` is unavailable.
 
 ## Real-media ASR and smoke evaluation
 
-Not run. The selected source preflight was attempted read-only and stopped with `ffprobe is not installed or not available on PATH`; the source SHA-256 remained unchanged. No preflight warning codes were emitted because inspection did not start. `ffmpeg` and `ffprobe` are unavailable, so codec/VFR inspection and audio extraction cannot start. Optional ASR setup completed with WhisperX 3.8.6 and CUDA PyTorch (`2.8.0+cu128`; CUDA available in the venv, 4095 MiB device capacity). No ASR model/alignment weights or LLM endpoint were used.
+No full pipeline run completed. A baseline dry-run was attempted and stopped at preflight with `E_MEDIA_TOOL` because `ffprobe` is not installed or not available on PATH. It wrote only a preflight-blocked `run_manifest.json`, containing the matching before/after source hashes and the preflight-stage timing; no other smoke artifacts were produced. No preflight warning codes were emitted because inspection did not start. `ffmpeg` and `ffprobe` are unavailable, so codec/VFR inspection and audio extraction cannot start. Optional ASR setup completed with WhisperX 3.8.6 and CUDA PyTorch (`2.8.0+cu128`; CUDA available in the venv, 4095 MiB device capacity). No ASR model/alignment weights or LLM endpoint were used.
 
 | ASR benchmark field | Result |
 |---|---|

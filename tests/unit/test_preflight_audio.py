@@ -9,6 +9,8 @@ from typing import Any
 
 import pytest
 
+from orchestrator import cli
+from orchestrator.contracts import check_run_manifest, validate
 from perception import audio, preflight
 
 
@@ -190,3 +192,44 @@ def test_extract_audio_fails_cleanly_without_ffmpeg(
         audio.extract_audio_stream(source, 0, tmp_path / "cache")
 
     assert source.read_bytes() == b"read-only source"
+
+
+def test_preflight_block_writes_current_run_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "synthetic-input.mp4"
+    source.write_bytes(b"read-only source sentinel")
+    run_root = tmp_path / "runs"
+    cache_root = tmp_path / "cache"
+    monkeypatch.setattr(cli, "_load_settings", lambda: {"paths": {"cache": str(cache_root)}})
+
+    def fail_preflight(_source: Path) -> None:
+        raise preflight.MediaToolError("ffprobe is not installed or not available on PATH")
+
+    monkeypatch.setattr(cli, "probe_media", fail_preflight)
+    with pytest.raises(cli.DryRunError, match="ffprobe"):
+        cli.run_dry_run(
+            source,
+            max_seconds=120,
+            planner_name="baseline",
+            output_root=run_root,
+            cache_root=cache_root,
+        )
+
+    manifest_paths = list(run_root.glob("*/run_manifest.json"))
+    assert len(manifest_paths) == 1
+    manifest = json.loads(manifest_paths[0].read_text(encoding="utf-8"))
+    assert validate("run_manifest", manifest) == []
+    assert check_run_manifest(manifest) == []
+    assert manifest["schemas"]["ops"] == "1.1.0"
+    assert manifest["outcome"]["status"] == "blocked"
+    assert manifest["outcome"]["code"] == "E_MEDIA_TOOL"
+    assert manifest["stages"][0]["name"] == "preflight"
+    assert manifest["stages"][0]["wall_clock_ms"] >= 0
+    assert manifest["source_integrity"]["unchanged"] is True
+    assert (
+        manifest["source_integrity"]["sha256_before"]
+        == manifest["source_integrity"]["sha256_after"]
+    )
+    assert {item.name for item in manifest_paths[0].parent.iterdir()} == {"run_manifest.json"}
+    assert source.read_bytes() == b"read-only source sentinel"

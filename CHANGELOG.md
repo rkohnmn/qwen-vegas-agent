@@ -6,6 +6,7 @@ All notable project changes are recorded here. Contract version entries are chec
 
 ### Changed
 
+- Corrected the current `ops` schema version recorded in preflight-blocked and completed run manifests, with a regression test for the blocked-manifest path.
 - Set the supported Windows development target to Python 3.12 based on the installed runtime and current WhisperX/PyTorch compatibility metadata.
 - Recorded the venv CUDA 12.8 install and missing `ffmpeg` / `ffprobe`; the real-media smoke portion remains stopped until those tools are installed locally.
 - Added timeline=1.0.0, verify_report=1.0.0, and run_manifest=1.0.0; bumped compile_report=2.0.0 for required per-cut/gap outcomes and ops=1.1.0 for optional source item IDs on final delete operations. Existing versions: edl=1.2.0, words=2.0.0, speakers=1.0.0, catalog=1.0.0.

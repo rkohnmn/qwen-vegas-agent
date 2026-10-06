@@ -119,7 +119,7 @@ def _status_manifest(
         "schema_version": "1.0.0",
         "job_id": job_id,
         "inputs": [{"id": "source_0", "sha256": source_hash_before.removeprefix("sha256:")}],
-        "schemas": {"timeline": "1.0.0", "words": "2.0.0", "edl": "1.2.0", "ops": "1.0.0"},
+        "schemas": {"timeline": "1.0.0", "words": "2.0.0", "edl": "1.2.0", "ops": "1.1.0"},
         "tools": {
             "python": sys.version.split()[0],
             "ffmpeg": _tool_version("ffmpeg"),
