@@ -2,13 +2,18 @@ from __future__ import annotations
 
 import csv
 import json
+import time
 import wave
 from array import array
+from collections.abc import Iterator
+from contextlib import contextmanager
 from fractions import Fraction
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Thread
 from unittest.mock import patch
+
+import pytest
 
 from orchestrator.artifacts import write_markers, write_review
 from orchestrator.childenv import safe_child_environment
@@ -23,7 +28,15 @@ from orchestrator.contracts import (
 )
 from orchestrator.evaluation import run_synthetic_eval, synthetic_case, truth_template
 from orchestrator.packer import build_pack
-from orchestrator.planner import BaselinePlanner, LlmPlanner, PlannerError, RecordedPlanner
+from orchestrator.planner import (
+    BaselinePlanner,
+    EndpointAuthError,
+    EndpointUnreachable,
+    LlmPlanner,
+    MalformedPlannerOutput,
+    PlannerError,
+    RecordedPlanner,
+)
 from orchestrator.renderer import render_cut_audio
 from orchestrator.verifier import verify_audio
 
@@ -140,58 +153,264 @@ def test_recorded_planner_returns_a_copy() -> None:
     assert second["summary"] != "changed"
 
 
+@contextmanager
+def _loopback_server(
+    handler_type: type[BaseHTTPRequestHandler],
+) -> Iterator[str]:
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler_type)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{server.server_port}/v1"
+    finally:
+        server.shutdown()
+        thread.join(timeout=2)
+        server.server_close()
+
+
+def _send_json(handler: BaseHTTPRequestHandler, status: int, payload: bytes) -> None:
+    handler.send_response(status)
+    handler.send_header("Content-Type", "application/json")
+    handler.send_header("Content-Length", str(len(payload)))
+    handler.end_headers()
+    handler.wfile.write(payload)
+
+
+def _llm_envelope(content: str) -> bytes:
+    return json.dumps({"choices": [{"message": {"content": content}}]}).encode()
+
+
 def test_llm_planner_uses_loopback_fake_and_rejects_remote() -> None:
     words, _timeline, _truth = synthetic_case()
     response = BaselinePlanner().plan(build_pack(words).text, words, _catalog())
-    captured: dict[str, str] = {}
+    captured: dict[str, object] = {}
 
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self) -> None:
             captured["authorization"] = self.headers.get("Authorization", "")
             length = int(self.headers.get("Content-Length", "0"))
             request = json.loads(self.rfile.read(length))
+            captured["request"] = request
             assert request["model"] == "test-model"
-            body = json.dumps(
-                {"choices": [{"message": {"content": json.dumps(response)}}]}
-            ).encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
+            _send_json(self, 200, _llm_envelope(json.dumps(response)))
 
         def log_message(self, format: str, *args: object) -> None:
             del format, args
 
-    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    thread = Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        endpoint = f"http://127.0.0.1:{server.server_port}/v1"
-        result = LlmPlanner(endpoint, "test-model", api_key="local-test-secret").plan(
-            build_pack(words).text, words, _catalog()
-        )
-        assert result == response
-        assert captured["authorization"] == "Bearer local-test-secret"
-    finally:
-        server.shutdown()
-        thread.join(timeout=2)
-        server.server_close()
-    try:
+    feedback = [{"code": "E_PACING_GAP", "path": "$.cuts[0]", "message": "must not be echoed"}]
+    with _loopback_server(Handler) as endpoint:
+        result = LlmPlanner(
+            endpoint, "test-model", api_key="local-test-secret", retry_backoff_s=0
+        ).plan(build_pack(words).text, words, _catalog(), feedback=feedback)
+    assert result == response
+    assert captured["authorization"] == "Bearer local-test-secret"
+    assert "local-test-secret" not in json.dumps(captured["request"])
+    request = captured["request"]
+    assert isinstance(request, dict)
+    correction_messages = [
+        message["content"]
+        for message in request["messages"]
+        if "CORRECTION_ERRORS=" in message["content"]
+    ]
+    assert len(correction_messages) == 1
+    assert "E_PACING_GAP" in correction_messages[0]
+    assert "must not be echoed" not in correction_messages[0]
+    with pytest.raises(PlannerError) as remote_error:
         LlmPlanner("https://example.com/v1", "test-model")
-    except PlannerError as error:
-        assert "example.com" not in str(error)
-    else:
-        raise AssertionError("non-loopback host was accepted")
+    assert "example.com" not in str(remote_error.value)
+
+
+def test_llm_planner_does_not_follow_a_redirect() -> None:
+    calls: list[int] = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            calls.append(1)
+            self.rfile.read(int(self.headers.get("Content-Length", "0")))
+            self.send_response(302)
+            self.send_header("Location", "https://example.com/collect")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+
+        def log_message(self, format: str, *args: object) -> None:
+            del format, args
+
+    words, _timeline, _truth = synthetic_case()
+    with _loopback_server(Handler) as endpoint:
+        planner = LlmPlanner(endpoint, "test-model", api_key="redirect-secret", max_retries=0)
+        with pytest.raises(PlannerError) as error:
+            planner.plan(build_pack(words).text, words, _catalog())
+    assert len(calls) == 1
+    assert "example.com" not in str(error.value)
+    assert "redirect-secret" not in str(error.value)
+
+
+def test_llm_planner_auth_error_is_typed_redacted_and_not_retried() -> None:
+    calls: list[int] = []
+    secret = "loopback-secret-for-auth-test"
+    response_body = f"rejected token {secret}".encode()
+    backoffs: list[float] = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            calls.append(1)
+            self.rfile.read(int(self.headers.get("Content-Length", "0")))
+            _send_json(self, 401, response_body)
+
+        def log_message(self, format: str, *args: object) -> None:
+            del format, args
+
+    words, _timeline, _truth = synthetic_case()
+    with _loopback_server(Handler) as endpoint:
+        planner = LlmPlanner(
+            endpoint,
+            "test-model",
+            api_key=secret,
+            retry_backoff_s=0.01,
+            sleep=backoffs.append,
+        )
+        with pytest.raises(EndpointAuthError) as error:
+            planner.plan(build_pack(words).text, words, _catalog())
+    assert len(calls) == 1
+    assert backoffs == []
+    assert secret not in str(error.value)
+    assert "rejected token" not in str(error.value)
+
+
+def test_llm_planner_timeout_is_typed_and_retried_with_bounded_backoff(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    calls: list[int] = []
+    backoffs: list[float] = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            calls.append(1)
+            self.rfile.read(int(self.headers.get("Content-Length", "0")))
+            time.sleep(0.12)
+            try:
+                _send_json(self, 200, _llm_envelope("{}"))
+            except OSError:
+                pass
+
+        def log_message(self, format: str, *args: object) -> None:
+            del format, args
+
+    words, _timeline, _truth = synthetic_case()
+    with _loopback_server(Handler) as endpoint:
+        planner = LlmPlanner(
+            endpoint,
+            "test-model",
+            api_key="timeout-secret",
+            timeout_s=0.03,
+            max_retries=1,
+            retry_backoff_s=0.01,
+            sleep=backoffs.append,
+        )
+        with pytest.raises(EndpointUnreachable) as error:
+            planner.plan(build_pack(words).text, words, _catalog())
+    assert len(calls) == 2
+    assert backoffs == [0.01]
+    assert "timeout-secret" not in str(error.value)
+    assert "timeout-secret" not in caplog.text
+
+
+def test_llm_planner_malformed_json_raises_typed_error_after_retries() -> None:
+    calls: list[int] = []
+    backoffs: list[float] = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            calls.append(1)
+            self.rfile.read(int(self.headers.get("Content-Length", "0")))
+            _send_json(self, 200, b"{malformed")
+
+        def log_message(self, format: str, *args: object) -> None:
+            del format, args
+
+    words, _timeline, _truth = synthetic_case()
+    with _loopback_server(Handler) as endpoint:
+        planner = LlmPlanner(
+            endpoint, "test-model", max_retries=1, retry_backoff_s=0.01, sleep=backoffs.append
+        )
+        with pytest.raises(MalformedPlannerOutput):
+            planner.plan(build_pack(words).text, words, _catalog())
+    assert len(calls) == 2
+    assert backoffs == [0.01]
+
+
+def test_llm_planner_schema_invalid_json_raises_malformed_output() -> None:
+    calls: list[int] = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            calls.append(1)
+            self.rfile.read(int(self.headers.get("Content-Length", "0")))
+            _send_json(self, 200, _llm_envelope(json.dumps({"schema_version": "1.2.0"})))
+
+        def log_message(self, format: str, *args: object) -> None:
+            del format, args
+
+    words, _timeline, _truth = synthetic_case()
+    with _loopback_server(Handler) as endpoint:
+        planner = LlmPlanner(endpoint, "test-model", max_retries=1, retry_backoff_s=0)
+        with pytest.raises(MalformedPlannerOutput):
+            planner.plan(build_pack(words).text, words, _catalog())
+    assert len(calls) == 2
+
+
+def test_llm_planner_corrects_schema_failure_on_retry() -> None:
+    words, _timeline, _truth = synthetic_case()
+    valid_edl = BaselinePlanner().plan(build_pack(words).text, words, _catalog())
+    requests: list[dict[str, object]] = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            length = int(self.headers.get("Content-Length", "0"))
+            request = json.loads(self.rfile.read(length))
+            requests.append(request)
+            content = json.dumps({"bad": True}) if len(requests) == 1 else json.dumps(valid_edl)
+            _send_json(self, 200, _llm_envelope(content))
+
+        def log_message(self, format: str, *args: object) -> None:
+            del format, args
+
+    backoffs: list[float] = []
+    with _loopback_server(Handler) as endpoint:
+        result = LlmPlanner(
+            endpoint,
+            "test-model",
+            max_retries=1,
+            retry_backoff_s=0.01,
+            sleep=backoffs.append,
+        ).plan(build_pack(words).text, words, _catalog())
+    assert result == valid_edl
+    assert len(requests) == 2
+    assert backoffs == [0.01]
+    retry_messages = requests[1]["messages"]
+    assert isinstance(retry_messages, list)
+    correction = retry_messages[-1]["content"]
+    assert "CORRECTION_ERRORS=" in correction
+    assert "E_SCHEMA" in correction
+    assert "must not be echoed" not in correction
+
+
+def test_llm_planner_missing_server_raises_safe_unreachable_error() -> None:
+    words, _timeline, _truth = synthetic_case()
+    planner = LlmPlanner(
+        "http://127.0.0.1:1/v1",
+        "test-model",
+        api_key="secret-value",
+        max_retries=0,
+    )
+    with pytest.raises(EndpointUnreachable) as error:
+        planner.plan(build_pack(words).text, words, _catalog())
+    assert "secret-value" not in str(error.value)
 
 
 def test_cli_rejects_llm_before_reading_media() -> None:
-    try:
+    with pytest.raises(EndpointUnreachable, match="disabled in M1"):
         run_dry_run("missing-input.mp4", planner_name="llm")
-    except PlannerError as error:
-        assert "disabled in M1" in str(error)
-    else:
-        raise AssertionError("M1 CLI accepted an LLM run")
 
 
 def test_llm_missing_loopback_server_has_safe_error() -> None:

@@ -25,7 +25,13 @@ from orchestrator.contracts import (
     validate,
 )
 from orchestrator.packer import build_pack
-from orchestrator.planner import BaselinePlanner, Planner, PlannerError, RecordedPlanner
+from orchestrator.planner import (
+    BaselinePlanner,
+    EndpointUnreachable,
+    Planner,
+    PlannerError,
+    RecordedPlanner,
+)
 from orchestrator.renderer import render_cut_audio
 from orchestrator.timeline import build_timeline
 from orchestrator.verifier import verify_audio
@@ -166,7 +172,7 @@ def run_dry_run(
     if max_seconds < 1 or max_seconds > 36000:
         raise DryRunError("maximum duration is outside the supported range")
     if planner_name == "llm":
-        raise PlannerError(
+        raise EndpointUnreachable(
             "LLM requests are disabled in M1; the client is tested with loopback fakes only"
         )
     if planner_name == "recorded" and recorded_edl is None:

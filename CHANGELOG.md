@@ -16,7 +16,7 @@ All notable project changes are recorded here. Contract version entries are chec
 ### Added
 
 - Added read-only ffprobe preflight, cached 16 kHz audio extraction, a lazy WhisperX adapter with CPU fallback, and fixture-backed ASR/gap-refinement coverage.
-- Added ID-oriented packing, baseline and recorded planners, an isolated loopback-only LLM client for fake-server tests, and an M1 CLI guard that keeps live LLM requests disabled.
+- Added ID-oriented packing, baseline and recorded planners, and a loopback-only LLM client with bounded backoff, typed failures, schema/cut-feedback retries, redirect blocking, and fake-server coverage; the M1 CLI still rejects live LLM runs.
 - Added rational-frame compilation with aligned-word guards, optional nearby zero-crossing snaps, measured-gap cuts, per-item compile outcomes linked to final ops, rejected-item review context, applied evaluation metrics, per-join fade decisions, review CSV/CMX3600/Markdown artifacts, reference audio rendering, join/pacing/clipped-word metrics, and run integrity metadata.
 - Added generated speech-like verifier coverage alongside the retained tone stress case, applied-metric reporting, and expanded EC-only Vegas metadata notes. Added the opt-in `setup --asr` installer while keeping plain setup dev-only.
 - Updated the README, roadmap, setup, security, perception, and evaluation documentation for the actual M1 implementation and its blocked real-media smoke run.
