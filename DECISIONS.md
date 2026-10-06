@@ -235,6 +235,39 @@ Alternatives: Check every pair of transcript words or rely only on compile-time 
 
 Status: Accepted.
 
+### D-23 — Compile outcomes are explicit and traced into final operations
+Date: 2026-10-06
+
+Decision: The compile report requires one `item_outcomes` row per EDL cut and gap action, with `applied`, `adjusted`, or `rejected` status. `adjusted` rows carry a reason and aggregate absolute boundary delta in integer frames; `rejected` rows carry an error code and reason. Each final `delete_range` operation optionally lists the EDL item IDs represented by its merged interval. The compile report is bumped to 2.0.0 because the field is required; ops is 1.1.0 for the optional trace IDs.
+
+Rationale: Planner selection metrics alone counted a pacing-rejected filler cut as retrieved. Applied metrics must derive from emitted delete operations and preserve the planner-selection metrics separately.
+
+Alternatives: Infer application from marker labels or leave rejection data outside the compile report; rejected because markers are review artifacts and do not identify the final deletion operation reliably.
+
+Status: Accepted; validated by synthetic tests.
+
+### D-24 — Keep verifier thresholds until real joins are measured
+Date: 2026-10-06
+
+Decision: Retain the existing 0.12 full-scale sample discontinuity and 8 dB level-step defaults. Add a generated speech-shaped noise fixture with smooth envelopes and room noise, and keep the fixed-tone fixture's expected level-step failures explicit. Do not calibrate from synthetic distributions.
+
+Rationale: The real-media smoke could not reach audio extraction because `ffmpeg` and `ffprobe` were unavailable. One generated speech-shaped case and tone stress case are not representative real-join distributions.
+
+Alternatives: Raise the level-step threshold until synthetic tones pass; rejected because that would conceal real joins that may need review.
+
+Status: Accepted; real-join calibration pending.
+
+### D-25 — Keep ASR installation opt-in and isolated
+Date: 2026-10-06
+
+Decision: Keep plain setup dev-only. Add `requirements-asr.txt` with pinned WhisperX 3.8.6, faster-whisper 1.2.1, NumPy 2.5.3, and SoundFile 0.14.0. The optional setup installs the compatible PyTorch 2.8.0, torchaudio 2.8.0, and torchvision 0.23.0 stack from official PyTorch CUDA 12.8 wheels when a local NVIDIA device is detected, verifies CUDA inside the project venv, and falls back to official CPU wheels if needed. Model weights remain lazy and separate from package setup.
+
+Rationale: WhisperX 3.8.6 metadata requires `torch~=2.8.0` and `torchaudio~=2.8.0`; keeping ASR packages optional preserves the offline developer setup. No model or token-gated assets are fetched during package installation.
+
+Alternatives: Add ASR packages to the dev lock or use unpinned system/global packages; rejected because offline checks should not need ML dependencies and Vegas must not inherit those dependencies or credentials.
+
+Status: Accepted; `python tasks.py setup --asr` exited 0. CUDA 12.8 was available in the venv on the 4095 MiB RTX 3050 Ti. WhisperX imported successfully. The complete 101-distribution version/license/purpose/installed-size inventory and retained direct wheel sizes are recorded below. No model weights were fetched because media preflight is blocked by missing ffmpeg/ffprobe.
+
 ## Reference: browser agent patterns
 
 Read-only review of the local sibling browser-agent repository, commit 04c788de21cded7070744c60a98048e9b2141f49. The folder contained no LICENSE, COPYING, or NOTICE file, so the license is unknown. No code was copied.
@@ -275,3 +308,114 @@ Rationale: Frame-aligned cuts remain authoritative for the VEGAS ops contract, w
 Alternatives: Let the planner choose the crossing time or alter cuts without retaining the word/frame guard; rejected because timing remains compiler-owned and must stay auditable.
 
 Status: Accepted; synthetic sign-change coverage passes. Real speech behavior is unbenchmarked until the media smoke run can execute.
+
+
+### ASR package installation inventory
+
+The ASR setup added the complete non-development dependency closure below. The size column records each installed distribution footprint from wheel `RECORD` metadata; wheel archive sizes are included for the seven direct ASR/PyTorch packages where the install record retained them. Transitive archive sizes were not preserved by pip, so their installed footprints are reported rather than presented as download sizes. License values come from installed distribution metadata; an undeclared value is identified explicitly. Purpose uses each package summary, with direct package roles clarified from the setup configuration.
+
+| Package | Version | Size | License | Purpose |
+|---|---|---:|---|---|
+| aiohappyeyeballs | 2.7.1 | 0.04 MiB installed | OSI Approved :: Python Software Foundation License | Happy Eyeballs for asyncio |
+| aiohttp | 3.14.4 | 1.53 MiB installed | Apache-2.0 AND MIT | Async http client/server framework (asyncio) |
+| aiosignal | 1.4.0 | 0.02 MiB installed | OSI Approved :: Apache Software License | aiosignal: a list of registered asynchronous callbacks |
+| alembic | 1.20.0 | 1.13 MiB installed | MIT | A database migration tool for SQLAlchemy. |
+| antlr4-python3-runtime | 4.9.3 | 0.45 MiB installed | BSD | ANTLR 4.9.3 runtime for Python 3.7 |
+| asteroid-filterbanks | 0.4.0 | 0.08 MiB installed | OSI Approved :: MIT License | Asteroid's filterbanks |
+| av | 19.0.1 | 67.47 MiB installed | BSD-3-Clause | Pythonic bindings for FFmpeg's libraries. |
+| certifi | 2026.7.22 | 0.24 MiB installed | OSI Approved :: Mozilla Public License 2.0 (MPL 2.0) | Python package for providing Mozilla's CA Bundle. |
+| cffi | 2.1.1 | 0.64 MiB installed | MIT-0 | Foreign Function Interface for Python calling C code. |
+| charset-normalizer | 3.5.2 | 0.65 MiB installed | MIT | The Real First Universal Charset Detector. Open, modern and actively maintained alternative to Chardet. |
+| click | 8.5.0 | 0.43 MiB installed | BSD-3-Clause | Composable command line interface toolkit |
+| cloudpickle | 3.1.2 | 0.07 MiB installed | OSI Approved :: BSD License | Pickler class to extend the standard pickle.Pickler functionality |
+| colorlog | 6.12.0 | 0.03 MiB installed | OSI Approved :: MIT License | Add colours to the output of Python's logging module. |
+| contourpy | 1.4.0 | 0.60 MiB installed | BSD-3-Clause | Python library for calculating contours of 2D quadrilateral grids |
+| ctranslate2 | 4.8.2 | 60.09 MiB installed | MIT | Fast inference engine for Transformer models |
+| cycler | 0.12.1 | 0.02 MiB installed | OSI Approved :: BSD License | Composable style cycles |
+| defusedxml | 0.7.1 | 0.06 MiB installed | OSI Approved :: Python Software Foundation License | XML bomb protection for Python stdlib modules |
+| einops | 0.8.2 | 0.22 MiB installed | OSI Approved :: MIT License | A new flavour of deep learning operations |
+| faster-whisper | 1.2.1 | 1.1 MB wheel download; 1.32 MiB installed | OSI Approved :: MIT License | CTranslate2 ASR backend |
+| filelock | 3.32.3 | 0.33 MiB installed | MIT | A platform independent file lock. |
+| flatbuffers | 25.12.19 | 0.08 MiB installed | OSI Approved :: Apache Software License | The FlatBuffers serialization format for Python |
+| fonttools | 4.66.1 | 11.72 MiB installed | MIT | Tools to manipulate font files |
+| frozenlist | 1.8.0 | 0.10 MiB installed | Apache-2.0 | A list-like structure which implements collections.abc.MutableSequence |
+| fsspec | 2026.7.0 | 0.71 MiB installed | BSD-3-Clause | File-system specification |
+| googleapis-common-protos | 1.75.5 | 0.73 MiB installed | Apache-2.0 | Common protobufs used in Google APIs |
+| grpcio | 1.84.0 | 12.13 MiB installed | Apache-2.0 | HTTP/2-based RPC framework |
+| huggingface-hub | 0.36.2 | 2.45 MiB installed | OSI Approved :: Apache Software License | Client library to download and publish models, datasets and other repos on the huggingface.co hub |
+| idna | 3.20 | 0.43 MiB installed | BSD-3-Clause | Internationalized Domain Names in Applications (IDNA) |
+| jinja2 | 3.1.6 | 0.47 MiB installed | OSI Approved :: BSD License | A very fast and expressive template engine. |
+| joblib | 1.6.0 | 0.87 MiB installed | BSD-3-Clause | Lightweight pipelining with Python functions |
+| julius | 0.2.8 | 0.05 MiB installed | OSI Approved :: MIT License | Nice DSP sweets: resampling, FFT Convolutions. All with PyTorch, differentiable and with CUDA support. |
+| kiwisolver | 1.5.1 | 0.16 MiB installed | OSI Approved :: BSD License | A fast implementation of the Cassowary constraint solver |
+| lightning | 2.6.6 | 2.88 MiB installed | OSI Approved :: Apache Software License | The Deep Learning framework to train, deploy, and ship AI products Lightning fast. |
+| lightning-utilities | 0.15.3 | 0.08 MiB installed | Apache-2.0 | Lightning toolbox for across the our ecosystem. |
+| mako | 1.4.3 | 0.37 MiB installed | MIT | A super-fast templating language that borrows the best ideas from the existing templating languages. |
+| markdown-it-py | 4.2.0 | 0.33 MiB installed | OSI Approved :: MIT License | Python port of markdown-it. Markdown parsing, done right! |
+| markupsafe | 3.0.3 | 0.03 MiB installed | BSD-3-Clause | Safely add untrusted strings to HTML/XML markup. |
+| matplotlib | 3.11.2 | 22.17 MiB installed | OSI Approved :: Python Software Foundation License | Python plotting package |
+| mdurl | 0.1.2 | 0.02 MiB installed | OSI Approved :: MIT License | Markdown URL utilities |
+| mpmath | 1.3.0 | 1.85 MiB installed | OSI Approved :: BSD License | Python library for arbitrary-precision floating-point arithmetic |
+| multidict | 6.9.1 | 0.16 MiB installed | Apache License 2.0 | multidict implementation |
+| narwhals | 2.26.0 | 1.92 MiB installed | MIT | Extremely lightweight compatibility layer between dataframe libraries |
+| networkx | 3.6.1 | 6.66 MiB installed | BSD-3-Clause | Python package for creating and manipulating graphs and networks |
+| nltk | 3.10.3 | 6.29 MiB installed | OSI Approved :: Apache Software License | Natural Language Toolkit |
+| numpy | 2.5.3 | 12.6 MB wheel download; 40.10 MiB installed | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | Numerical arrays |
+| omegaconf | 2.3.1 | 0.33 MiB installed | OSI Approved :: BSD License | A flexible configuration library |
+| onnxruntime | 1.30.0 | 39.99 MiB installed | OSI Approved :: MIT License | ONNX Runtime is a runtime accelerator for Machine Learning models |
+| opentelemetry-api | 1.45.1 | 0.18 MiB installed | Apache-2.0 | OpenTelemetry Python API |
+| opentelemetry-exporter-http-transport | 0.66b1 | 0.03 MiB installed | Apache-2.0 | OpenTelemetry Exporters HTTP transport |
+| opentelemetry-exporter-otlp | 1.45.1 | 0.01 MiB installed | Apache-2.0 | OpenTelemetry Collector Exporters |
+| opentelemetry-exporter-otlp-common | 0.66b1 | 0.03 MiB installed | Apache-2.0 | OpenTelemetry OTLP HTTP export utilities |
+| opentelemetry-exporter-otlp-proto-common | 1.45.1 | 0.04 MiB installed | Apache-2.0 | OpenTelemetry Protobuf encoding |
+| opentelemetry-exporter-otlp-proto-grpc | 1.45.1 | 0.05 MiB installed | Apache-2.0 | OpenTelemetry Collector Protobuf over gRPC Exporter |
+| opentelemetry-exporter-otlp-proto-http | 1.45.1 | 0.07 MiB installed | Apache-2.0 | OpenTelemetry Collector Protobuf over HTTP Exporter |
+| opentelemetry-proto | 1.45.1 | 0.24 MiB installed | Apache-2.0 | OpenTelemetry Python Proto |
+| opentelemetry-sdk | 1.45.1 | 0.49 MiB installed | Apache-2.0 | OpenTelemetry Python SDK |
+| opentelemetry-semantic-conventions | 0.66b1 | 0.70 MiB installed | Apache-2.0 | OpenTelemetry Semantic Conventions |
+| optuna | 5.0.0 | 1.59 MiB installed | OSI Approved :: MIT License | A hyperparameter optimization framework |
+| pandas | 3.0.6 | 33.16 MiB installed | OSI Approved :: BSD License | Powerful data structures for data analysis, time series, and statistics |
+| pillow | 12.3.0 | 14.07 MiB installed | MIT-CMU | Python Imaging Library (fork) |
+| primepy | 1.3 | 0.01 MiB installed | OSI Approved :: MIT License | This module contains several useful functions to work with prime numbers. from primePy import primes |
+| propcache | 0.5.4 | 0.11 MiB installed | Apache-2.0 | Accelerated property cache |
+| protobuf | 7.36.2 | 1.63 MiB installed | 3-Clause BSD License | ASR transitive runtime dependency |
+| pyannote-audio | 4.0.7 | 1.74 MiB installed | Not declared in installed metadata | State-of-the-art speaker diarization toolkit |
+| pyannote-core | 6.0.1 | 0.18 MiB installed | Not declared in installed metadata | Advanced data structures for handling temporal segments with attached labels |
+| pyannote-database | 6.1.1 | 0.26 MiB installed | Not declared in installed metadata | Interface to multimedia databases and experimental protocols |
+| pyannote-metrics | 4.1 | 0.27 MiB installed | Not declared in installed metadata | A toolkit for reproducible evaluation, diagnostic, and error analysis of speaker diarization systems |
+| pyannote-pipeline | 4.0.0 | 0.17 MiB installed | Not declared in installed metadata | Tunable pipelines |
+| pyannoteai-sdk | 0.4.0 | 0.02 MiB installed | Not declared in installed metadata | Official pyannoteAI Python SDK |
+| pycparser | 3.0 | 0.19 MiB installed | BSD-3-Clause | C parser in Python |
+| pyparsing | 3.3.3 | 0.46 MiB installed | MIT | pyparsing - Classes and methods to define and execute parsing grammars |
+| python-dateutil | 2.9.0.post0 | 0.42 MiB installed | OSI Approved :: BSD License; OSI Approved :: Apache Software License | Extensions to the standard Python datetime module |
+| pytorch-lightning | 2.6.6 | 2.77 MiB installed | OSI Approved :: Apache Software License | PyTorch Lightning is the lightweight PyTorch wrapper for ML researchers. Scale your models. Write less boilerplate. |
+| pytorch-metric-learning | 2.9.0 | 0.32 MiB installed | OSI Approved :: MIT License | The easiest way to use deep metric learning in your application. Modular, flexible, and extensible. Written in PyTorch. |
+| pyyaml | 6.0.3 | 0.45 MiB installed | OSI Approved :: MIT License | YAML parser and emitter for Python |
+| regex | 2026.9.29 | 1.15 MiB installed | Apache-2.0 AND CNRI-Python | Alternative regular expression module, to replace re. |
+| requests | 2.34.2 | 0.22 MiB installed | OSI Approved :: Apache Software License | Python HTTP for Humans. |
+| rich | 15.0.0 | 1.18 MiB installed | OSI Approved :: MIT License | Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal |
+| safetensors | 0.8.0 | 0.81 MiB installed | OSI Approved :: Apache Software License | ASR transitive runtime dependency |
+| scikit-learn | 1.9.1 | 25.92 MiB installed | BSD-3-Clause | A set of python modules for machine learning and data mining |
+| scipy | 1.18.1 | 102.85 MiB installed | OSI Approved :: BSD License | Fundamental algorithms for scientific computing in Python |
+| six | 1.17.0 | 0.04 MiB installed | OSI Approved :: MIT License | Python 2 and 3 compatibility utilities |
+| sortedcontainers | 2.4.0 | 0.13 MiB installed | OSI Approved :: Apache Software License | Sorted Containers -- Sorted List, Sorted Dict, Sorted Set |
+| soundfile | 0.14.0 | 1.0 MB wheel download; 2.37 MiB installed | OSI Approved :: BSD License | PCM audio I/O |
+| sqlalchemy | 2.1.3 | 9.20 MiB installed | MIT | Database Abstraction Library |
+| sympy | 1.14.0 | 25.56 MiB installed | OSI Approved :: BSD License | Computer algebra system (CAS) in Python |
+| threadpoolctl | 3.7.0 | 0.09 MiB installed | BSD-3-Clause | threadpoolctl |
+| tokenizers | 0.22.2 | 7.29 MiB installed | OSI Approved :: Apache Software License | ASR transitive runtime dependency |
+| torch | 2.8.0+cu128 | 3461.4 MB wheel download; 7044.37 MiB installed | OSI Approved :: BSD License | CUDA tensor runtime and inference |
+| torch-audiomentations | 0.12.0 | 0.14 MiB installed | OSI Approved :: MIT License | A Pytorch library for audio data augmentation. Inspired by audiomentations. Useful for deep learning. |
+| torch-pitch-shift | 1.2.5 | 0.01 MiB installed | OSI Approved :: MIT License | ASR transitive runtime dependency |
+| torchaudio | 2.8.0+cu128 | 4.7 MB wheel download; 22.70 MiB installed | OSI Approved :: BSD License | PyTorch audio support |
+| torchcodec | 0.7.0 | 4.49 MiB installed | Not declared in installed metadata | A video decoder for PyTorch |
+| torchmetrics | 1.9.0 | 3.38 MiB installed | OSI Approved :: Apache Software License | PyTorch native Metrics |
+| torchvision | 0.23.0+cu128 | 7.5 MB wheel download; 18.95 MiB installed | BSD | PyTorch vision support required by ASR dependency resolution |
+| tqdm | 4.70.1 | 0.32 MiB installed | MPL-2.0 AND MIT | Fast, Extensible Progress Meter |
+| transformers | 4.57.6 | 49.97 MiB installed | OSI Approved :: Apache Software License | State-of-the-art Machine Learning for JAX, PyTorch and TensorFlow |
+| tzdata | 2026.5 | 0.50 MiB installed | Apache-2.0 | Provider of IANA time zone data |
+| urllib3 | 2.8.0 | 0.43 MiB installed | MIT | HTTP library with thread-safe connection pooling, file post, and more. |
+| whisperx | 3.8.6 | 16.5 MB wheel download; 17.14 MiB installed | BSD-2-Clause | Word-timestamped ASR/alignment adapter |
+| yarl | 1.25.1 | 0.31 MiB installed | Apache-2.0 | Yet another URL library |
+
+Inventory contains 101 ASR/PyTorch-closure distributions in the project venv. No model weights, VAD weights, diarization models, or tokens were fetched. Package installation alone did not load an ASR model; the smoke run stopped before media decoding because `ffprobe` is unavailable.
