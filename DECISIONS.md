@@ -268,6 +268,16 @@ Alternatives: Add ASR packages to the dev lock or use unpinned system/global pac
 
 Status: Accepted; `python tasks.py setup --asr` exited 0. CUDA 12.8 was available in the venv on the 4095 MiB RTX 3050 Ti. WhisperX imported successfully. The complete 101-distribution version/license/purpose/installed-size inventory and retained direct wheel sizes are recorded below. No model weights were fetched because media preflight is blocked by missing ffmpeg/ffprobe.
 
+### D-26 — Bound the loopback planner boundary
+Date: 2026-10-06
+
+Decision: Keep LlmPlanner restricted to loopback hosts, disable proxy use and HTTP redirects, and cap request timeouts, retries, backoff, response size, and correction feedback. Treat 401/403 as non-retryable authentication failures; report unreachable endpoints and repeatedly malformed output with typed errors. Forward only validated error codes and bounded schema paths in correction requests, with at most eight entries. Keep live LLM planning disabled in the M1 CLI.
+
+Rationale: A redirect could forward the Authorization header away from the loopback service. Full diagnostics can contain untrusted values or sensitive text, and unbounded retries can stall local runs. The fake-server suite can exercise these cases without contacting an inference endpoint.
+
+Alternatives: Follow redirects, send full exception or compiler messages back to the model, or retry indefinitely; rejected because they expand the credential/data boundary and weaken bounded execution.
+
+Status: Accepted; covered by loopback fake-server tests. No real LLM endpoint was contacted.
 ## Reference: browser agent patterns
 
 Read-only review of the local sibling browser-agent repository, commit 04c788de21cded7070744c60a98048e9b2141f49. The folder contained no LICENSE, COPYING, or NOTICE file, so the license is unknown. No code was copied.
