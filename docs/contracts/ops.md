@@ -50,5 +50,5 @@ The compiler is the only producer. The executor validates the schema again befor
 
 | Role | Component |
 |---|---|
-| Produces | Deterministic compiler (deferred; no compile timing logic in Milestone 0). |
-| Consumes | Vegas executor (deferred; no Vegas executor in Milestone 0). |
+| Produces | Deterministic frame compiler; implemented for M1 cut and gap operations. |
+| Consumes | Vegas executor; deferred to M2. No ops are executed by M1. |

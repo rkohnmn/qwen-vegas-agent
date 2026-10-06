@@ -52,5 +52,5 @@ The summary uses an explicit field allowlist. It excludes `plugin_unique_id`, `p
 
 | Role | Component |
 |---|---|
-| Produces | Vegas catalog dumper plus the local asset index; neither is implemented in Milestone 0. |
+| Produces | Vegas catalog dumper; not implemented in M1. The M1 planner receives an empty catalog. The local asset index remains future work. |
 | Consumes | Planner receives the derived summary; compiler validates keys against the full catalog. |
