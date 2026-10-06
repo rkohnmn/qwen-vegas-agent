@@ -1,6 +1,6 @@
 # Setup
 
-**Document version:** 1.1.1
+**Document version:** 1.1.2
 
 This guide covers the local Milestone 1 rough-cut pipeline on Windows. It never starts VEGAS or contacts an inference endpoint.
 
@@ -9,7 +9,7 @@ This guide covers the local Milestone 1 rough-cut pipeline on Windows. It never 
 - Windows 10 or later.
 - Python 3.12 available as `python` or the Windows `py` launcher.
 - `ffmpeg` and `ffprobe` on `PATH` for media preflight, extraction, and reference rendering. They are not bundled or downloaded by this project.
-- Local ASR is optional. `python tasks.py setup --asr` installs the pinned optional packages from `requirements-asr.txt` and a pinned PyTorch stack; plain `setup` remains dev-only. Model weights are fetched lazily by WhisperX only when a valid media run begins.
+- Local ASR is optional. `python tasks.py setup --asr` installs the pinned optional packages from `requirements-asr.txt` and a pinned PyTorch stack; plain `setup` remains dev-only. The `small` ASR and detected-language alignment weights are fetched lazily when a valid media run begins; VAD filtering and diarization are disabled in this adapter.
 - VEGAS Pro 17 is only needed for the later human checks; M1 does not launch or modify it.
 - The LLM endpoint remains disabled in M1. Planner tests use a loopback fake only.
 
@@ -32,7 +32,7 @@ The setup task creates `.venv` and installs the pinned development dependencies 
 .\.venv\Scripts\Activate.ps1
 ```
 
-`python tasks.py eval` runs synthetic fixtures and requires no media, model weights, GPU, or network. A real `python tasks.py dry-run --video <path> --max-seconds 120 --planner baseline` requires local `ffmpeg`, `ffprobe`, WhisperX, and its model weights. A read-only preflight using the locally installed FFmpeg 9.0.1 tools reported W_VFR after sampling timestamps. Per Prompt 01b, processing stopped before audio extraction; no ASR, render, or full smoke artifacts were produced.
+`python tasks.py eval` runs synthetic fixtures and requires no media, model weights, GPU, or network. A real `python tasks.py dry-run --video <path> --max-seconds 120 --planner baseline` requires local `ffmpeg`, `ffprobe`, WhisperX, and the approved ASR/alignment weights. The real-media smoke completed end to end. Corrected bounded VFR sampling and a full decoded-frame scan classified the selected source as CFR; the original source stayed read-only. ASR detected Japanese. The aligner returned finer subword timings that did not match the contract’s word units, so the adapter retained all 30 phrase-level tokens without time anchors; the run produced no cuts and no real joins.
 
 ## Measured on dev laptop
 
@@ -44,32 +44,45 @@ The setup task creates `.venv` and installs the pinned development dependencies 
 | RAM | 15.4 GiB available to Windows |
 | GPU | NVIDIA GeForce RTX 3050 Ti Laptop GPU, 4 GiB VRAM; driver 595.71 |
 | CUDA in the global Python | Unavailable; global PyTorch remains CPU-only (`2.13.0+cpu`). |
-| CUDA in the project venv | Available; PyTorch `2.8.0+cu128` reports CUDA 12.8 and `torch.cuda.is_available()` is true. Detected GPU memory is 4095 MiB; model peak VRAM is unmeasured. |
+| CUDA in the project venv | Available; PyTorch `2.8.0+cu128` reports CUDA 12.8 and `torch.cuda.is_available()` is true. Detected GPU memory is 4095 MiB; the real smoke ASR peak was 1.27 GB. |
 | VEGAS | Pro 17.0, build 284; `ScriptPortal.Vegas.dll` and `vegas170.exe` are present |
-| `ffmpeg` / `ffprobe` | Version 9.0.1 is installed in a local WinGet package outside PATH; it was used through a process-local PATH override for read-only preflight. This project did not download binaries. |
+| `ffmpeg` / `ffprobe` | Version 9.0.1 is installed in a local WinGet package outside PATH. The smoke used a process-local PATH override; this project did not download binaries or change persistent PATH settings. |
 
-WhisperX and PyTorch support the active Python 3.12 runtime. The opt-in ASR setup installed CUDA PyTorch in the project venv and verified CUDA availability. The adapter will choose CUDA when available and falls back to CPU int8 when CUDA is unavailable or an out-of-memory retry is needed. See [WhisperX package metadata](https://pypi.org/project/whisperx/) and [PyTorch Windows installation guidance](https://docs.pytorch.org/get-started/locally/).
+WhisperX and PyTorch support the active Python 3.12 runtime. The opt-in ASR setup installed CUDA PyTorch in the project venv and verified CUDA availability. The adapter selects CUDA when available and falls back to CPU int8 when CUDA is unavailable or an out-of-memory retry is needed. See [WhisperX package metadata](https://pypi.org/project/whisperx/) and [PyTorch Windows installation guidance](https://docs.pytorch.org/get-started/locally/).
 
 The selected smoke candidate is identified in tracked documentation only by its SHA-256 prefix; the source path and filename stay in ignored local configuration.
 
 | Candidate field | Observation |
 |---|---|
 | SHA-256 prefix | `690caa6e14f57674` |
-| Duration | 78.55 seconds (Windows media properties) |
-| Frame rate | 2997/100 fps (ffprobe average and real rate); Windows properties showed approximately 29.97 fps. |
+| Duration | 78.553107 seconds by ffprobe; 78.545 seconds in the frame-aligned ASR benchmark. |
+| Frame rate | `2997/100` fps. Average and real rates match. |
+| VFR status | CFR. The corrected bounded check reads 16 packets beyond the requested timestamp window and evaluates only the requested sample. A full decoded scan covered 2,354 frames and 2,353 intervals with no interval more than 1 ms from the median cadence. |
 | Container / video codec / audio codec | MOV/MP4 family; H.264 High video; AAC-LC audio. |
-| VFR status | W_VFR detected. Reported average and real rates both equal 2997/100; 1 of 95 intervals among the first 96 sampled frames exceeded the 1 ms tolerance. |
 | Audio layout | One AAC-LC stream, 44100 Hz, stereo. |
-| Preflight warnings | W_VFR; reported rates match, but bounded timestamp sampling found one interval outside tolerance. |
-| Detected language / confidence | Not measured; ASR did not start |
+| Preflight warnings | None. |
+| Detected language / confidence | Japanese (`ja`), 0.9399. |
 
-An earlier baseline dry-run stopped before media inspection because ffprobe was not on PATH and wrote only a blocked `run_manifest.json`. A subsequent read-only preflight with a process-local PATH override reported W_VFR. The source hash was unchanged across the sampled preflight. No transcript, plan, review, or audio artifact was produced.
+The earlier `W_VFR` came from an incomplete ffprobe packet-boundary tail, not a cadence change in the clip. Regression tests cover tail lookahead and still detect a cadence change inside the requested sample. A CFR working copy was permitted under ignored `runs/`; the corrected scan established that the source itself is CFR, so the completed smoke used the original read-only source.
 
-The installed FFmpeg tools remain outside the normal shell PATH. The temporary PATH override was limited to read-only preflight. Because W_VFR was detected, no audio extraction, source transcode, or model download was started; the next processing step awaits a clip or workflow decision.
+The real-media dry run completed as `20261006T232642Z_d35580dd`. Its manifest records equal before/after source hashes. The test-video and VEGAS install directory listings also matched before and after. All transcript, render, benchmark, review, and truth-template outputs remain under ignored `runs/`.
 
 ## ASR benchmark and run outputs
 
-The dry-run records per-stream model, alignment model, device, compute type, wall time, peak VRAM when CUDA metrics are available, and real-time factor in `asr_benchmark.json`. The 4 GiB laptop GPU is the measured VRAM ceiling; peak model-run VRAM remains unmeasured until the media smoke runs. With the default `compile.snap_zero_crossing` setting, normalized PCM is also passed to the compiler so it can prefer a nearby zero crossing within 20 ms while respecting safe speech bounds. The standalone `compile` task accepts `--audio <normalized-mono.wav>` for the same optional snap. Run artifacts are written under `runs/<job_id>/`; extracted PCM audio and model cache files are written under `cache/`. Both locations are gitignored. The source file is hashed before and after the run, and both hashes are stored in `run_manifest.json`.
+| Field | Smoke result |
+|---|---|
+| ASR model | `small` (faster-whisper) |
+| Alignment model | `jonatasgrosman/wav2vec2-large-xlsr-53-japanese` |
+| Device / compute type | CUDA / `int8_float16` |
+| Peak VRAM | 1.27 GB |
+| ASR wall time | 37.367 seconds |
+| Real-time factor | 0.4757 (ASR wall time divided by 78.545 seconds of media) |
+| Language / confidence | Japanese (`ja`) / 0.9399 |
+| Word timing | 30 tokens; 0 aligned and 30 unaligned. Short/long duration rates are not measurable with zero aligned tokens. |
+
+The local model snapshots did not include license files. The approved run fetched only the small ASR checkpoint and the language-selected alignment checkpoint; no VAD or diarization weights, tokens, or LLM endpoint were used. Checkpoint revisions, byte sizes, and the unresolved license metadata are recorded in `DECISIONS.md` D-32. Verify redistribution terms before packaging these weights.
+
+WhisperX produced 298 timed subword rows for 30 Japanese ASR segments, and normalized concatenated text matched every segment. The rows did not match the word-level contract, so the adapter retained the original phrase-level tokens without time anchors instead of treating subword boundaries as lexical word boundaries. The baseline planner produced zero cuts and zero gap actions. The verifier passed the removed-percent check at 0%; there were no joins for click or level-step measurement. Keep thresholds at the existing defaults until real joins are available. The truth template is available under the smoke run directory for manual labeling.
 
 ## M1 review artifacts and verifier
 

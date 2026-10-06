@@ -123,7 +123,7 @@ Rationale: Python 3.12.10 is the installed 64-bit runtime. The current WhisperX 
 
 Alternatives: Keep 3.11 as the target and install another Python runtime; rejected because it adds an environment requirement without improving compatibility for this milestone.
 
-Status: Accepted. Smoke ASR performance remains unmeasured because the bounded preflight sample reports W_VFR and the Prompt 01b stop rule prevents processing.
+Status: Accepted. ASR was unmeasured at the initial W_VFR stop; D-30 corrected that preflight result and D-32 records the completed smoke benchmark.
 
 ### D-12 — Do not fetch ffmpeg binaries
 Date: 2026-10-06
@@ -134,7 +134,7 @@ Rationale: Milestone 1 explicitly excludes FFmpeg downloads. A local WinGet FFmp
 
 Alternatives: Download a binary or substitute another media executable; rejected because the prompt permits no ffmpeg download and requires ffprobe-based inspection.
 
-Status: Accepted. No full media run, audio decode, ASR, or render was performed after W_VFR; the media-dependent acceptance checks remain pending user direction. No model weights were fetched.
+Status: The initial stop was honored. D-30 supersedes the false-positive VFR finding, and D-32 records the later approved run; no FFmpeg binary was fetched.
 
 ### D-13 — EDL silence edits use gap IDs and compile configuration
 Date: 2026-10-06
@@ -251,7 +251,7 @@ Date: 2026-10-06
 
 Decision: Retain the existing 0.12 full-scale sample discontinuity and 8 dB level-step defaults. Add a generated speech-shaped noise fixture with smooth envelopes and room noise, and keep the fixed-tone fixture's expected level-step failures explicit. Do not calibrate from synthetic distributions.
 
-Rationale: Read-only preflight reports W_VFR and processing stopped before audio extraction. One generated speech-shaped case and tone stress case are not representative real-join distributions.
+Rationale: At the time this decision was written, the bounded preflight had reported W_VFR and the run had stopped. D-30 corrected that false positive, and the later smoke produced zero joins because it had no word-level anchors. The synthetic speech-shaped and tone fixtures still do not provide real-join distributions.
 
 Alternatives: Raise the level-step threshold until synthetic tones pass; rejected because that would conceal real joins that may need review.
 
@@ -266,7 +266,7 @@ Rationale: WhisperX 3.8.6 metadata requires `torch~=2.8.0` and `torchaudio~=2.8.
 
 Alternatives: Add ASR packages to the dev lock or use unpinned system/global packages; rejected because offline checks should not need ML dependencies and Vegas must not inherit those dependencies or credentials.
 
-Status: Accepted; `python tasks.py setup --asr` exited 0. CUDA 12.8 was available in the venv on the 4095 MiB RTX 3050 Ti. WhisperX imported successfully. The complete 101-distribution version/license/purpose/installed-size inventory and retained direct wheel sizes are recorded below. No model weights were fetched because the W_VFR preflight finding triggered the Prompt 01b stop rule.
+Status: Accepted; `python tasks.py setup --asr` exited 0. CUDA 12.8 was available in the venv on the 4095 MiB RTX 3050 Ti. WhisperX imported successfully. The complete 101-distribution version/license/purpose/installed-size inventory and retained direct wheel sizes are recorded below. Package setup itself fetched no model weights; the later approved smoke fetched only the two checkpoints recorded in D-32.
 
 ### D-26 — Bound the loopback planner boundary
 Date: 2026-10-06
@@ -287,7 +287,7 @@ Rationale: A bounded sample is enough to raise the configured warning but does n
 
 Alternatives: Ignore the warning because the reported average and real rates match, or transcode the source in place; rejected by the prompt's VFR stop rule and source-read-only requirement.
 
-Status: Awaiting user direction. No source-media modification or model-weight download occurred.
+Status: Superseded by D-30. The user permitted a CFR copy under ignored `runs/`; the corrected scan established the original source is already CFR, so the full smoke proceeded from the read-only source.
 ### D-28 — Treat Vegas metadata as candidates, not runtime proof
 Date: 2026-10-06
 
@@ -308,7 +308,64 @@ Rationale: The earlier `E_MEDIA_TOOL` manifest records the initial PATH failure;
 
 Alternatives: Continue describing the tool as absent, or proceed as though matching average/real rates clear W_VFR; rejected because the tool is installed and the bounded timestamp sample triggered Prompt 01b's stop rule.
 
-Status: Accepted. No media extraction, model-weight download, Vegas launch, or endpoint request followed the VFR finding.
+Status at the time: no media extraction or model-weight download followed the initial VFR finding. D-30 later superseded the false positive; D-32 records the subsequent offline run. No Vegas launch or endpoint request occurred.
+
+### D-30 — Look ahead past the ffprobe packet boundary for bounded VFR sampling
+Date: 2026-10-06
+
+Decision: For a bounded timestamp sample, request 16 packets beyond the requested sample count, then classify only the requested timestamps. Preserve the original source as read-only. If the source itself is variable-rate, use a user-approved working copy under ignored `runs/` rather than converting the source.
+
+Rationale: The initial bounded ffprobe result contained one interval outside tolerance at its packet-count tail even though average and real rates both reported `2997/100`. A full decoded scan covered 2,354 frames and 2,353 intervals without a cadence deviation over 1 ms. The decoder can stop before all reordered frames are flushed; the lookahead removes that tail artifact while keeping the classified window bounded.
+
+Alternatives: Ignore every `W_VFR` finding, or transcode the original source; rejected because real cadence changes still need detection and source media must remain read-only.
+
+Status: Accepted. Regression tests distinguish a tail-only anomaly from a cadence change inside the sample. The user allowed a CFR working copy under ignored `runs/`; the corrected check proved it unnecessary for this source, and the smoke used the original read-only file.
+
+### D-31 — Disable VAD and diarization weights in the ASR adapter
+Date: 2026-10-06
+
+Decision: Run faster-whisper `small` directly with `vad_filter=False`, pass normalized in-memory audio to avoid the installed PyAV path-decoder incompatibility, then use WhisperX only for forced alignment. Do not load diarization or VAD checkpoints in this milestone.
+
+Rationale: The default WhisperX transcription path can invoke a VAD model that is outside the explicitly approved weight list and may need access beyond the allowed model fetch. Disabling VAD keeps the actual weight set to the approved ASR and detected-language alignment models. Normalized audio also avoids a local `TypeError` from the file decoder's unsupported `metadata_errors` argument.
+
+Alternatives: Use WhisperX's default VAD path or skip Japanese alignment; rejected because the former could fetch an unapproved checkpoint and the latter would discard the permitted alignment stage.
+
+Status: Accepted; unit tests assert VAD is disabled, normalized audio is passed, and alignment failure leaves words unaligned instead of inventing times.
+
+### D-32 — Record ASR checkpoints and smoke measurements
+Date: 2026-10-06
+
+Decision: Use the approved `Systran/faster-whisper-small` ASR checkpoint at revision `536b0662742c02347bc0e980a01041f333bce120` (486,212,372 bytes in the cached snapshot; `model.bin` is 483,546,902 bytes) and the detected-language checkpoint `jonatasgrosman/wav2vec2-large-xlsr-53-japanese` at revision `cf031e020336460d15a417eba710bbc5bb43be9a` (1,271,563,035 snapshot bytes; `pytorch_model.bin` is 1,271,531,927 bytes). No license file appeared in either cached snapshot, and no token, account, or license click-through was requested. Do not redistribute these model files until their licenses are verified.
+
+Rationale: The completed offline smoke measured CUDA `int8_float16`, 1.27 GB peak VRAM, and 37.367 seconds of ASR time for 78.545 seconds of media, for a real-time factor of 0.4757 (`ASR wall time / media duration`). Language detection returned Japanese at 0.9399 confidence. All 30 tokens were unaligned, so the baseline planner emitted zero cuts and zero gap actions. The benchmark is a pipeline measurement, not an editing-quality result.
+
+Alternatives: Report the inverse ratio as real-time factor, infer word times for the unaligned tokens, or describe a zero-cut run as successful editing; rejected because the metric convention must be comparable, times must not be invented, and no cut was applied.
+
+Status: Accepted. The run stayed offline from the inference endpoint, left the source hash unchanged, and fetched no VAD or diarization weights. The local snapshot metadata does not establish the model licenses; manual license review remains open.
+
+### D-33 — Keep verifier thresholds until real joins exist
+Date: 2026-10-06
+
+Decision: Keep `max_click_delta=0.12` and `max_level_step_db=8.0` unchanged. Record real-join metrics as unavailable when the smoke produces no joins.
+
+Rationale: The real-media run had zero cuts and zero gap actions, leaving zero click/level observations. The speech-like synthetic fixture exercises smoother envelopes, while the retained tone fixture remains a stress case; neither supplies real-speech join distributions.
+
+Alternatives: Raise thresholds until the tone fixture passes or claim calibration from a zero-join sample; rejected because either would overstate verifier evidence.
+
+Status: Accepted pending a real-media run that produces reviewable joins.
+
+
+### D-34 — Keep Japanese subword times out of the word-level contract
+Date: 2026-10-06
+
+Decision: Preserve the 30 Japanese ASR phrase segments as unaligned when the aligner returns a finer set of subword rows. Do not assign those rows to the word-level transcript contract or cut between them without a Japanese lexical segmenter.
+
+Rationale: A diagnostic run returned 298 timed subword rows for 30 ASR segments, with normalized concatenated text matching each segment. That proves alignment produced timing at a different granularity; it does not establish lexical word boundaries. The current prompt's approved dependencies do not include a Japanese tokenizer, and guessed boundaries would violate the no-cut-inside-a-word invariant.
+
+Alternatives: Mark the whole phrase with a broad time span, treat each subword as a word, or add a tokenizer dependency; rejected because each could create unsafe edit boundaries or require an unapproved dependency.
+
+Status: Accepted for this milestone. A language-aware segmentation stage needs a separately approved dependency and word-boundary evaluation before Japanese cuts can be trusted.
+
 
 ## Reference: browser agent patterns
 
@@ -460,4 +517,4 @@ The ASR setup added the complete non-development dependency closure below. The s
 | whisperx | 3.8.6 | 16.5 MB wheel download; 17.14 MiB installed | BSD-2-Clause | Word-timestamped ASR/alignment adapter |
 | yarl | 1.25.1 | 0.31 MiB installed | Apache-2.0 | Yet another URL library |
 
-Inventory contains 101 ASR/PyTorch-closure distributions in the project venv. No model weights, VAD weights, diarization models, or tokens were fetched. Package installation alone did not load an ASR model; read-only preflight later reported W_VFR, so no audio was decoded and no model weights were fetched.
+Inventory contains 101 ASR/PyTorch-closure distributions in the project venv. Package installation alone fetched no model weights. The later approved run downloaded the two checkpoints listed in D-32; no VAD or diarization weights and no tokens were fetched.

@@ -1,6 +1,6 @@
 # Local AI Video Editing Agent for VEGAS Pro 17
 
-**Status:** Milestone 1 offline rough-cut pipeline implemented, including explicit applied/adjusted/rejected outcomes and applied-cut metrics. The configured clip's read-only preflight reports W_VFR, so processing is stopped before audio extraction pending a clip/workflow decision. No code launches or edits VEGAS.
+**Status:** The offline Milestone 1 pipeline completed a real-media dry run. Japanese ASR returned 30 phrase-level tokens. Forced alignment produced finer subword timings that did not match the word-level contract, so the adapter kept all 30 tokens unaligned and the baseline planner emitted no cuts or gap actions. No edit-quality claim is supported by this run. No code launches or edits VEGAS.
 
 This privacy-first project targets 4–15 minute talking-content videos. Local perception produces a word-level transcript; an ID-only edit plan is validated and compiled deterministically to frame-based operations. The M1 pipeline includes media preflight, WhisperX integration, a conservative baseline planner, review artifacts, reference audio rendering, and verification. The planner's LLM adapter is restricted to loopback and is disabled in the dry-run CLI.
 
@@ -45,7 +45,7 @@ The stages can also be run separately with `python tasks.py preflight --video <p
 
 ## Current limits
 
-- The project venv has WhisperX 3.8.6 and CUDA-enabled PyTorch; no model weights were loaded. Read-only preflight using locally installed FFmpeg 9.0.1 tools reports W_VFR from a bounded 96-frame sample. No ASR, render, or real-join measurements were made. The home inference server remained off and no LLM endpoint was contacted.
+- The project venv has WhisperX 3.8.6 and CUDA-enabled PyTorch. The real-media smoke used the `small` faster-whisper checkpoint and the Japanese WhisperX alignment checkpoint on CUDA (`int8_float16`), with 1.27 GB peak VRAM. ASR detected Japanese at 0.9399 confidence. WhisperX returned 298 timed subword rows whose segmentation did not match the word-level contract, so all 30 phrase-level tokens remained unaligned. The baseline planner proposed no edits, so no real joins were available to measure. The home inference server remained off and no LLM endpoint was contacted.
 - The synthetic baseline eval is a one-case plumbing check, not a quality estimate for real speech.
 - `--planner llm` is disabled in the CLI. The isolated client is tested only against loopback fakes; M1 makes no LLM network requests.
 - Vegas-specific runtime behavior remains unverified. No Vegas application or probe was run.
@@ -54,6 +54,6 @@ The contract schemas and prose specifications are in [schemas/](schemas/) and [d
 
 ## Hardware layout
 
-- Editing laptop: Windows, Python 3.12, local media processing and VEGAS Pro 17. The project venv has CUDA-enabled PyTorch on the 4 GB RTX 3050 Ti; model VRAM use has not yet been measured.
+- Editing laptop: Windows, Python 3.12, local media processing and VEGAS Pro 17. The project venv has CUDA-enabled PyTorch on the 4 GB RTX 3050 Ti; the `small` smoke ASR run peaked at 1.27 GB VRAM.
 - Inference server: self-hosted Qwen through `llama-server` and Tailscale in a later milestone; M1 does not connect to it.
 - Optional CPU workers and remote processing are not implemented.

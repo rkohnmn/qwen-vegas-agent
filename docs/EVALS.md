@@ -1,6 +1,6 @@
 # Evaluation results
 
-Every result reports accuracy with runtime and identifies the contract and planner versions. The current offline result is a synthetic plumbing check only; it does not estimate real editing quality.
+Every result reports accuracy with runtime and identifies the contract and planner versions. Synthetic evals are plumbing checks; the real-media run completed the pipeline but produced no word-aligned cuts, so it does not estimate editing quality.
 
 ## Synthetic baseline sanity check
 
@@ -21,7 +21,7 @@ Runtime: Python 3.12 on Windows; no external service or user media.
 | Click rate | 0.0000 |
 | Audio verifier | Failed `join_1_level`, `join_2_level`; click checks passed |
 | Removed duration | 19.166667% |
-| Wall time | 177.525 ms total; 2.6629 s per minute of synthetic timeline |
+| Wall time | 281.055 ms total; 4.2158 s per minute of synthetic timeline |
 | Estimated planner tokens | 63 |
 | Compile rejections | 1 (`E_PACING_GAP`: filler removal would leave no configured pause between neighboring words) |
 | Planner retries | 0 |
@@ -34,34 +34,39 @@ A unit test generates band-limited noise bursts with smooth 12 ms attacks, 18 ms
 
 ## Real-media verifier joins
 
-No real joins were measured: read-only preflight reported W_VFR from bounded timestamp sampling, so processing stopped before audio extraction. Thresholds remain at the existing defaults, `max_click_delta=0.12` full-scale sample delta and `max_level_step_db=8.0` dB, pending a larger real-join sample.
+The corrected preflight classified the source as CFR at `2997/100` fps. The full decoded scan covered 2,354 frames and 2,353 intervals without an interval deviating from median cadence by more than 1 ms. The completed smoke generated zero cuts and zero joins, so no real-speech join sample exists. Thresholds remain at the defaults, `max_click_delta=0.12` full-scale sample delta and `max_level_step_db=8.0` dB; the sample size is zero and does not justify calibration.
 
-| Smoke join | Click metric | Level step | Thresholds in force | Evidence |
-|---|---:|---:|---|---|
-| Not measured | N/A | N/A | 0.12 full-scale delta; 8.0 dB | W_VFR detected in the first 96 sampled frames; no audio was extracted. |
+| Smoke joins | Click metric | Level step | Thresholds in force | Evidence |
+|---:|---:|---:|---|---|
+| 0 | N/A | N/A | 0.12 full-scale delta; 8.0 dB | No cuts or gap actions were produced. |
 
 ## Real-media ASR and smoke evaluation
 
-No full pipeline run completed. A baseline dry-run was attempted and stopped at preflight with `E_MEDIA_TOOL` because ffprobe was not on PATH. It wrote only a preflight-blocked `run_manifest.json`, containing matching before/after source hashes and preflight-stage timing. A subsequent read-only preflight using the installed FFmpeg 9.0.1 binaries reported W_VFR: average and real frame rates matched at 2997/100, but one of 95 sampled intervals exceeded the 1 ms tolerance. Under Prompt 01b, processing stopped before audio extraction. The bounded sample is sufficient to trigger the stop rule but does not characterize every frame in the clip. Optional ASR setup completed with WhisperX 3.8.6 and CUDA PyTorch (`2.8.0+cu128`; CUDA available in the venv, 4095 MiB device capacity). No ASR model/alignment weights or LLM endpoint were used.
+Run: `20261006T232642Z_d35580dd`, completed 2026-10-06 with `python tasks.py dry-run --video <selected clip> --max-seconds 120 --planner baseline`. The original source hash matched before and after the run; the test-video and VEGAS install directory listings also remained identical. The home inference server stayed off and no LLM endpoint was contacted.
+
+The source descriptors are recorded without its filename or path: 78.553107 seconds, MOV/MP4 family, H.264 High video, AAC-LC stereo audio at 44100 Hz, and `2997/100` fps. Average and real rates match. Corrected bounded timestamp sampling and a full decoded-frame scan classify the source as CFR with no preflight warning. The old `W_VFR` came from an incomplete packet-boundary tail in ffprobe output; the fix reads 16 packets ahead and classifies only the requested sample window.
 
 | ASR benchmark field | Result |
 |---|---|
-| Requested model | `small`; weights not fetched |
-| Alignment model | Not selected; no language detection run |
-| Device / compute type | No inference run; CUDA available in the project venv / N/A |
-| Peak VRAM | Not measured; device capacity is 4095 MiB |
-| ASR wall time / real-time factor | Not measured |
-| Timing sanity | No words processed; short/long/unaligned counts unavailable |
+| Requested model | `small` (faster-whisper) |
+| Alignment model | `jonatasgrosman/wav2vec2-large-xlsr-53-japanese` |
+| Device / compute type | CUDA / `int8_float16` |
+| Peak VRAM | 1.27 GB |
+| ASR wall time | 37.367 seconds |
+| Media duration / real-time factor | 78.545 seconds / 0.4757 (`ASR wall time / media duration`) |
+| Detected language / confidence | Japanese (`ja`) / 0.9399 |
+| Word timing sanity | 30 tokens; 0 aligned, 30 unaligned. Shorter-than-20-ms and longer-than-2-s rates are unavailable because there are no aligned durations. |
 
-The candidate duration is 78.553107 seconds. Preflight reports the MOV/MP4 family, H.264 High video, AAC-LC stereo audio at 44100 Hz, and rational average/real frame rates of 2997/100. It flags W_VFR because 1 of 95 sampled intervals exceeded the 1 ms tolerance. Language and confidence remain unmeasured. Await direction on a different CFR clip or a working-copy conformity workflow before running dry-run or ASR.
+WhisperX produced 298 timed subword rows for 30 Japanese ASR segments, and normalized concatenation matched each segment. The rows did not match the word-level contract, so the adapter conservatively retained the 30 phrase-level tokens without time anchors rather than treating subword boundaries as lexical words. The baseline planner proposed 0 cuts and 0 gap actions. The compile report has no rejected or adjusted items and reports 0% removed. The verifier passed only the removed-percent check; click, level-step, pacing, and clipped-word measurements had no join or cut boundaries to inspect. This run proves pipeline completion and source integrity, not editing quality. No ground truth exists for the real recording.
 
-No `words.json` exists for the blocked smoke, so a truth template was not generated. After a successful run, use `python tasks.py truth-template --words runs/<job_id>/words.json --output runs/<job_id>/truth_template.json`, then open it with `notepad runs/<job_id>/truth_template.json`.
+The truth template was generated under the ignored run directory with `python tasks.py truth-template --words runs/<job_id>/words.json --output runs/<job_id>/truth_template.json`. The local model snapshots did not contain license files; revisions and exact checkpoint sizes are recorded in `DECISIONS.md` D-32. No VAD or diarization weights, tokens, or other unapproved models were fetched.
 
 ## Metric definitions
 
 | Metric | Definition |
 |---|---|
 | Wall-clock per minute | Total elapsed time and per-stage time from the run manifest divided by source duration in minutes. |
+| ASR real-time factor | ASR wall time divided by processed media duration; values below 1.0 are faster than real time. |
 | Cut offset error | Absolute milliseconds between each final cut and ground-truth boundary; report mean, median, and maximum. |
 | Planner-selection precision and recall | Correct planner-selected cuts divided by selected cuts, and correct selected cuts divided by ground-truth cuts. |
 | Applied precision and recall | Correct selected cuts represented in final `delete_range.item_ids` divided by applied cut IDs, and correct applied cuts divided by ground-truth cuts. |
