@@ -19,6 +19,7 @@ All notable project changes are recorded here. Contract version entries are chec
 - Added ID-oriented packing, baseline and recorded planners, and a loopback-only LLM client with bounded backoff, typed failures, schema/cut-feedback retries, redirect blocking, and fake-server coverage; the M1 CLI still rejects live LLM runs.
 - Added rational-frame compilation with aligned-word guards, optional nearby zero-crossing snaps, measured-gap cuts, per-item compile outcomes linked to final ops, rejected-item review context, applied evaluation metrics, per-join fade decisions, review CSV/CMX3600/Markdown artifacts, reference audio rendering, join/pacing/clipped-word metrics, and run integrity metadata.
 - Added generated speech-like verifier coverage alongside the retained tone stress case, applied-metric reporting, and expanded EC-only Vegas metadata notes. Added the opt-in `setup --asr` installer while keeping plain setup dev-only.
+- Completed the read-only VEGAS metadata follow-ups in VEGAS_NOTES 1.0.3 and recorded D-28; metadata continues to count as compile-time evidence only. Strengthened compiler coverage to assert each cut and gap action has exactly one outcome.
 - Updated the README, roadmap, setup, security, perception, and evaluation documentation for the actual M1 implementation and its VFR-blocked real-media smoke run.
 
 ## [Milestone 0]

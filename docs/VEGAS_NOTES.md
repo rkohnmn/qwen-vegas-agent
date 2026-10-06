@@ -1,7 +1,7 @@
 # VEGAS_NOTES.md
 
 **Scope:** Everything this project knows, assumes, and still needs to prove about driving **VEGAS Pro 17** from code.
-**Document version:** 1.0.2
+**Document version:** 1.0.3
 **Companion to:** `ARCHITECTURE.md` (Sections 12, 13, 21)
 
 This is a living lab notebook. Nothing in the executor, the compiler's Vegas-facing ops, or the subtitle path should depend on a Vegas behavior that is not marked `VERIFIED` here.
@@ -161,6 +161,7 @@ The full reflection-only type/member dump is in ignored output `runs/m1-vegas-me
 | `Marker`, `Region`, `MarkerList`, `RegionList`, `Project.Markers`, `Project.Regions`, `Marker.RemoveSelf()` | Present | Marker/region types, constructors and collection interfaces are present. Collection mutation and prefix clearing remain untested. |
 | `Vegas.Render(...)`, `RenderArgs`, `RenderTemplate(s)`, `Renderer.Templates`, `Vegas.RenderStarted/RenderFinished` | Present | `Vegas.Renderers` and `Renderer.Templates` lead to an enumerable `RenderTemplates` collection; no render or template enumeration was attempted. |
 | `Vegas.SaveProject(...)`, `OpenProject(...)`, `NewProject()` | Present | These methods are on `Vegas`, not `Project`; save/open behavior is untested. |
+| Extension and command-module surface | Present | `ICustomCommandModule`, `CustomCommand`, dock interfaces, and `DomainManager` load/add methods are present; the install root has no `Application Extensions` folder. See VQ-03. |
 | Audio level, extension, time, fade, and render members | See EC follow-up below | Metadata names and types only; every runtime behavior remains unverified. |
 
 ### Prompt 01b metadata follow-up (EC only)
@@ -169,22 +170,22 @@ These entries are filtered from the existing reflection-only dump. They are comp
 
 **VQ-18 — gain, volume, level, normalization, mute, pan, and envelope names**
 
-| Type | Matching declared members and CLR types |
-|---|---|
-| `AudioEvent` | `Normalize: Boolean`; `NormalizeGain: Double`; `get_Normalize(): Boolean`; `set_Normalize(Boolean): Void`; `get_NormalizeGain(): Double`; `set_NormalizeGain(Double): Void`; `SetNormalize(Boolean, Double): Void` |
-| `AudioTrack` | `Volume: Single`; `PanCenter: Single`; `PanX: Single`; `PanY: Single`; `AutomatedPanX: Single`; `PanXAutomationState: AutomationControlAutomationState`; `PanXTouch: Boolean`; `CanAddEnvelope(EnvelopeType): Boolean`; corresponding `get_`/`set_` methods for these properties |
-| `TrackEvent` | `Mute: Boolean`; `get_Mute(): Boolean`; `set_Mute(Boolean): Void` |
-| `Track` | `Mute: Boolean`; `Envelopes: Envelopes`; `EnvelopeCOM: IEnvelopeCOM`; backing fields `myEnvelopeCOM: IEnvelopeCOM`, `myEnvelopes: Envelopes`; `CanAddEnvelope(EnvelopeType): Boolean`; `get_`/`set_Mute`, `get_Envelopes`, `get_EnvelopeCOM` |
+The following is the complete set of matching declared fields, methods, and properties on `AudioEvent`, `AudioTrack`, `TrackEvent`, and `Track` in the dump. The dump does not annotate visibility.
+
+- **`AudioEvent`** — Properties: `Normalize:Boolean`, `NormalizeGain:Double`. Methods: `get_Normalize():Boolean`, `set_Normalize(Boolean):Void`, `get_NormalizeGain():Double`, `set_NormalizeGain(Double):Void`, `SetNormalize(Boolean, Double):Void`. No matching fields were listed.
+- **`AudioTrack`** — Properties: `AutomatedPanX:Single`, `PanCenter:Single`, `PanX:Single`, `PanXAutomationState:AutomationControlAutomationState`, `PanXTouch:Boolean`, `PanY:Single`, `Volume:Single`. Methods: `CanAddEnvelope(EnvelopeType):Boolean`, `get_AutomatedPanX():Single`, `set_AutomatedPanX(Single):Void`, `get_PanCenter():Single`, `set_PanCenter(Single):Void`, `get_PanX():Single`, `set_PanX(Single):Void`, `get_PanXAutomationState():AutomationControlAutomationState`, `set_PanXTouch(Boolean):Void`, `get_PanY():Single`, `set_PanY(Single):Void`, `get_Volume():Single`, `set_Volume(Single):Void`. No matching fields were listed. `PanXAutomationState` has a getter but no matching setter in the dump; `PanXTouch` has a setter but no matching getter.
+- **`TrackEvent`** — Property: `Mute:Boolean`. Methods: `get_Mute():Boolean`, `set_Mute(Boolean):Void`. No matching fields were listed.
+- **`Track`** — Fields: `myEnvelopeCOM:IEnvelopeCOM`, `myEnvelopes:Envelopes`. Properties: `EnvelopeCOM:IEnvelopeCOM`, `Envelopes:Envelopes`, `Mute:Boolean`. Methods: `CanAddEnvelope(EnvelopeType):Boolean`, `get_EnvelopeCOM():IEnvelopeCOM`, `get_Envelopes():Envelopes`, `get_Mute():Boolean`, `set_Mute(Boolean):Void`.
 
 `AudioEvent.Volume` and `TrackEvent.Volume` are absent from their declared metadata. The names suggest track-level SFX level could use `AudioTrack.Volume` or a track envelope; `AudioEvent.NormalizeGain` is also present, but its semantics are unknown. Metadata alone does not establish which setting produces the intended event gain.
 
 **VQ-03 — extension model**
 
-Matching type names are `CaptureDockWnd`, `CustomCommand`, `DockableControl`, `DockableControl+AppWindowClosingEventArgs`, `DockWindowStyle`, `DomainManager+DockWindowState`, `DomainManager+ToolbarMapping`, `ICustomCommandModule`, `IDockView`, `IDockWindow`, `OFXControlPoint`, `OFXControlPointType`, `TransportControl`, and `TransportControl+TransportSuspension`. No type name containing `UIClient` was found. `ICustomCommandModule` declares `GetCustomCommands(): ICollection` and `InitializeModule(Vegas): Void`. Additional related metadata names include `DomainManager.AddCustomCommand(CustomCommand)`, `AddExtraCommandModule(String)`, and `LoadAppExtension(String, Boolean)`. This suggests an extension/custom-command route exists in the assembly metadata, but not that Vegas loads or runs one. The install root has no `Application Extensions` folder.
+Matching type names are `AutomationControlAutomationState`, `CaptureDockWnd`, `CustomCommand`, `DockableControl`, `DockableControl+AppWindowClosingEventArgs`, `DockWindowStyle`, `DomainManager+DockWindowState`, `DomainManager+ToolbarMapping`, `ICustomCommandModule`, `IDockView`, `IDockWindow`, `OFXControlPoint`, `OFXControlPointType`, `TransportControl`, and `TransportControl+TransportSuspension`. No type name containing `Extension` or `UIClient` was found. `ICustomCommandModule` declares `GetCustomCommands():System.Collections.ICollection` and `InitializeModule(Vegas):Void`. Additional related metadata names include `DomainManager.AddCustomCommand(CustomCommand)`, `AddExtraCommandModule(String)`, and `LoadAppExtension(String, Boolean)`. This suggests an extension/custom-command route exists in the assembly metadata, but not that Vegas loads or runs one. The install root has no `Application Extensions` folder.
 
 **VQ-11 — time and frame-rate members**
 
-`Timecode` exposes `FrameCount: Int64`, `FrameRate: Double`, `FromFrames(Int64): Timecode`, `FromSeconds(Double): Timecode`, `FromMilliseconds(Double): Timecode`, `FromNanos(Int64): Timecode`, `FromPositionString(String, RulerFormat[, Boolean]): Timecode`, and `ToPositionString(RulerFormat): String`. `VideoProperties.FrameRate` and `ProjectVideoProperties.FrameRate` are `Double`; `ProjectVideoProperties` also exposes `PixelFormat`. `RulerFormat` includes `Smpte30`, `SmpteDrop`, `SmpteNonDrop`, `SmpteEBU`, `SmpteFilmSync`, and `SmpteFilmSyncIVTC`. The metadata exposes no numerator/denominator frame-rate type or explicit drop-frame Boolean on these types; rational conversion and actual project-rate behavior remain unverified.
+`Timecode` exposes `FrameCount:Int64`, `FrameRate:Double`, and `Nanos:Int64`. Frame/time constructors and factories include `.ctor(Project, Int64, Boolean)`, `.ctor(Double)`, `.ctor(String)`, `FromFrames(Int64):Timecode`, `FromSeconds(Double):Timecode`, `FromMilliseconds(Double):Timecode`, and `FromNanos(Int64):Timecode`. Formatting/parsing members include `FromPositionString(String):Timecode` and `FromPositionString(String, RulerFormat):Timecode`, `FromString(String):Timecode`, `FromString(String, RulerFormat):Timecode`, `FromString(String, RulerFormat, Boolean):Timecode`, `ToPositionString():String` and `ToPositionString(RulerFormat):String`, and `ToString(RulerFormat):String` and `ToString(RulerFormat, Boolean):String`. `VideoProperties.FrameRate` and `ProjectVideoProperties.FrameRate` are `Double`; the latter is readable and writable, and `ProjectVideoProperties` also exposes `PixelFormat`. Related project-aware factories are declared on `ProjectTimecode`: `FromFrames(Project, Int64):Timecode`, `FromMilliseconds(Project, Double):Timecode`, `FromNanos(Project, Int64):Timecode`, `FromPositionNanos(Project, Int64):Timecode`, `FromPositionString(Project, String):Timecode`, `FromPositionString(Project, String, RulerFormat):Timecode`, `FromSeconds(Project, Double):Timecode`, `FromString(Project, String):Timecode`, `FromString(Project, String, RulerFormat):Timecode`, and `FromString(Project, String, RulerFormat, Boolean):Timecode`. `RulerFormat` includes `TimeAndFrames`, `Smpte30`, `SmpteDrop`, `SmpteNonDrop`, `SmpteEBU`, `SmpteFilmSync`, and `SmpteFilmSyncIVTC`. The Boolean formatting overload semantics are not established by the metadata dump. No numerator/denominator frame-rate type or explicit drop-frame Boolean property was found on these inspected types; rational conversion and actual project-rate behavior remain unverified.
 
 **VQ-05 / VQ-06 — fades and transitions**
 
@@ -192,9 +193,9 @@ Matching type names are `CaptureDockWnd`, `CustomCommand`, `DockableControl`, `D
 
 **VQ-14 — render arguments and templates**
 
-`RenderArgs` has constructors `RenderArgs()` and `RenderArgs(Project)`. Its properties are `CancelRender:Boolean`, `GenerateLoudnessLog:Boolean`, `IncludeMarkers:Boolean`, `Length:Timecode`, `LengthNanos:Int64`, `OutputFile:String`, `OutputFileName:String`, `RendererID:UInt32`, `RenderTemplate:RenderTemplate`, `SaveAsMono:Boolean`, `SaveAsMonoStreams:Boolean`, `SaveProjectPathLink:Boolean`, `ShowOpenButtonsOnComplete:Boolean`, `Start:Timecode`, `StartNanos:Int64`, `Stereo3DModeOverride:Stereo3DOutputMode`, `StretchToFill:Boolean`, `TemplateID:UInt32`, `UseChannelMapping:Boolean`, `UseProjectRotation:Boolean`, `UseSelection:Boolean`, and `WaitForIdle:Boolean`; it also has `GetTemplateCOM(IRenderTemplateCOM ByRef): Void`.
+`RenderArgs` has constructors `RenderArgs()` and `RenderArgs(Project)`. Its properties are `CancelRender:Boolean`, `GenerateLoudnessLog:Boolean`, `IncludeMarkers:Boolean`, `Length:Timecode`, `LengthNanos:Int64`, `OutputFile:String`, `OutputFileName:String`, `RendererID:UInt32`, `RenderTemplate:RenderTemplate`, `SaveAsMono:Boolean`, `SaveAsMonoStreams:Boolean`, `SaveProjectPathLink:Boolean`, `ShowOpenButtonsOnComplete:Boolean`, `Start:Timecode`, `StartNanos:Int64`, `Stereo3DModeOverride:Stereo3DOutputMode`, `StretchToFill:Boolean`, `TemplateID:UInt32`, `UseChannelMapping:Boolean`, `UseProjectRotation:Boolean`, `UseSelection:Boolean`, and `WaitForIdle:Boolean`. The dump has getters for all of those properties; setters are present except for `OutputFileName`, `RendererID`, and `TemplateID`. Its additional declared method is `GetTemplateCOM(IRenderTemplateCOM ByRef):Void`. The dump also lists backing/storage fields `myCancelRender:Boolean`, `myGenerateLoudnessLog:Boolean`, `myLengthTime:Int64`, `myOutputFile:String`, `myProject:Project`, `myRendererID:UInt32`, `myRenderTemplate:RenderTemplate`, `myS3DOverride:Stereo3DOutputMode`, `mySaveAsMono:Boolean`, `mySaveAsMonoStreams:Boolean`, `mySaveMarkers:Boolean`, `mySaveProjectPathLink:Boolean`, `myShowOpenButtonsOnComplete:Boolean`, `myStartTime:Int64`, `myStretchToFill:Boolean`, `myTemplateID:UInt32`, `myUseChannelMapping:Boolean`, `myUseProjectRotation:Boolean`, `myUseSelection:Boolean`, and `myWaitForIdle:Boolean`.
 
-`RenderTemplate` has constructors for `(IRendererCOM, UInt32, UInt32)`, `(UInt32, IRenderTemplateCOM)`, and `(IRendererCOM, UInt32, Byte[])`. Its properties are `AudioBitrate:Int64`, `AudioBitsPerSample:Int32`, `AudioChannelCount:Int32`, `AudioChannelFlags:AudioChannelFlags`, `AudioSampleRate:UInt32`, `AudioStreamCount:Int32`, `COM:IRenderTemplateCOM`, `Description:String`, `FileExtensions:String[]`, `Index:Int32`, `Name:String`, `Notes:String`, `RendererID:UInt32`, `Supports360:Boolean`, `SupportsHDR10:Boolean`, `SupportsHLG:Boolean`, `SupportsStereoscopic:Boolean`, `TemplateGuid:Guid`, `TemplateID:UInt32`, `TotalBitrate:Int64`, `VideoBitrate:Int64`, `VideoDataRate:Int64`, `VideoFieldOrder:VideoFieldOrder`, `VideoFrameRate:Double`, `VideoHeight:Int32`, `VideoPixelAspectRatio:Double`, `VideoStreamCount:Int32`, and `VideoWidth:Int32`. It also declares `GetAVInfo`, `GetBitrate`, `GetStatusForContext`, `GetTemplateData`, `IsValid`, `ReadTemplateStream`, and `ShowTemplateStatusWarning`. Metadata indicates template enumeration through `Vegas.Renderers`, `Renderer.Templates:RenderTemplates`, and the `RenderTemplates` collection (`IEnumerable`, `GetItem`, `Refresh`, `FindByName`, and `FindByGuid`). No installed template list was enumerated.
+`RenderTemplate` has constructors `.ctor(IRendererCOM, UInt32, UInt32)`, `.ctor(UInt32, IRenderTemplateCOM)`, and `.ctor(IRendererCOM, UInt32, Byte[])`; all listed properties are getter-only in the dump. Its properties are `AudioBitrate:Int64`, `AudioBitsPerSample:Int32`, `AudioChannelCount:Int32`, `AudioChannelFlags:AudioChannelFlags`, `AudioSampleRate:UInt32`, `AudioStreamCount:Int32`, `COM:IRenderTemplateCOM`, `Description:String`, `FileExtensions:String[]`, `Index:Int32`, `Name:String`, `Notes:String`, `RendererID:UInt32`, `Supports360:Boolean`, `SupportsHDR10:Boolean`, `SupportsHLG:Boolean`, `SupportsStereoscopic:Boolean`, `TemplateGuid:Guid`, `TemplateID:UInt32`, `TotalBitrate:Int64`, `VideoBitrate:Int64`, `VideoDataRate:Int64`, `VideoFieldOrder:VideoFieldOrder`, `VideoFrameRate:Double`, `VideoHeight:Int32`, `VideoPixelAspectRatio:Double`, `VideoStreamCount:Int32`, and `VideoWidth:Int32`. Its declared methods are `GetAVInfo(FormatInfoList):Int32`, `GetBitrate(UInt32):Int64`, `GetStatusForContext(Int32, Boolean, Boolean, Boolean, Int32):RenderTemplateStatus`, `GetTemplateData():Byte[]`, `IsValid():Boolean`, `ReadTemplateStream(IStream, UInt32):Byte[]`, `ShowTemplateStatusWarning(RenderTemplateStatus, IntPtr):Void`, and `ToString():String`; the dump also includes fields `INVALID_ID:UInt32`, `myCOM:IRenderTemplateCOM`, `myDescription:String`, `myFileExtensions:String[]`, `myGuid:Guid`, `myGuidCached:Boolean`, `myName:String`, `myRendererID:UInt32`, and `myTemplateID:UInt32`. Metadata indicates template enumeration through `Vegas.Renderers`, `Renderer.Templates:RenderTemplates`, and the `RenderTemplates` collection (`IEnumerable`, `GetItem`, `Refresh`, `FindByName`, and `FindByGuid`). No installed template list was enumerated.
 
 ---
 
@@ -507,23 +508,26 @@ This table is the contract between `ops.json` operation types and Vegas API beha
 | `set_fade` | Set fade-in/out length and curve on event | event fade objects | VQ-06 | UNVERIFIED |
 | `add_transition` | Apply catalog transition between events | assign transition effect on fade; manage overlap | VQ-05 | UNVERIFIED |
 | `add_audio_event` | Place SFX file with gain | `AudioTrack.AddAudioEvent`, take from `Media` | VQ-18 | UNVERIFIED |
-| `set_gain` | Set event or track gain | event/track volume property or envelope | VQ-18 | UNVERIFIED |
-| `apply_fx` | Add catalog FX with optional params | `GetChildByUniqueID` + `new Effect(...)` + `Effects.AddEffect` / collection `Add` | VQ-04, VQ-17 | UNVERIFIED (member names present in EC inventory; no operation run) |
+| `set_gain` | Set SFX or track gain | track volume or envelope candidate; no event Volume member found | VQ-18 | UNVERIFIED |
+| `apply_fx` | Add catalog FX with optional params | `GetChildByUniqueID` + `new Effect(...)` + `Effects.AddEffect(PlugInNode)` | VQ-04, VQ-17 | UNVERIFIED; inherited collection `Add` remains an alternative in metadata |
 | `add_text_event` | Create caption event with text | text generator media + event | VQ-09 | UNVERIFIED |
 | `set_text_style` | Apply speaker color/preset | RTF/param or preset | VQ-09, VQ-10 | UNVERIFIED |
 | `render_preview` | Low-res or audio-only render of a range | render API with template | VQ-14 | UNVERIFIED |
 | `render_final` | Final output | render API with template | VQ-14 | UNVERIFIED |
-| `save_checkpoint` | Save project copy | `SaveProject` | VQ-15 | UNVERIFIED |
+| `save_checkpoint` | Save project copy | `Vegas.SaveProject(...)` | VQ-15 | UNVERIFIED |
 | `clear_markers_by_prefix` | Remove agent markers | iterate and remove | VQ-13 | UNVERIFIED |
 
 ### Prompt 01b metadata follow-up summary (EC only)
 
 | Operation/design area | Metadata-only mechanism hints | Status |
 |---|---|---|
-| `add_audio_event` / `set_gain` (VQ-18) | `AudioTrack.AddAudioEvent` exists; `AudioTrack.Volume:Single`, `Track.Envelopes`, and `AudioEvent.NormalizeGain:Double` exist; event-level `AudioEvent.Volume` is absent. | UNVERIFIED; level-setting semantics were not exercised. |
+| `add_audio_event` / `set_gain` (VQ-18) | `AudioTrack.AddAudioEvent` exists; `AudioTrack.Volume:Single`, `Track.Envelopes`, and `AudioEvent.NormalizeGain:Double` exist; `AudioEvent.Volume` and `TrackEvent.Volume` are absent. | UNVERIFIED; level-setting semantics were not exercised. |
+| `apply_fx` (VQ-04, VQ-17) | `Effects.AddEffect(PlugInNode):Effect` is declared; inherited `BaseList<Effect>.Add(Effect):Void` and `Add(Object):Int32` are also present. Prefer the named `AddEffect` API in the first executor implementation. | UNVERIFIED; neither path was invoked. |
 | `add_transition` (VQ-05) | `TrackEvent.FadeIn/FadeOut`, `Fade.Transition:System.Object`, `Effect(PlugInNode)`, and `Effects.AddEffect(PlugInNode)` exist. | UNVERIFIED; transition object and behavior are unknown. |
 | frame resolution (VQ-11) | `Timecode.FrameCount:Int64`; exposed frame rates are `Double`; no rational numerator/denominator member was found on the inspected types. | UNVERIFIED; exact conversion remains open. |
 | `render_preview` / `render_final` (VQ-14) | `RenderArgs`, `Vegas.Renderers`, and `Renderer.Templates:RenderTemplates` are present; the collection is enumerable in metadata. | UNVERIFIED; no template was enumerated and no render was attempted. |
+| `save_checkpoint` (VQ-15) | `SaveProject(...)` is a method on `Vegas`; metadata does not place it on `Project`. | UNVERIFIED; save behavior was not exercised. |
+| Executor extension route (VQ-03) | `ICustomCommandModule`, `CustomCommand`, dock interfaces, and `DomainManager` add/load methods exist; no `Application Extensions` folder was found at the install root. | UNVERIFIED; metadata suggests a route but does not establish host discovery or loading. |
 
 Executor rules that hold regardless of test outcomes: refuse any path outside the declared working directory, never delete source media, reject unknown op types, wrap batches in undo blocks if VQ-08 passes, and check the stop file between batches.
 
@@ -896,6 +900,18 @@ Follow-ups: Complete `docs/HUMAN_TESTS_M1.md`; retain all Vegas behavior as unve
 
 ---
 
+### R-003 | VQ-03, VQ-05, VQ-06, VQ-11, VQ-14, VQ-18 | Metadata follow-up
+Date: 2026-10-06   Tester: Codex   Vegas build: 17.0.0.284   OS: Windows 10 build 19045
+Project: none (metadata-only inspection)
+Script/steps: Filter the existing reflection-only metadata dump by the requested type/member names. No assembly code was loaded or executed; Vegas was not launched; no probe source was changed.
+Observed: Audio-event normalization members and track-level volume/pan/envelope members are present; direct event Volume is absent. Custom-command/dock types and an `ICustomCommandModule` interface are present. Timecode and project frame-rate properties use `Int64` frame count and `Double` frame rate, with no rational numerator/denominator property in the inspected types. Fade/transition and render/template metadata are summarized above.
+Evidence: ignored `runs/m1-vegas-metadata/ScriptPortal.Vegas.metadata.txt`.
+Conclusion: PARTIAL (compile-time only)
+Status change: No Vegas question was marked VERIFIED. VQ-03, VQ-05, VQ-06, VQ-11, VQ-14, and VQ-18 remain UNVERIFIED for runtime behavior.
+Follow-ups: Complete the corresponding checks on a throwaway Vegas project before implementing executor behavior.
+
+---
+
 ## 14. References and Leads
 
 ### Sources used for the Established Facts (Section 4)
@@ -945,17 +961,8 @@ Before adapting any code from these, record the license in `DECISIONS.md`. When 
 | 1.0.0 | initial | First complete draft. All Vegas-specific behaviors `UNVERIFIED`. Probe scripts drafted but not run. |
 | 1.0.1 | 2026-10-05 | Moved the source note to its canonical docs path; no Vegas behavior changed or was verified. |
 | 1.0.2 | 2026-10-06 | Recorded VEGAS 17.0 build 284 install metadata and reflection-only member inventory; all three probes compile in C# 5 mode. Statuses remain partial compile-time only where applicable; no Vegas script or project was run. |
+| 1.0.3 | 2026-10-06 | Added Prompt 01b metadata follow-ups for gain, extension, time/frame-rate, fades, render templates, and executor mechanism notes; corrected the R-003 placement. Metadata remains EC only. |
 
 ---
 
-*End of VEGAS_NOTES.md v1.0.2*
-
-### R-003 | VQ-03, VQ-05, VQ-06, VQ-11, VQ-14, VQ-18 | Metadata follow-up
-Date: 2026-10-06   Tester: Codex   Vegas build: 17.0.0.284   OS: Windows 10 build 19045
-Project: none (metadata-only inspection)
-Script/steps: Filter the existing reflection-only metadata dump by the requested type/member names. No assembly code was loaded or executed; Vegas was not launched; no probe source was changed.
-Observed: Audio-event normalization members and track-level volume/pan/envelope members are present; direct event Volume is absent. Custom-command/dock types and an `ICustomCommandModule` interface are present. Timecode and project frame-rate properties use `Int64` frame count and `Double` frame rate, with no rational numerator/denominator property in the inspected types. Fade/transition and render/template metadata are summarized above.
-Evidence: ignored `runs/m1-vegas-metadata/ScriptPortal.Vegas.metadata.txt`.
-Conclusion: PARTIAL (compile-time only)
-Status change: No Vegas question was marked VERIFIED. VQ-03, VQ-05, VQ-06, VQ-11, VQ-14, and VQ-18 remain UNVERIFIED for runtime behavior.
-Follow-ups: Complete the corresponding checks on a throwaway Vegas project before implementing executor behavior.
+*End of VEGAS_NOTES.md v1.0.3*

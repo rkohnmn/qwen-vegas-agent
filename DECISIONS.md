@@ -288,6 +288,17 @@ Rationale: A bounded sample is enough to raise the configured warning but does n
 Alternatives: Ignore the warning because the reported average and real rates match, or transcode the source in place; rejected by the prompt's VFR stop rule and source-read-only requirement.
 
 Status: Awaiting user direction. No source-media modification or model-weight download occurred.
+### D-28 — Treat Vegas metadata as candidates, not runtime proof
+Date: 2026-10-06
+
+Decision: Use the EC metadata findings to correct executor design notes while leaving runtime behavior UNVERIFIED. Keep event gain unresolved because `AudioEvent.Volume` is absent and `NormalizeGain` semantics are unknown. Prefer the explicitly named `Effects.AddEffect(PlugInNode)` call as the initial FX implementation candidate over inherited collection `Add`, subject to a Vegas probe. Record the `ICustomCommandModule` and related extension names as evidence that a route may exist, without assuming host discovery. Use `Vegas.SaveProject(...)` as the metadata-present checkpoint candidate.
+
+Rationale: Reflection-only metadata establishes names and signatures, not behavior. Correct target and candidate method names reduce avoidable implementation errors while preserving the probe gate.
+
+Alternatives: Treat metadata membership as proof of working behavior, choose event normalization as the gain mechanism, or assume extension discovery from the type names; rejected because no Vegas runtime operation was performed.
+
+Status: Accepted as a design note only; no executor behavior was verified or implemented.
+
 ## Reference: browser agent patterns
 
 Read-only review of the local sibling browser-agent repository, commit 04c788de21cded7070744c60a98048e9b2141f49. The folder contained no LICENSE, COPYING, or NOTICE file, so the license is unknown. No code was copied.
