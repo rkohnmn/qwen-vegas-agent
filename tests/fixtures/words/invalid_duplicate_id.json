@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "2.0.0",
   "source_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
   "fps": "30000/1001",
   "asr": {
@@ -18,7 +18,8 @@
       "speaker": "host",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 1"
+      "track": "Mic 1",
+      "alignment_status": "aligned"
     },
     {
       "id": "w1",
@@ -28,7 +29,8 @@
       "speaker": "host",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 1"
+      "track": "Mic 1",
+      "alignment_status": "aligned"
     },
     {
       "id": "w3",
@@ -38,7 +40,8 @@
       "speaker": "host",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 1"
+      "track": "Mic 1",
+      "alignment_status": "aligned"
     },
     {
       "id": "w4",
@@ -48,7 +51,8 @@
       "speaker": "host",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 1"
+      "track": "Mic 1",
+      "alignment_status": "aligned"
     },
     {
       "id": "w5",
@@ -58,7 +62,8 @@
       "speaker": "host",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 1"
+      "track": "Mic 1",
+      "alignment_status": "aligned"
     },
     {
       "id": "w6",
@@ -68,7 +73,8 @@
       "speaker": "host",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 1"
+      "track": "Mic 1",
+      "alignment_status": "aligned"
     },
     {
       "id": "w7",
@@ -78,7 +84,8 @@
       "speaker": "host",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 1"
+      "track": "Mic 1",
+      "alignment_status": "aligned"
     },
     {
       "id": "w8",
@@ -88,7 +95,8 @@
       "speaker": "host",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 1"
+      "track": "Mic 1",
+      "alignment_status": "aligned"
     },
     {
       "id": "w9",
@@ -98,7 +106,8 @@
       "speaker": "host",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 1"
+      "track": "Mic 1",
+      "alignment_status": "aligned"
     },
     {
       "id": "w10",
@@ -108,7 +117,8 @@
       "speaker": "host",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 1"
+      "track": "Mic 1",
+      "alignment_status": "aligned"
     },
     {
       "id": "w11",
@@ -118,7 +128,8 @@
       "speaker": "host",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 1"
+      "track": "Mic 1",
+      "alignment_status": "aligned"
     },
     {
       "id": "w12",
@@ -128,7 +139,8 @@
       "speaker": "host",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 1"
+      "track": "Mic 1",
+      "alignment_status": "aligned"
     },
     {
       "id": "w13",
@@ -138,7 +150,8 @@
       "speaker": "host",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 1"
+      "track": "Mic 1",
+      "alignment_status": "aligned"
     },
     {
       "id": "w14",
@@ -148,7 +161,8 @@
       "speaker": "host",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 1"
+      "track": "Mic 1",
+      "alignment_status": "aligned"
     },
     {
       "id": "w15",
@@ -158,7 +172,8 @@
       "speaker": "host",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 1"
+      "track": "Mic 1",
+      "alignment_status": "aligned"
     },
     {
       "id": "w16",
@@ -168,7 +183,8 @@
       "speaker": "guest",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 2"
+      "track": "Mic 2",
+      "alignment_status": "aligned"
     },
     {
       "id": "w17",
@@ -178,7 +194,8 @@
       "speaker": "guest",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 2"
+      "track": "Mic 2",
+      "alignment_status": "aligned"
     },
     {
       "id": "w18",
@@ -188,7 +205,8 @@
       "speaker": "guest",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 2"
+      "track": "Mic 2",
+      "alignment_status": "aligned"
     },
     {
       "id": "w19",
@@ -198,7 +216,8 @@
       "speaker": "guest",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 2"
+      "track": "Mic 2",
+      "alignment_status": "aligned"
     },
     {
       "id": "w20",
@@ -208,7 +227,8 @@
       "speaker": "guest",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 2"
+      "track": "Mic 2",
+      "alignment_status": "aligned"
     },
     {
       "id": "w21",
@@ -218,7 +238,8 @@
       "speaker": "guest",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 2"
+      "track": "Mic 2",
+      "alignment_status": "aligned"
     },
     {
       "id": "w22",
@@ -228,7 +249,8 @@
       "speaker": "guest",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 2"
+      "track": "Mic 2",
+      "alignment_status": "aligned"
     },
     {
       "id": "w23",
@@ -238,7 +260,8 @@
       "speaker": "guest",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 2"
+      "track": "Mic 2",
+      "alignment_status": "aligned"
     },
     {
       "id": "w24",
@@ -248,7 +271,8 @@
       "speaker": "guest",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 2"
+      "track": "Mic 2",
+      "alignment_status": "aligned"
     },
     {
       "id": "w25",
@@ -258,7 +282,8 @@
       "speaker": "guest",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 2"
+      "track": "Mic 2",
+      "alignment_status": "aligned"
     },
     {
       "id": "w26",
@@ -268,7 +293,8 @@
       "speaker": "guest",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 2"
+      "track": "Mic 2",
+      "alignment_status": "aligned"
     },
     {
       "id": "w27",
@@ -278,7 +304,8 @@
       "speaker": "guest",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 2"
+      "track": "Mic 2",
+      "alignment_status": "aligned"
     },
     {
       "id": "w28",
@@ -288,7 +315,8 @@
       "speaker": "guest",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 2"
+      "track": "Mic 2",
+      "alignment_status": "aligned"
     },
     {
       "id": "w29",
@@ -298,7 +326,8 @@
       "speaker": "guest",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 2"
+      "track": "Mic 2",
+      "alignment_status": "aligned"
     },
     {
       "id": "w30",
@@ -308,7 +337,8 @@
       "speaker": "guest",
       "speaker_conf": 0.98,
       "word_conf": 0.96,
-      "track": "Mic 2"
+      "track": "Mic 2",
+      "alignment_status": "aligned"
     }
   ],
   "segments": [

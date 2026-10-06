@@ -1,0 +1,14 @@
+{
+  "engine": "fixture",
+  "model": "synthetic-tone-v1",
+  "align_model": "known-word-boundaries",
+  "params_hash": "synthetic-tone-v1",
+  "detected_language": "en",
+  "language_confidence": 1.0,
+  "words": [
+    {"text": "We", "start": 0.1, "end": 0.25, "confidence": 0.99, "aligned": true, "segment_index": 0},
+    {"text": "um", "start": 0.28, "end": 0.45, "confidence": 0.91, "aligned": true, "segment_index": 0},
+    {"text": "begin", "start": 0.5, "end": 0.8, "confidence": 0.96, "aligned": true, "segment_index": 0},
+    {"text": "now", "start": 1.7, "end": 1.95, "confidence": 0.97, "aligned": true, "segment_index": 1}
+  ]
+}

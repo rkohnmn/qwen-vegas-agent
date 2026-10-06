@@ -1,0 +1,12 @@
+{
+  "engine": "fixture",
+  "model": "small",
+  "align_model": "fixture-aligner",
+  "params_hash": "fixture-params",
+  "detected_language": "en",
+  "language_confidence": 0.93,
+  "words": [
+    {"text": "first", "start": 0.1, "end": 0.3, "confidence": 0.98, "aligned": true, "segment_index": 0},
+    {"text": "unresolved", "start": null, "end": null, "confidence": 0.0, "aligned": false, "segment_index": 1}
+  ]
+}

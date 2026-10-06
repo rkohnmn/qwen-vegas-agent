@@ -5,23 +5,98 @@
   "description": "Word-aligned perception output and its stable segment and silence-gap identifiers.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "source_hash", "fps", "asr", "speaker_mode", "words", "segments", "gaps", "audio_events"],
+  "required": [
+    "schema_version",
+    "source_hash",
+    "fps",
+    "asr",
+    "speaker_mode",
+    "words",
+    "segments",
+    "gaps",
+    "audio_events"
+  ],
   "properties": {
-    "schema_version": {"const": "1.0.0"},
-    "source_hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
-    "fps": {"type": "string", "pattern": "^[1-9][0-9]*/[1-9][0-9]*$"},
+    "schema_version": {
+      "const": "2.0.0"
+    },
+    "source_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "fps": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*/[1-9][0-9]*$"
+    },
     "asr": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["engine", "model", "align_model", "params_hash"],
+      "required": [
+        "engine",
+        "model",
+        "align_model",
+        "params_hash"
+      ],
       "properties": {
-        "engine": {"type": "string", "minLength": 1, "maxLength": 80},
-        "model": {"type": "string", "minLength": 1, "maxLength": 120},
-        "align_model": {"type": "string", "minLength": 1, "maxLength": 120},
-        "params_hash": {"type": "string", "minLength": 1, "maxLength": 160}
+        "engine": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "align_model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "params_hash": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "detected_language": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 40
+        },
+        "language_confidence": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "device": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "compute_type": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "fallback_reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 240
+        }
       }
     },
-    "speaker_mode": {"enum": ["multitrack", "diarized", "single"]},
+    "speaker_mode": {
+      "enum": [
+        "multitrack",
+        "diarized",
+        "single"
+      ]
+    },
     "words": {
       "type": "array",
       "minItems": 1,
@@ -29,16 +104,68 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "text", "start", "end", "speaker", "speaker_conf", "word_conf"],
+        "required": [
+          "id",
+          "text",
+          "start",
+          "end",
+          "speaker",
+          "speaker_conf",
+          "word_conf",
+          "alignment_status"
+        ],
         "properties": {
-          "id": {"type": "string", "pattern": "^w[0-9]+$"},
-          "text": {"type": "string", "minLength": 1, "maxLength": 120},
-          "start": {"type": "number", "minimum": 0},
-          "end": {"type": "number", "minimum": 0},
-          "speaker": {"type": ["string", "null"], "pattern": "^[a-z][a-z0-9_]*$"},
-          "speaker_conf": {"type": "number", "minimum": 0, "maximum": 1},
-          "word_conf": {"type": "number", "minimum": 0, "maximum": 1},
-          "track": {"type": "string", "minLength": 1, "maxLength": 120}
+          "id": {
+            "type": "string",
+            "pattern": "^w[0-9]+$"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "start": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "end": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "speaker": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "speaker_conf": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "word_conf": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "track": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "alignment_status": {
+            "enum": [
+              "aligned",
+              "unaligned"
+            ]
+          }
         }
       }
     },
@@ -48,17 +175,32 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "word_ids"],
+        "required": [
+          "id",
+          "word_ids"
+        ],
         "properties": {
-          "id": {"type": "string", "pattern": "^s[0-9]+$"},
+          "id": {
+            "type": "string",
+            "pattern": "^s[0-9]+$"
+          },
           "word_ids": {
             "type": "array",
             "minItems": 1,
             "maxItems": 500,
             "uniqueItems": true,
-            "items": {"type": "string", "pattern": "^w[0-9]+$"}
+            "items": {
+              "type": "string",
+              "pattern": "^w[0-9]+$"
+            }
           },
-          "speaker": {"type": ["string", "null"], "pattern": "^[a-z][a-z0-9_]*$"}
+          "speaker": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
         }
       }
     },
@@ -68,11 +210,72 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "start", "end"],
+        "required": [
+          "id",
+          "start",
+          "end"
+        ],
         "properties": {
-          "id": {"type": "string", "pattern": "^g[0-9]+$"},
-          "start": {"type": "number", "minimum": 0},
-          "end": {"type": "number", "minimum": 0}
+          "id": {
+            "type": "string",
+            "pattern": "^g[0-9]+$"
+          },
+          "start": {
+            "type": "number",
+            "minimum": 0
+          },
+          "end": {
+            "type": "number",
+            "minimum": 0
+          },
+          "refinement": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "asr_start",
+              "asr_end",
+              "energy_start",
+              "energy_end",
+              "noise_floor_rms",
+              "threshold_rms",
+              "method"
+            ],
+            "properties": {
+              "asr_start": {
+                "type": "number",
+                "minimum": 0
+              },
+              "asr_end": {
+                "type": "number",
+                "minimum": 0
+              },
+              "energy_start": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "energy_end": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "noise_floor_rms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "threshold_rms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "method": {
+                "const": "pcm_rms_noise_floor"
+              }
+            }
+          }
         }
       }
     },
@@ -82,11 +285,25 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["type", "start", "end"],
+        "required": [
+          "type",
+          "start",
+          "end"
+        ],
         "properties": {
-          "type": {"type": "string", "minLength": 1, "maxLength": 48},
-          "start": {"type": "number", "minimum": 0},
-          "end": {"type": "number", "minimum": 0}
+          "type": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 48
+          },
+          "start": {
+            "type": "number",
+            "minimum": 0
+          },
+          "end": {
+            "type": "number",
+            "minimum": 0
+          }
         }
       }
     }
