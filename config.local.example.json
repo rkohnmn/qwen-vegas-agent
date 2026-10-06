@@ -1,0 +1,8 @@
+{
+  "vegas_install_dir": "<set-local-path>",
+  "test_video_dir": "<set-local-path>",
+  "test_video_file": "",
+  "smoke_max_seconds": 120,
+  "inference_server": "OFF",
+  "approve_downloads": true
+}

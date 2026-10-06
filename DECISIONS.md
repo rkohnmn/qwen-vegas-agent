@@ -1,6 +1,6 @@
 # Decisions
 
-Numbered decisions capture settled design choices. The architecture remains the source of truth for system behavior; this log records rationale and Milestone 0 clarifications.
+Numbered decisions capture settled design choices. The architecture remains the source of truth for system behavior; this log records rationale and Milestone 0 and Milestone 1 clarifications.
 
 ## Decisions
 
@@ -113,6 +113,28 @@ Rationale: The task runner must use the pinned dependencies consistently and lea
 Alternatives: Use the caller's global packages or retain pytest temp files in the project; rejected.
 
 Status: Accepted.
+
+### D-11 — Python 3.12 is the Windows development target
+Date: 2026-10-06
+
+Decision: Update the project target from Python 3.11 to Python 3.12.10 on Windows. Use CPU inference when CUDA is unavailable.
+
+Rationale: Python 3.12.10 is the installed 64-bit runtime. The current WhisperX package metadata supports Python 3.10 through 3.13, and PyTorch's Windows guidance supports Python 3.9 through 3.12. The available global PyTorch is CPU-only (`2.13.0+cpu`), so CUDA inference is not available in this environment; M1's CPU fallback remains the supported path.
+
+Alternatives: Keep 3.11 as the target and install another Python runtime; rejected because it adds an environment requirement without improving compatibility for this milestone.
+
+Status: Accepted. Smoke ASR performance remains unmeasured because ffmpeg and ffprobe are missing.
+
+### D-12 — Do not fetch ffmpeg binaries
+Date: 2026-10-06
+
+Decision: Keep preflight, extraction, and media-render smoke work stopped until the user installs `ffmpeg` and `ffprobe`. Do not fetch binaries from any source.
+
+Rationale: Milestone 1 explicitly excludes ffmpeg downloads. Both tools are absent from PATH and the checked local tool locations. Offline contracts, planners, compiler, synthetic renderer, verifier, tests, and Vegas metadata inspection can proceed independently.
+
+Alternatives: Download a binary or substitute another media executable; rejected because the prompt permits no ffmpeg download and requires ffprobe-based inspection.
+
+Status: Accepted. Real-media acceptance criteria 2 and the benchmark portion of 10 are blocked pending local installation.
 
 ## Reference: browser agent patterns
 

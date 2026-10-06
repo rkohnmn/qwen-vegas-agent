@@ -2,7 +2,14 @@
 
 All notable project changes are recorded here. Contract version entries are checked by `python tasks.py docs-check`.
 
-## [Unreleased] — Milestone 0
+## [Unreleased] — Milestone 1
+
+### Changed
+
+- Set the supported Windows development target to Python 3.12 based on the installed runtime and current WhisperX/PyTorch compatibility metadata.
+- Recorded the available CPU-only inference environment and missing `ffmpeg` / `ffprobe`; the real-media smoke portion remains stopped until those tools are installed locally.
+
+## [Milestone 0]
 
 ### Added
 

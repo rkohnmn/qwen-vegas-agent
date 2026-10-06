@@ -4,8 +4,8 @@ Instructions for AI coding agents (Codex or similar) working **on this repositor
 
 This file is about *developing* the project. It is not the runtime prompt for the video-editing model. Runtime prompts live in `skills/` and are a separate concern (see Section 3).
 
-**Version:** 1.0.0
-**Project phase:** Design baseline complete. Implementation not started. Documentation is the source of truth until code exists.
+**Version:** 1.1.0
+**Project phase:** Milestone 1 implementation is in progress. Documentation remains the source of truth until code exists for each component.
 
 ---
 
@@ -85,7 +85,7 @@ Where to put new code:
 ## 6. Environment and Commands
 
 ### 6.1 Targets
-- Orchestrator and perception: **Python 3.11**.
+- Orchestrator and perception: **Python 3.12**. The Windows smoke environment uses Python 3.12.10; WhisperX and PyTorch support this version.
 - Vegas code: **C#**, conservative language level (see 6.3).
 - Primary dev OS for Vegas work: **Windows**. Orchestrator code should stay cross-platform where practical.
 

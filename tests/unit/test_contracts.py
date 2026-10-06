@@ -226,6 +226,7 @@ def test_gitignore_covers_secrets_work_data_media_and_build_outputs() -> None:
     rules = (ROOT / ".gitignore").read_text(encoding="utf-8")
     required = [
         "config.json",
+        "config.local.json",
         ".env*",
         "voices/",
         "cache/",
@@ -257,7 +258,14 @@ def test_repo_examples_have_no_personal_paths_hosts_or_real_keys() -> None:
         re.compile(r"(?i)\b[A-Z]:\\Users\\[^\\\s]+"),
         re.compile(r"(?i)" + "/" + "home/" + r"[^/\s]+"),
     ]
-    skipped_parts = {".git", ".venv", "__pycache__", ".pytest_cache", ".pytest-temp"}
+    skipped_parts = {
+        ".git",
+        ".venv",
+        "__pycache__",
+        ".pytest_cache",
+        ".pytest-temp",
+        "config.local.json",
+    }
     for path in ROOT.rglob("*"):
         if not path.is_file() or any(
             part in skipped_parts or part.startswith(".pytest-temp-") for part in path.parts
