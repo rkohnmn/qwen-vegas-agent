@@ -159,9 +159,42 @@ The full reflection-only type/member dump is in ignored output `runs/m1-vegas-me
 | `Fade.Length`, `Curve`, `ReciprocalCurve`, `Transition`; `CurveType` | Present | `Fade.Transition` is typed as `System.Object`; applying a transition is unverified. |
 | `Envelope`, `EnvelopePoint`, `Envelope.Points`, `EnvelopePoint(Timecode, Double, CurveType)` | Present | These names/signatures are in assembly metadata; envelope edits are unverified. |
 | `Marker`, `Region`, `MarkerList`, `RegionList`, `Project.Markers`, `Project.Regions`, `Marker.RemoveSelf()` | Present | Marker/region types, constructors and collection interfaces are present. Collection mutation and prefix clearing remain untested. |
-| `Vegas.Render(...)`, `Project.Render(...)`, `RenderArgs`, `RenderTemplate`, `Vegas.RenderStarted/RenderFinished` | Present | Render types, methods and events are present; no render was attempted. The type is singular `RenderTemplate`; no `RenderTemplates` type was found. |
+| `Vegas.Render(...)`, `RenderArgs`, `RenderTemplate(s)`, `Renderer.Templates`, `Vegas.RenderStarted/RenderFinished` | Present | `Vegas.Renderers` and `Renderer.Templates` lead to an enumerable `RenderTemplates` collection; no render or template enumeration was attempted. |
 | `Vegas.SaveProject(...)`, `OpenProject(...)`, `NewProject()` | Present | These methods are on `Vegas`, not `Project`; save/open behavior is untested. |
-| `AudioEvent.Volume` or `TrackEvent.Volume` | Absent | `AudioTrack.Volume` and envelope APIs are present. Event-level direct volume is not in either event type's metadata. |
+| Audio level, extension, time, fade, and render members | See EC follow-up below | Metadata names and types only; every runtime behavior remains unverified. |
+
+### Prompt 01b metadata follow-up (EC only)
+
+These entries are filtered from the existing reflection-only dump. They are compile-time metadata evidence, not runtime behavior or API guarantees.
+
+**VQ-18 — gain, volume, level, normalization, mute, pan, and envelope names**
+
+| Type | Matching declared members and CLR types |
+|---|---|
+| `AudioEvent` | `Normalize: Boolean`; `NormalizeGain: Double`; `get_Normalize(): Boolean`; `set_Normalize(Boolean): Void`; `get_NormalizeGain(): Double`; `set_NormalizeGain(Double): Void`; `SetNormalize(Boolean, Double): Void` |
+| `AudioTrack` | `Volume: Single`; `PanCenter: Single`; `PanX: Single`; `PanY: Single`; `AutomatedPanX: Single`; `PanXAutomationState: AutomationControlAutomationState`; `PanXTouch: Boolean`; `CanAddEnvelope(EnvelopeType): Boolean`; corresponding `get_`/`set_` methods for these properties |
+| `TrackEvent` | `Mute: Boolean`; `get_Mute(): Boolean`; `set_Mute(Boolean): Void` |
+| `Track` | `Mute: Boolean`; `Envelopes: Envelopes`; `EnvelopeCOM: IEnvelopeCOM`; backing fields `myEnvelopeCOM: IEnvelopeCOM`, `myEnvelopes: Envelopes`; `CanAddEnvelope(EnvelopeType): Boolean`; `get_`/`set_Mute`, `get_Envelopes`, `get_EnvelopeCOM` |
+
+`AudioEvent.Volume` and `TrackEvent.Volume` are absent from their declared metadata. The names suggest track-level SFX level could use `AudioTrack.Volume` or a track envelope; `AudioEvent.NormalizeGain` is also present, but its semantics are unknown. Metadata alone does not establish which setting produces the intended event gain.
+
+**VQ-03 — extension model**
+
+Matching type names are `CaptureDockWnd`, `CustomCommand`, `DockableControl`, `DockableControl+AppWindowClosingEventArgs`, `DockWindowStyle`, `DomainManager+DockWindowState`, `DomainManager+ToolbarMapping`, `ICustomCommandModule`, `IDockView`, `IDockWindow`, `OFXControlPoint`, `OFXControlPointType`, `TransportControl`, and `TransportControl+TransportSuspension`. No type name containing `UIClient` was found. `ICustomCommandModule` declares `GetCustomCommands(): ICollection` and `InitializeModule(Vegas): Void`. Additional related metadata names include `DomainManager.AddCustomCommand(CustomCommand)`, `AddExtraCommandModule(String)`, and `LoadAppExtension(String, Boolean)`. This suggests an extension/custom-command route exists in the assembly metadata, but not that Vegas loads or runs one. The install root has no `Application Extensions` folder.
+
+**VQ-11 — time and frame-rate members**
+
+`Timecode` exposes `FrameCount: Int64`, `FrameRate: Double`, `FromFrames(Int64): Timecode`, `FromSeconds(Double): Timecode`, `FromMilliseconds(Double): Timecode`, `FromNanos(Int64): Timecode`, `FromPositionString(String, RulerFormat[, Boolean]): Timecode`, and `ToPositionString(RulerFormat): String`. `VideoProperties.FrameRate` and `ProjectVideoProperties.FrameRate` are `Double`; `ProjectVideoProperties` also exposes `PixelFormat`. `RulerFormat` includes `Smpte30`, `SmpteDrop`, `SmpteNonDrop`, `SmpteEBU`, `SmpteFilmSync`, and `SmpteFilmSyncIVTC`. The metadata exposes no numerator/denominator frame-rate type or explicit drop-frame Boolean on these types; rational conversion and actual project-rate behavior remain unverified.
+
+**VQ-05 / VQ-06 — fades and transitions**
+
+`TrackEvent.FadeIn` and `FadeOut` are `Fade`. `Fade` exposes `Length: Timecode`, `Curve: CurveType`, `ReciprocalCurve: CurveType`, `Gain: Single`, and `Transition: System.Object`, plus setters, `SetCurve(CurveType, Int32)`, `GetCurve(Int32): CurveType`, and `RemoveTransition(): Boolean`. `CurveType` values are `Fast`, `Invalid`, `Linear`, `None`, `Sharp`, `Slow`, and `Smooth`. `Effect(PlugInNode)` and `Effects.AddEffect(PlugInNode): Void` are metadata hints for building/attaching effects; they do not explain the expected object assigned to `Fade.Transition` or prove a transition can be applied.
+
+**VQ-14 — render arguments and templates**
+
+`RenderArgs` has constructors `RenderArgs()` and `RenderArgs(Project)`. Its properties are `CancelRender:Boolean`, `GenerateLoudnessLog:Boolean`, `IncludeMarkers:Boolean`, `Length:Timecode`, `LengthNanos:Int64`, `OutputFile:String`, `OutputFileName:String`, `RendererID:UInt32`, `RenderTemplate:RenderTemplate`, `SaveAsMono:Boolean`, `SaveAsMonoStreams:Boolean`, `SaveProjectPathLink:Boolean`, `ShowOpenButtonsOnComplete:Boolean`, `Start:Timecode`, `StartNanos:Int64`, `Stereo3DModeOverride:Stereo3DOutputMode`, `StretchToFill:Boolean`, `TemplateID:UInt32`, `UseChannelMapping:Boolean`, `UseProjectRotation:Boolean`, `UseSelection:Boolean`, and `WaitForIdle:Boolean`; it also has `GetTemplateCOM(IRenderTemplateCOM ByRef): Void`.
+
+`RenderTemplate` has constructors for `(IRendererCOM, UInt32, UInt32)`, `(UInt32, IRenderTemplateCOM)`, and `(IRendererCOM, UInt32, Byte[])`. Its properties are `AudioBitrate:Int64`, `AudioBitsPerSample:Int32`, `AudioChannelCount:Int32`, `AudioChannelFlags:AudioChannelFlags`, `AudioSampleRate:UInt32`, `AudioStreamCount:Int32`, `COM:IRenderTemplateCOM`, `Description:String`, `FileExtensions:String[]`, `Index:Int32`, `Name:String`, `Notes:String`, `RendererID:UInt32`, `Supports360:Boolean`, `SupportsHDR10:Boolean`, `SupportsHLG:Boolean`, `SupportsStereoscopic:Boolean`, `TemplateGuid:Guid`, `TemplateID:UInt32`, `TotalBitrate:Int64`, `VideoBitrate:Int64`, `VideoDataRate:Int64`, `VideoFieldOrder:VideoFieldOrder`, `VideoFrameRate:Double`, `VideoHeight:Int32`, `VideoPixelAspectRatio:Double`, `VideoStreamCount:Int32`, and `VideoWidth:Int32`. It also declares `GetAVInfo`, `GetBitrate`, `GetStatusForContext`, `GetTemplateData`, `IsValid`, `ReadTemplateStream`, and `ShowTemplateStatusWarning`. Metadata indicates template enumeration through `Vegas.Renderers`, `Renderer.Templates:RenderTemplates`, and the `RenderTemplates` collection (`IEnumerable`, `GetItem`, `Refresh`, `FindByName`, and `FindByGuid`). No installed template list was enumerated.
 
 ---
 
@@ -482,6 +515,15 @@ This table is the contract between `ops.json` operation types and Vegas API beha
 | `render_final` | Final output | render API with template | VQ-14 | UNVERIFIED |
 | `save_checkpoint` | Save project copy | `SaveProject` | VQ-15 | UNVERIFIED |
 | `clear_markers_by_prefix` | Remove agent markers | iterate and remove | VQ-13 | UNVERIFIED |
+
+### Prompt 01b metadata follow-up summary (EC only)
+
+| Operation/design area | Metadata-only mechanism hints | Status |
+|---|---|---|
+| `add_audio_event` / `set_gain` (VQ-18) | `AudioTrack.AddAudioEvent` exists; `AudioTrack.Volume:Single`, `Track.Envelopes`, and `AudioEvent.NormalizeGain:Double` exist; event-level `AudioEvent.Volume` is absent. | UNVERIFIED; level-setting semantics were not exercised. |
+| `add_transition` (VQ-05) | `TrackEvent.FadeIn/FadeOut`, `Fade.Transition:System.Object`, `Effect(PlugInNode)`, and `Effects.AddEffect(PlugInNode)` exist. | UNVERIFIED; transition object and behavior are unknown. |
+| frame resolution (VQ-11) | `Timecode.FrameCount:Int64`; exposed frame rates are `Double`; no rational numerator/denominator member was found on the inspected types. | UNVERIFIED; exact conversion remains open. |
+| `render_preview` / `render_final` (VQ-14) | `RenderArgs`, `Vegas.Renderers`, and `Renderer.Templates:RenderTemplates` are present; the collection is enumerable in metadata. | UNVERIFIED; no template was enumerated and no render was attempted. |
 
 Executor rules that hold regardless of test outcomes: refuse any path outside the declared working directory, never delete source media, reject unknown op types, wrap batches in undo blocks if VQ-08 passes, and check the stop file between batches.
 
@@ -907,3 +949,13 @@ Before adapting any code from these, record the license in `DECISIONS.md`. When 
 ---
 
 *End of VEGAS_NOTES.md v1.0.2*
+
+### R-003 | VQ-03, VQ-05, VQ-06, VQ-11, VQ-14, VQ-18 | Metadata follow-up
+Date: 2026-10-06   Tester: Codex   Vegas build: 17.0.0.284   OS: Windows 10 build 19045
+Project: none (metadata-only inspection)
+Script/steps: Filter the existing reflection-only metadata dump by the requested type/member names. No assembly code was loaded or executed; Vegas was not launched; no probe source was changed.
+Observed: Audio-event normalization members and track-level volume/pan/envelope members are present; direct event Volume is absent. Custom-command/dock types and an `ICustomCommandModule` interface are present. Timecode and project frame-rate properties use `Int64` frame count and `Double` frame rate, with no rational numerator/denominator property in the inspected types. Fade/transition and render/template metadata are summarized above.
+Evidence: ignored `runs/m1-vegas-metadata/ScriptPortal.Vegas.metadata.txt`.
+Conclusion: PARTIAL (compile-time only)
+Status change: No Vegas question was marked VERIFIED. VQ-03, VQ-05, VQ-06, VQ-11, VQ-14, and VQ-18 remain UNVERIFIED for runtime behavior.
+Follow-ups: Complete the corresponding checks on a throwaway Vegas project before implementing executor behavior.
