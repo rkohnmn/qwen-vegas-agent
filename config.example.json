@@ -10,16 +10,16 @@
   },
   "asr": {
     "engine": "whisperx",
-    "model": "medium",
+    "model": "small",
     "compute_type": "int8_float16",
-    "device": "cuda",
+    "device": "auto",
     "language": "auto"
   },
   "speakers": {
     "file": "speakers.json",
-    "mode": "auto",
+    "mode": "single",
     "diarization": {
-      "enabled": true,
+      "enabled": false,
       "device": "cpu",
       "hf_token": ""
     },
@@ -28,7 +28,12 @@
   "offload": {
     "enabled": false,
     "host": "",
-    "tasks": ["diarization", "scene", "beats", "sfx_index"]
+    "tasks": [
+      "diarization",
+      "scene",
+      "beats",
+      "sfx_index"
+    ]
   },
   "compile": {
     "head_pad_ms": 40,
@@ -36,14 +41,18 @@
     "min_gap_after_cut_ms": 120,
     "audio_crossfade_ms": 20,
     "max_removed_percent": 35,
-    "snap_zero_crossing": true
+    "snap_zero_crossing": true,
+    "max_gap_after_cut_ms": 1800
   },
   "subtitles": {
     "max_chars_per_line": 42,
     "max_lines": 2,
     "max_cps": 20,
     "min_duration_ms": 700,
-    "also_export": ["srt", "ass"]
+    "also_export": [
+      "srt",
+      "ass"
+    ]
   },
   "mode": "dry-run",
   "auto_thresholds": {
@@ -56,7 +65,9 @@
     "max_verify_iterations": 2
   },
   "assets": {
-    "roots": ["assets/"],
+    "roots": [
+      "assets/"
+    ],
     "github_allowlist": [],
     "pin_commits": true,
     "ask_before_other_sources": true
@@ -70,5 +81,12 @@
     "cache": "cache/",
     "runs": "runs/",
     "stop_file": "STOP"
+  },
+  "perception": {
+    "gap_minimum_ms": 250,
+    "gap_window_ms": 10,
+    "gap_noise_floor_multiplier": 2.5,
+    "gap_absolute_rms_floor": 0.002,
+    "gap_minimum_quiet_ms": 40
   }
 }

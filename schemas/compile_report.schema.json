@@ -15,7 +15,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.0.0"
+      "const": "1.2.0"
     },
     "source_frames": {
       "type": "integer",
@@ -98,7 +98,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^c[0-9]+$"
+            "pattern": "^(?:c[0-9]+(?:_j[0-9]+)?_(?:in|out)|c[0-9]+)$"
           },
           "word_time": {
             "type": "number",
@@ -115,6 +115,47 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 120
+          },
+          "final_time": {
+            "type": "string",
+            "pattern": "^[0-9]+/[1-9][0-9]*$"
+          }
+        }
+      }
+    },
+    "fade_decisions": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "decision",
+          "frames",
+          "reason"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "decision": {
+            "enum": [
+              "crossfade",
+              "fade_out_in",
+              "none"
+            ]
+          },
+          "frames": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
           }
         }
       }

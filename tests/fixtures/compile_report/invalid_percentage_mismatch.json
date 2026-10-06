@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.2.0",
   "source_frames": 100,
   "removed_frames": 10,
   "removed_percent": 20.0,
