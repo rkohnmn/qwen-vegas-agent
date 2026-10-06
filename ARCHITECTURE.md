@@ -1,8 +1,8 @@
 # ARCHITECTURE.md
 
 **Project (working title):** Local AI Video Editing Agent for VEGAS Pro 17
-**Document version:** 1.2.0
-**Status:** M1 offline rough-cut code is implemented; the real-media smoke run is blocked by missing local `ffmpeg` and `ffprobe`. M1 does not execute Vegas. Vegas-specific behaviors tagged `[UNVERIFIED]` must be confirmed on a throwaway Vegas Pro 17 project before code depends on them.
+**Document version:** 1.2.1
+**Status:** M1 offline rough-cut code is implemented; local FFmpeg 9.0.1 is present outside the normal PATH. Read-only preflight through a process-local PATH reported W_VFR, so real-media processing stopped before audio extraction and ASR. M1 does not execute Vegas. Vegas-specific behaviors tagged `[UNVERIFIED]` must be confirmed on a throwaway Vegas Pro 17 project before code depends on them.
 
 ---
 
@@ -981,4 +981,4 @@ Each item is tracked in `docs/VEGAS_NOTES.md` with a status of `verified`, `unve
 
 ---
 
-*End of ARCHITECTURE.md v1.2.0*
+*End of ARCHITECTURE.md v1.2.1*

@@ -33,7 +33,7 @@ python tasks.py docs-check
 python tasks.py eval
 ```
 
-For a media run, install `ffmpeg` and `ffprobe` locally, run `python tasks.py setup --asr`, then run the baseline smoke command. The opt-in setup installed pinned direct packages from PyPI plus PyTorch CUDA 12.8 from the official wheel index. WhisperX model weights are fetched only when a valid media run begins. The project does not download media binaries.
+For a media run, make local `ffmpeg` and `ffprobe` available on `PATH`, run `python tasks.py setup --asr`, then run the baseline smoke command. The opt-in setup installed pinned direct packages from PyPI plus PyTorch CUDA 12.8 from the official wheel index. WhisperX model weights are fetched only when a valid media run begins. The project does not download media binaries.
 
 ```powershell
 python tasks.py dry-run --video <path> --max-seconds 120 --planner baseline

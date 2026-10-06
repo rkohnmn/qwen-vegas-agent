@@ -299,6 +299,17 @@ Alternatives: Treat metadata membership as proof of working behavior, choose eve
 
 Status: Accepted as a design note only; no executor behavior was verified or implemented.
 
+### D-29 — Record the VFR stop after local FFmpeg discovery
+Date: 2026-10-06
+
+Decision: Correct the Architecture status to reflect that FFmpeg 9.0.1 is installed outside the normal PATH and that a process-local PATH override enabled read-only preflight. The current real-media gate is W_VFR, which stopped processing before extraction and ASR.
+
+Rationale: The earlier `E_MEDIA_TOOL` manifest records the initial PATH failure; the later preflight supersedes it as the current media status. Keeping both facts distinguishes the historical CLI failure from the active stop condition.
+
+Alternatives: Continue describing the tool as absent, or proceed as though matching average/real rates clear W_VFR; rejected because the tool is installed and the bounded timestamp sample triggered Prompt 01b's stop rule.
+
+Status: Accepted. No media extraction, model-weight download, Vegas launch, or endpoint request followed the VFR finding.
+
 ## Reference: browser agent patterns
 
 Read-only review of the local sibling browser-agent repository, commit 04c788de21cded7070744c60a98048e9b2141f49. The folder contained no LICENSE, COPYING, or NOTICE file, so the license is unknown. No code was copied.
