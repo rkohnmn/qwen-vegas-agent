@@ -188,6 +188,65 @@
       "file": "ops/invalid_future_reference.json",
       "expected": "E_OP_ORDER",
       "check": "ops"
+    },
+    {
+      "contract": "timeline",
+      "file": "timeline/valid_minimal.json",
+      "expected": "valid",
+      "check": "timeline"
+    },
+    {
+      "contract": "timeline",
+      "file": "timeline/invalid_missing_group_event.json",
+      "expected": "E_REF_EVENT",
+      "check": "timeline"
+    },
+    {
+      "contract": "compile_report",
+      "file": "compile_report/valid_minimal.json",
+      "expected": "valid",
+      "check": "compile_report"
+    },
+    {
+      "contract": "compile_report",
+      "file": "compile_report/invalid_percentage_mismatch.json",
+      "expected": "E_REPORT_CONSISTENCY",
+      "check": "compile_report"
+    },
+    {
+      "contract": "verify_report",
+      "file": "verify_report/valid_minimal.json",
+      "expected": "valid",
+      "check": "verify_report"
+    },
+    {
+      "contract": "verify_report",
+      "file": "verify_report/invalid_missing_fix.json",
+      "expected": "E_REPORT_CONSISTENCY",
+      "check": "verify_report"
+    },
+    {
+      "contract": "run_manifest",
+      "file": "run_manifest/valid_minimal.json",
+      "expected": "valid",
+      "check": "run_manifest"
+    },
+    {
+      "contract": "run_manifest",
+      "file": "run_manifest/invalid_integrity_mismatch.json",
+      "expected": "E_MANIFEST_INTEGRITY",
+      "check": "run_manifest"
+    },
+    {
+      "contract": "edl",
+      "file": "edl/invalid_gap_duration.json",
+      "expected": "E_SCHEMA"
+    },
+    {
+      "contract": "edl",
+      "file": "edl/invalid_unknown_gap_action.json",
+      "expected": "E_REF_GAP",
+      "check": "edl"
     }
   ]
 }

@@ -3,9 +3,7 @@
   "words_hash": "sha256:c8f7100eef3734b431ed3bccb908a94cf49806006e6c362b937f59a9765122a9",
   "summary": "Keep the short two-speaker conversation readable.",
   "cuts": [],
-  "keeps_reordered": [
-    "w1"
-  ],
+  "keeps_reordered": [],
   "transitions": [],
   "sfx": [],
   "subtitles": {
@@ -15,5 +13,15 @@
     "omit_ranges": []
   },
   "tool_requests": [],
-  "questions": []
+  "questions": [],
+  "gap_actions": [
+    {
+      "id": "c2",
+      "gap_id": "g999",
+      "mode": "remove",
+      "reason": "remove silence",
+      "confidence": 0.8,
+      "category": "silence"
+    }
+  ]
 }

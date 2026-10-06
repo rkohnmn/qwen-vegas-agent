@@ -16,7 +16,17 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent
 REQUIREMENTS = ROOT / "requirements-dev.txt"
 FIXTURE_ROOT = ROOT / "tests" / "fixtures"
-VERSIONED_CONTRACTS = ("words", "speakers", "catalog", "edl", "ops")
+VERSIONED_CONTRACTS = (
+    "words",
+    "speakers",
+    "catalog",
+    "edl",
+    "ops",
+    "timeline",
+    "compile_report",
+    "verify_report",
+    "run_manifest",
+)
 DOC_PATH_PATTERN = re.compile(r"(?<![A-Za-z0-9_])((?:docs|schemas)/[A-Za-z0-9_./*-]+)")
 MARKDOWN_LINK_PATTERN = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 
@@ -107,8 +117,12 @@ def fixture_issues(
 ) -> list[Any]:
     from orchestrator.contracts import (
         check_catalog,
+        check_compile_report,
         check_edl_against,
         check_ops,
+        check_run_manifest,
+        check_timeline,
+        check_verify_report,
         check_words,
     )
 
@@ -125,6 +139,14 @@ def fixture_issues(
         )
     if contract == "ops":
         return check_ops(document, FIXTURE_ROOT)
+    if contract == "timeline":
+        return check_timeline(document)
+    if contract == "compile_report":
+        return check_compile_report(document)
+    if contract == "verify_report":
+        return check_verify_report(document)
+    if contract == "run_manifest":
+        return check_run_manifest(document)
     return []
 
 

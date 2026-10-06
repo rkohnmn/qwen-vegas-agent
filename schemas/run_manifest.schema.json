@@ -1,0 +1,235 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qwen-vegas-agent.local/schemas/run_manifest.schema.json",
+  "title": "Run Manifest Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "job_id",
+    "inputs",
+    "schemas",
+    "tools",
+    "stages",
+    "token_estimate",
+    "source_integrity",
+    "outcome"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "job_id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]{1,80}$"
+    },
+    "inputs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "sha256"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "schemas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timeline",
+        "words",
+        "edl",
+        "ops"
+      ],
+      "properties": {
+        "timeline": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "words": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "edl": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "ops": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        }
+      }
+    },
+    "tools": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "python",
+        "ffmpeg",
+        "ffprobe",
+        "asr_engine",
+        "asr_model",
+        "align_model"
+      ],
+      "properties": {
+        "python": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "ffmpeg": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "ffprobe": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "asr_engine": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "asr_model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "align_model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        }
+      }
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "wall_clock_ms",
+          "outcome"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "wall_clock_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "outcome": {
+            "enum": [
+              "complete",
+              "partial",
+              "blocked",
+              "failed"
+            ]
+          },
+          "error_code": {
+            "type": "string",
+            "pattern": "^E_[A-Z0-9_]+$"
+          }
+        }
+      }
+    },
+    "token_estimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pack_characters",
+        "estimated_tokens",
+        "method"
+      ],
+      "properties": {
+        "pack_characters": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "estimated_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "method": {
+          "const": "ceil_chars_div_4"
+        }
+      }
+    },
+    "source_integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256_before",
+        "sha256_after",
+        "unchanged"
+      ],
+      "properties": {
+        "sha256_before": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "sha256_after": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "unchanged": {
+          "type": "boolean"
+        }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "code",
+        "message"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "complete",
+            "partial",
+            "blocked",
+            "failed"
+          ]
+        },
+        "code": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^E_[A-Z0-9_]+$"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    }
+  }
+}

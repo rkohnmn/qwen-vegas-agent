@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 import ntpath
 from collections.abc import Mapping
+from fractions import Fraction
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
@@ -229,7 +230,50 @@ def check_edl_against(
             continue
         cut_id = cut.get("id")
         if isinstance(cut_id, str):
+            if cut_id in cut_ids:
+                issues.append(
+                    _issue(
+                        ErrorCode.E_DUPLICATE_ID,
+                        f"cuts[{len(cut_ids)}].id",
+                        "cut ID is duplicated",
+                    )
+                )
             cut_ids.add(cut_id)
+    gap_actions = edl.get("gap_actions", [])
+    seen_action_gap_ids: set[str] = set()
+    all_cut_ids = set(cut_ids)
+    for index, action in enumerate(gap_actions):
+        if not isinstance(action, Mapping):
+            continue
+        action_id = action.get("id")
+        gap_id = action.get("gap_id")
+        if isinstance(action_id, str):
+            if action_id in all_cut_ids:
+                issues.append(
+                    _issue(
+                        ErrorCode.E_DUPLICATE_ID, f"gap_actions[{index}].id", "cut ID is duplicated"
+                    )
+                )
+            all_cut_ids.add(action_id)
+        if isinstance(gap_id, str):
+            if gap_id not in gap_ids:
+                issues.append(
+                    _issue(
+                        ErrorCode.E_REF_GAP,
+                        f"gap_actions[{index}].gap_id",
+                        "gap action references a missing gap",
+                    )
+                )
+            if gap_id in seen_action_gap_ids:
+                issues.append(
+                    _issue(
+                        ErrorCode.E_DUPLICATE_ID,
+                        f"gap_actions[{index}].gap_id",
+                        "gap has more than one action",
+                    )
+                )
+            seen_action_gap_ids.add(gap_id)
+
     event_ids = _ids(timeline, "events") if timeline is not None else None
 
     ranges: list[tuple[int, int, int]] = []
@@ -487,4 +531,267 @@ def check_ops(ops: Mapping[str, Any], working_dir: str | Path) -> list[Validatio
                         "operation references an entity created later",
                     )
                 )
+    return issues
+
+
+def check_timeline(timeline: Mapping[str, Any]) -> list[ValidationIssue]:
+    """Check unique timeline IDs and references within the synthetic linked A/V group."""
+    issues: list[ValidationIssue] = []
+    try:
+        fps_text = timeline.get("fps")
+        if isinstance(fps_text, str) and Fraction(fps_text) <= 0:
+            issues.append(_issue(ErrorCode.E_WORD_TIME, "fps", "frame rate must be positive"))
+    except (ValueError, ZeroDivisionError):
+        issues.append(_issue(ErrorCode.E_SCHEMA, "fps", "frame rate is not a valid rational"))
+
+    tracks = timeline.get("tracks", [])
+    track_rows: dict[str, Mapping[str, Any]] = {}
+    seen_track_slots: set[tuple[Any, Any]] = set()
+    if isinstance(tracks, list):
+        for index, track in enumerate(tracks):
+            if not isinstance(track, Mapping):
+                continue
+            track_id = track.get("id")
+            if not isinstance(track_id, str):
+                continue
+            if track_id in track_rows:
+                issues.append(
+                    _issue(
+                        ErrorCode.E_DUPLICATE_ID, f"tracks[{index}].id", "track ID is duplicated"
+                    )
+                )
+            track_rows[track_id] = track
+            slot = (track.get("kind"), track.get("index"))
+            if slot in seen_track_slots:
+                issues.append(
+                    _issue(
+                        ErrorCode.E_DUPLICATE_ID, f"tracks[{index}]", "track index is duplicated"
+                    )
+                )
+            seen_track_slots.add(slot)
+
+    groups = timeline.get("groups", [])
+    group_rows: dict[str, Mapping[str, Any]] = {}
+    if isinstance(groups, list):
+        for index, group in enumerate(groups):
+            if not isinstance(group, Mapping):
+                continue
+            group_id = group.get("id")
+            if not isinstance(group_id, str):
+                continue
+            if group_id in group_rows:
+                issues.append(
+                    _issue(
+                        ErrorCode.E_DUPLICATE_ID, f"groups[{index}].id", "group ID is duplicated"
+                    )
+                )
+            group_rows[group_id] = group
+
+    events = timeline.get("events", [])
+    event_rows: dict[str, Mapping[str, Any]] = {}
+    event_kinds: list[str] = []
+    if isinstance(events, list):
+        for index, event in enumerate(events):
+            if not isinstance(event, Mapping):
+                continue
+            path = f"events[{index}]"
+            event_id = event.get("id")
+            if not isinstance(event_id, str):
+                continue
+            if event_id in event_rows:
+                issues.append(
+                    _issue(ErrorCode.E_DUPLICATE_ID, f"{path}.id", "event ID is duplicated")
+                )
+            event_rows[event_id] = event
+            track_id = event.get("track_id")
+            track = track_rows.get(track_id) if isinstance(track_id, str) else None
+            if track is None:
+                issues.append(
+                    _issue(
+                        ErrorCode.E_REF_TRACK,
+                        f"{path}.track_id",
+                        "event references a missing track",
+                    )
+                )
+            else:
+                kind = track.get("kind")
+                if isinstance(kind, str):
+                    event_kinds.append(kind)
+            group_id = event.get("group_id")
+            if not isinstance(group_id, str) or group_id not in group_rows:
+                issues.append(
+                    _issue(
+                        ErrorCode.E_REF_GROUP,
+                        f"{path}.group_id",
+                        "event references a missing group",
+                    )
+                )
+            source_offset = event.get("source_offset_frames")
+            length = event.get("length_frames")
+            duration = timeline.get("duration_frames")
+            if type(source_offset) is int and type(length) is int and type(duration) is int:
+                if source_offset + length > duration:
+                    issues.append(
+                        _issue(
+                            ErrorCode.E_REPORT_RANGE,
+                            path,
+                            "event source range exceeds timeline duration",
+                        )
+                    )
+
+    if event_kinds.count("video") != 1 or event_kinds.count("audio") < 1:
+        issues.append(
+            _issue(
+                ErrorCode.E_REPORT_CONSISTENCY,
+                "events",
+                "timeline requires one video event and at least one audio event",
+            )
+        )
+
+    listed_events: list[str] = []
+    for index, group in enumerate(groups if isinstance(groups, list) else []):
+        if not isinstance(group, Mapping):
+            continue
+        members = group.get("event_ids", [])
+        if not isinstance(members, list):
+            continue
+        for member_index, member in enumerate(members):
+            path = f"groups[{index}].event_ids[{member_index}]"
+            if not isinstance(member, str) or member not in event_rows:
+                issues.append(
+                    _issue(ErrorCode.E_REF_EVENT, path, "group references a missing event")
+                )
+            elif member in listed_events:
+                issues.append(
+                    _issue(ErrorCode.E_DUPLICATE_ID, path, "event belongs to multiple groups")
+                )
+            listed_events.append(member)
+    if set(listed_events) != set(event_rows):
+        issues.append(
+            _issue(
+                ErrorCode.E_REPORT_CONSISTENCY,
+                "groups",
+                "linked group membership does not cover all events",
+            )
+        )
+    return issues
+
+
+def check_compile_report(report: Mapping[str, Any]) -> list[ValidationIssue]:
+    """Check frame totals, the displayed removal percentage, and snap IDs."""
+    issues: list[ValidationIssue] = []
+    source_frames = report.get("source_frames")
+    removed_frames = report.get("removed_frames")
+    removed_percent = report.get("removed_percent")
+    if type(source_frames) is int and type(removed_frames) is int:
+        if source_frames <= 0 or removed_frames < 0 or removed_frames > source_frames:
+            issues.append(
+                _issue(
+                    ErrorCode.E_REPORT_RANGE,
+                    "removed_frames",
+                    "removed frames exceed the source range",
+                )
+            )
+        elif isinstance(removed_percent, int | float) and not isinstance(removed_percent, bool):
+            expected = removed_frames * 100 / source_frames
+            if not math.isfinite(float(removed_percent)) or not math.isclose(
+                float(removed_percent), expected, rel_tol=1e-7, abs_tol=0.00001
+            ):
+                issues.append(
+                    _issue(
+                        ErrorCode.E_REPORT_CONSISTENCY,
+                        "removed_percent",
+                        "percentage does not match frame totals",
+                    )
+                )
+
+    seen_snap_ids: set[str] = set()
+    for index, snap in enumerate(report.get("snaps", [])):
+        if not isinstance(snap, Mapping):
+            continue
+        snap_id = snap.get("id")
+        if isinstance(snap_id, str):
+            if snap_id in seen_snap_ids:
+                issues.append(
+                    _issue(ErrorCode.E_DUPLICATE_ID, f"snaps[{index}].id", "snap ID is duplicated")
+                )
+            seen_snap_ids.add(snap_id)
+    return issues
+
+
+def check_verify_report(report: Mapping[str, Any]) -> list[ValidationIssue]:
+    """Ensure overall pass state and machine-readable fixes agree with checks."""
+    issues: list[ValidationIssue] = []
+    checks = report.get("checks", [])
+    passed_checks = [check for check in checks if isinstance(check, Mapping)]
+    overall_passed = all(check.get("passed") is True for check in passed_checks)
+    if report.get("passed") is not overall_passed:
+        issues.append(
+            _issue(
+                ErrorCode.E_REPORT_CONSISTENCY,
+                "passed",
+                "overall result disagrees with check results",
+            )
+        )
+    suggestions = report.get("fix_suggestions", [])
+    for index, check in enumerate(passed_checks):
+        if check.get("passed") is True:
+            continue
+        target_id = check.get("target_id") or check.get("id")
+        if not any(
+            isinstance(suggestion, Mapping) and suggestion.get("target_id") == target_id
+            for suggestion in suggestions
+        ):
+            issues.append(
+                _issue(
+                    ErrorCode.E_REPORT_CONSISTENCY,
+                    f"checks[{index}]",
+                    "failed check has no fix suggestion",
+                )
+            )
+    return issues
+
+
+def check_run_manifest(manifest: Mapping[str, Any]) -> list[ValidationIssue]:
+    """Check source immutability and the documented characters-based token estimate."""
+    issues: list[ValidationIssue] = []
+    integrity = manifest.get("source_integrity", {})
+    if isinstance(integrity, Mapping):
+        before = integrity.get("sha256_before")
+        after = integrity.get("sha256_after")
+        unchanged = integrity.get("unchanged")
+        if isinstance(before, str) and isinstance(after, str) and isinstance(unchanged, bool):
+            if unchanged != (before == after):
+                issues.append(
+                    _issue(
+                        ErrorCode.E_MANIFEST_INTEGRITY,
+                        "source_integrity",
+                        "hash comparison disagrees with unchanged flag",
+                    )
+                )
+    estimate = manifest.get("token_estimate", {})
+    if isinstance(estimate, Mapping):
+        characters = estimate.get("pack_characters")
+        tokens = estimate.get("estimated_tokens")
+        if type(characters) is int and type(tokens) is int and tokens != (characters + 3) // 4:
+            issues.append(
+                _issue(
+                    ErrorCode.E_REPORT_CONSISTENCY,
+                    "token_estimate",
+                    "token estimate does not match ceil(chars / 4)",
+                )
+            )
+    seen_inputs: set[str] = set()
+    for index, item in enumerate(manifest.get("inputs", [])):
+        if not isinstance(item, Mapping):
+            continue
+        item_id = item.get("id")
+        if isinstance(item_id, str):
+            if item_id in seen_inputs:
+                issues.append(
+                    _issue(
+                        ErrorCode.E_DUPLICATE_ID, f"inputs[{index}].id", "input ID is duplicated"
+                    )
+                )
+            seen_inputs.add(item_id)
     return issues

@@ -147,7 +147,7 @@ These are invariants. Breaking one is a bug even if tests pass.
 
 ## 8. Contract Change Process
 
-Contracts are `words`, `speakers`, `catalog`, `edl`, and `ops`. They are shared by code, prompts, tests, and docs, so they change together.
+Contracts are `words`, `speakers`, `catalog`, `edl`, `ops`, `timeline`, `compile_report`, `verify_report`, and `run_manifest`. They are shared by code, prompts, tests, and docs, so they change together.
 
 When you change any contract, **in the same change**:
 

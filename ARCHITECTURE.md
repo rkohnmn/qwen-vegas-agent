@@ -1,8 +1,8 @@
 # ARCHITECTURE.md
 
 **Project (working title):** Local AI Video Editing Agent for VEGAS Pro 17
-**Document version:** 1.1.0
-**Status:** Design baseline. Items tagged `[UNVERIFIED]` must be confirmed against a real Vegas Pro 17 install before code depends on them (see Section 21 and `docs/VEGAS_NOTES.md`).
+**Document version:** 1.2.0
+**Status:** Milestone 1 local rough-cut implementation is in progress. This document still describes the full Vegas workflow; Vegas-specific behaviors tagged `[UNVERIFIED]` must be confirmed on a throwaway Vegas Pro 17 project before code depends on them.
 
 ---
 
@@ -358,9 +358,9 @@ Times in seconds from source media start. Compile converts to timeline time and 
 
 `track` is optional and used only in multitrack mode. `voice_profile` is used for matching in diarized mode. The model sees only speaker keys, never the hex colors.
 
-### 8.4 `timeline.json` (Vegas dump)
+### 8.4 `timeline.json` (synthetic in M1; Vegas dump later)
 
-Tracks (type, index, name, mute/solo state), events (id, track, start, length, take/media reference, group id, offset), project frame rate and resolution, ripple settings, markers and regions. Groups are explicit so the compiler can keep linked audio and video together.
+The [timeline contract](docs/contracts/timeline.md) represents the M1 source file as a rational-fps, integer-frame timeline with one video event, one audio event per selected audio stream, and one linked A/V group. Each event carries its source offset and length. A future Vegas dumper adds project metadata (track names and state, takes, ripple, markers, regions, and resolution) while preserving event, group, and frame semantics. M1 synthetic timeline data does not verify Vegas behavior.
 
 ### 8.5 `catalog.json` (closed vocabulary)
 
@@ -399,12 +399,15 @@ The single structured artifact the LLM emits. Illustrative shape:
 
 ```json
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "words_hash": "sha256:...",
   "summary": "Tightened intro, removed 14 fillers and 3 retakes.",
   "cuts": [
     {"id": "c1", "remove": {"from_word": "w120", "to_word": "w141"},
      "reason": "false start, speaker restarts sentence", "confidence": 0.92, "category": "retake"}
+  ],
+  "gap_actions": [
+    {"id":"c2", "gap_id":"g7", "mode":"shorten", "reason":"tighten long pause", "confidence":0.86, "category":"silence"}
   ],
   "keeps_reordered": [],
   "transitions": [
@@ -428,7 +431,7 @@ Rules enforced by schema and compiler:
 - No numeric timestamps from the model. References are IDs only. `offset_hint` is a small enum (`before`, `at`, `after`), resolved by code.
 - `confidence` is required per cut and drives auto-mode gating.
 - `questions` is the `ask_user` channel. A non-empty list pauses the job.
-- The `keeps_reordered` array is empty-only in schema version 1.0.0. Positions can anchor to word, segment, gap, event, or cut IDs; event references are checked when timeline data is available.
+- The `keeps_reordered` array is empty-only in schema version 1.1.0. Positions can anchor to word, segment, gap, event, or cut IDs; event references are checked when timeline data is available.
 
 ### 8.7 `ops.json` (compiler output)
 
@@ -436,9 +439,9 @@ The executor contract is a header plus an ordered operation array discriminated 
 
 ### 8.8 Reports
 
-- `compile_report.json`: warnings, rejected items, snaps applied (original word time to final frame).
-- `verify_report.json`: per-check results (Section 15).
-- `run_manifest.json`: inputs, hashes, versions, timing, outcomes (Section 18).
+- `compile_report.json`: removed frame totals and percentage, warnings, rejected items, and each snap (`id`, original word time, final integer frame, delta in milliseconds, and reason).
+- `verify_report.json`: per-check thresholds and measurements, overall pass state, and machine-readable fix suggestions (Section 15).
+- `run_manifest.json`: input IDs and hashes (no paths), contract/tool/model versions, per-stage wall-clock, token estimates, source hashes before and after, and the outcome (Section 18).
 
 ---
 

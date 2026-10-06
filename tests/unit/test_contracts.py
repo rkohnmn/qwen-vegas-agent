@@ -16,8 +16,12 @@ from orchestrator.contracts import (
     RedactingFilter,
     catalog_summary,
     check_catalog,
+    check_compile_report,
     check_edl_against,
     check_ops,
+    check_run_manifest,
+    check_timeline,
+    check_verify_report,
     check_words,
     hash_words,
     load_config,
@@ -66,6 +70,10 @@ def test_all_json_schemas_are_valid_2020_12(name: str) -> None:
         ("edl", "valid_realistic"),
         ("ops", "valid_minimal"),
         ("ops", "valid_realistic"),
+        ("timeline", "valid_minimal"),
+        ("compile_report", "valid_minimal"),
+        ("verify_report", "valid_minimal"),
+        ("run_manifest", "valid_minimal"),
     ],
 )
 def test_valid_fixtures_match_schema(contract: str, name: str) -> None:
@@ -102,11 +110,37 @@ def test_edl_referential_fixture_codes() -> None:
         "invalid_unknown_speaker": ErrorCode.E_REF_SPEAKER,
         "invalid_overlapping_cuts": ErrorCode.E_CUT_OVERLAP,
         "invalid_reversed_cut": ErrorCode.E_CUT_ORDER,
+        "invalid_unknown_gap_action": ErrorCode.E_REF_GAP,
     }
     for name, expected in expectations.items():
         edl = load_fixture("edl", name)
         assert validate("edl", edl) == []
         assert expected in codes(check_edl_against(edl, words, speakers, catalog))
+
+
+def test_new_timeline_and_report_semantics_are_checked() -> None:
+    timeline = load_fixture("timeline", "invalid_missing_group_event")
+    assert ErrorCode.E_REF_EVENT in codes(check_timeline(timeline))
+
+    compile_report = load_fixture("compile_report", "invalid_percentage_mismatch")
+    assert ErrorCode.E_REPORT_CONSISTENCY in codes(check_compile_report(compile_report))
+
+    verify_report = load_fixture("verify_report", "invalid_missing_fix")
+    assert ErrorCode.E_REPORT_CONSISTENCY in codes(check_verify_report(verify_report))
+
+    manifest = load_fixture("run_manifest", "invalid_integrity_mismatch")
+    assert ErrorCode.E_MANIFEST_INTEGRITY in codes(check_run_manifest(manifest))
+
+
+def test_edl_gap_actions_require_unique_cut_and_gap_ids() -> None:
+    words, speakers, catalog = references()
+    edl = load_fixture("edl", "valid_realistic")
+    edl["gap_actions"][0]["id"] = edl["cuts"][0]["id"]
+    assert ErrorCode.E_DUPLICATE_ID in codes(check_edl_against(edl, words, speakers, catalog))
+
+    edl = load_fixture("edl", "valid_realistic")
+    edl["gap_actions"].append({**edl["gap_actions"][0], "id": "c3"})
+    assert ErrorCode.E_DUPLICATE_ID in codes(check_edl_against(edl, words, speakers, catalog))
 
 
 def test_catalog_duplicate_key_is_rejected() -> None:

@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0.0",
+  "source_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "fps": "30000/1001",
+  "duration_frames": 90,
+  "tracks": [
+    {
+      "id": "v0",
+      "kind": "video",
+      "index": 0
+    },
+    {
+      "id": "a0",
+      "kind": "audio",
+      "index": 0
+    }
+  ],
+  "groups": [
+    {
+      "id": "lg0",
+      "event_ids": [
+        "e0",
+        "e1"
+      ]
+    }
+  ],
+  "events": [
+    {
+      "id": "e0",
+      "track_id": "v0",
+      "group_id": "lg0",
+      "start_frame": 0,
+      "source_offset_frames": 0,
+      "length_frames": 90
+    },
+    {
+      "id": "e1",
+      "track_id": "a0",
+      "group_id": "lg0",
+      "start_frame": 0,
+      "source_offset_frames": 0,
+      "length_frames": 90
+    }
+  ]
+}

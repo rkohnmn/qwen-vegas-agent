@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qwen-vegas-agent.local/schemas/timeline.schema.json",
+  "title": "Synthetic M1 Timeline Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "source_hash",
+    "fps",
+    "duration_frames",
+    "tracks",
+    "groups",
+    "events"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "source_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "fps": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*/[1-9][0-9]*$"
+    },
+    "duration_frames": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "tracks": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "index"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[av][0-9]+$"
+          },
+          "kind": {
+            "enum": [
+              "audio",
+              "video"
+            ]
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "groups": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "event_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^lg[0-9]+$"
+          },
+          "event_ids": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 64,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^e[0-9]+$"
+            }
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "track_id",
+          "group_id",
+          "start_frame",
+          "source_offset_frames",
+          "length_frames"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^e[0-9]+$"
+          },
+          "track_id": {
+            "type": "string",
+            "pattern": "^[av][0-9]+$"
+          },
+          "group_id": {
+            "type": "string",
+            "pattern": "^lg[0-9]+$"
+          },
+          "start_frame": {
+            "const": 0
+          },
+          "source_offset_frames": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "length_frames": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    }
+  }
+}

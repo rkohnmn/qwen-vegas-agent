@@ -2,51 +2,130 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://qwen-vegas-agent.local/schemas/edl.schema.json",
   "title": "Edit Decision List Contract",
-  "description": "Model-authored edit intent using stable IDs and closed catalog keys, without numeric times, paths, colors, or plugin IDs.",
+  "description": "Planner-authored edit intent by stable IDs and closed catalog keys. Numeric times, paths, colors, plugin IDs, and gap lengths are forbidden.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "words_hash", "summary", "cuts", "keeps_reordered", "transitions", "sfx", "subtitles", "tool_requests", "questions"],
+  "required": [
+    "schema_version",
+    "words_hash",
+    "summary",
+    "cuts",
+    "keeps_reordered",
+    "transitions",
+    "sfx",
+    "subtitles",
+    "tool_requests",
+    "questions"
+  ],
   "properties": {
-    "schema_version": {"const": "1.0.0"},
-    "words_hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
-    "summary": {"type": "string", "maxLength": 1000},
+    "schema_version": {
+      "const": "1.1.0"
+    },
+    "words_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 1000
+    },
     "cuts": {
       "type": "array",
       "maxItems": 500,
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "remove", "reason", "confidence", "category"],
+        "required": [
+          "id",
+          "remove",
+          "reason",
+          "confidence",
+          "category"
+        ],
         "properties": {
-          "id": {"type": "string", "pattern": "^c[0-9]+$"},
+          "id": {
+            "type": "string",
+            "pattern": "^c[0-9]+$"
+          },
           "remove": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["from_word", "to_word"],
+            "required": [
+              "from_word",
+              "to_word"
+            ],
             "properties": {
-              "from_word": {"type": "string", "pattern": "^w[0-9]+$"},
-              "to_word": {"type": "string", "pattern": "^w[0-9]+$"}
+              "from_word": {
+                "type": "string",
+                "pattern": "^w[0-9]+$"
+              },
+              "to_word": {
+                "type": "string",
+                "pattern": "^w[0-9]+$"
+              }
             }
           },
-          "reason": {"type": "string", "minLength": 1, "maxLength": 300},
-          "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-          "category": {"enum": ["filler", "silence", "retake", "false_start", "dead_air", "tangent", "other"]}
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "category": {
+            "enum": [
+              "filler",
+              "silence",
+              "retake",
+              "false_start",
+              "dead_air",
+              "tangent",
+              "other"
+            ]
+          }
         }
       }
     },
-    "keeps_reordered": {"type": "array", "maxItems": 0},
+    "keeps_reordered": {
+      "type": "array",
+      "maxItems": 0
+    },
     "transitions": {
       "type": "array",
       "maxItems": 500,
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["at_cut", "offset_hint", "type", "reason"],
+        "required": [
+          "at_cut",
+          "offset_hint",
+          "type",
+          "reason"
+        ],
         "properties": {
-          "at_cut": {"type": "string", "pattern": "^c[0-9]+$"},
-          "offset_hint": {"enum": ["before", "at", "after"]},
-          "type": {"type": "string", "pattern": "^(tr|vfx|afx|txt|sfx)\\.[a-z0-9-]+\\.[a-f0-9]{6,12}$"},
-          "reason": {"type": "string", "minLength": 1, "maxLength": 300}
+          "at_cut": {
+            "type": "string",
+            "pattern": "^c[0-9]+$"
+          },
+          "offset_hint": {
+            "enum": [
+              "before",
+              "at",
+              "after"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "pattern": "^(tr|vfx|afx|txt|sfx)\\.[a-z0-9-]+\\.[a-f0-9]{6,12}$"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          }
         }
       }
     },
@@ -56,32 +135,85 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["at_word", "offset_hint", "key", "gain_db", "reason"],
+        "required": [
+          "at_word",
+          "offset_hint",
+          "key",
+          "gain_db",
+          "reason"
+        ],
         "properties": {
-          "at_word": {"type": "string", "pattern": "^w[0-9]+$"},
-          "offset_hint": {"enum": ["before", "at", "after"]},
-          "key": {"type": "string", "pattern": "^sfx\\.[a-z0-9-]+\\.[a-f0-9]{6,12}$"},
-          "gain_db": {"type": "number", "minimum": -60, "maximum": 6},
-          "reason": {"type": "string", "minLength": 1, "maxLength": 300}
+          "at_word": {
+            "type": "string",
+            "pattern": "^w[0-9]+$"
+          },
+          "offset_hint": {
+            "enum": [
+              "before",
+              "at",
+              "after"
+            ]
+          },
+          "key": {
+            "type": "string",
+            "pattern": "^sfx\\.[a-z0-9-]+\\.[a-f0-9]{6,12}$"
+          },
+          "gain_db": {
+            "type": "number",
+            "minimum": -60,
+            "maximum": 6
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          }
         }
       }
     },
     "subtitles": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["style", "emphasis", "break_hints", "omit_ranges"],
+      "required": [
+        "style",
+        "emphasis",
+        "break_hints",
+        "omit_ranges"
+      ],
       "properties": {
-        "style": {"type": "string", "pattern": "^txt\\.[a-z0-9-]+\\.[a-f0-9]{6,12}$"},
+        "style": {
+          "type": "string",
+          "pattern": "^txt\\.[a-z0-9-]+\\.[a-f0-9]{6,12}$"
+        },
         "emphasis": {
           "type": "array",
           "maxItems": 200,
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["word_ids", "mode"],
+            "required": [
+              "word_ids",
+              "mode"
+            ],
             "properties": {
-              "word_ids": {"type": "array", "minItems": 1, "maxItems": 12, "uniqueItems": true, "items": {"type": "string", "pattern": "^w[0-9]+$"}},
-              "mode": {"enum": ["bold", "italic", "uppercase", "highlight"]}
+              "word_ids": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 12,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^w[0-9]+$"
+                }
+              },
+              "mode": {
+                "enum": [
+                  "bold",
+                  "italic",
+                  "uppercase",
+                  "highlight"
+                ]
+              }
             }
           }
         },
@@ -91,8 +223,15 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["before_word"],
-            "properties": {"before_word": {"type": "string", "pattern": "^w[0-9]+$"}}
+            "required": [
+              "before_word"
+            ],
+            "properties": {
+              "before_word": {
+                "type": "string",
+                "pattern": "^w[0-9]+$"
+              }
+            }
           }
         },
         "omit_ranges": {
@@ -101,10 +240,19 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["from_word", "to_word"],
+            "required": [
+              "from_word",
+              "to_word"
+            ],
             "properties": {
-              "from_word": {"type": "string", "pattern": "^w[0-9]+$"},
-              "to_word": {"type": "string", "pattern": "^w[0-9]+$"}
+              "from_word": {
+                "type": "string",
+                "pattern": "^w[0-9]+$"
+              },
+              "to_word": {
+                "type": "string",
+                "pattern": "^w[0-9]+$"
+              }
             }
           }
         }
@@ -113,11 +261,95 @@
     "tool_requests": {
       "type": "array",
       "maxItems": 24,
-      "items": {"oneOf": [
-        {"type": "object", "additionalProperties": false, "required": ["type", "anchor", "count", "reason"], "properties": {"type": {"const": "frames"}, "anchor": {"$ref": "#/$defs/anchor"}, "count": {"type": "integer", "minimum": 1, "maximum": 8}, "reason": {"type": "string", "minLength": 1, "maxLength": 200}}},
-        {"type": "object", "additionalProperties": false, "required": ["type", "query", "tags", "reason"], "properties": {"type": {"const": "asset"}, "query": {"type": "string", "minLength": 1, "maxLength": 160}, "tags": {"type": "array", "maxItems": 12, "items": {"type": "string", "minLength": 1, "maxLength": 40}}, "reason": {"type": "string", "minLength": 1, "maxLength": 200}}},
-        {"type": "object", "additionalProperties": false, "required": ["type", "reference_key", "reason"], "properties": {"type": {"const": "reference"}, "reference_key": {"type": "string", "pattern": "^[a-z][a-z0-9_.-]{0,79}$"}, "reason": {"type": "string", "minLength": 1, "maxLength": 200}}}
-      ]}
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "anchor",
+              "count",
+              "reason"
+            ],
+            "properties": {
+              "type": {
+                "const": "frames"
+              },
+              "anchor": {
+                "$ref": "#/$defs/anchor"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "query",
+              "tags",
+              "reason"
+            ],
+            "properties": {
+              "type": {
+                "const": "asset"
+              },
+              "query": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "tags": {
+                "type": "array",
+                "maxItems": 12,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                }
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "reference_key",
+              "reason"
+            ],
+            "properties": {
+              "type": {
+                "const": "reference"
+              },
+              "reference_key": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_.-]{0,79}$"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            }
+          }
+        ]
+      }
     },
     "questions": {
       "type": "array",
@@ -125,14 +357,87 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "question", "reason"],
+        "required": [
+          "id",
+          "question",
+          "reason"
+        ],
         "properties": {
-          "id": {"type": "string", "pattern": "^q[0-9]+$"},
-          "question": {"type": "string", "minLength": 1, "maxLength": 500},
-          "reason": {"type": "string", "minLength": 1, "maxLength": 200},
-          "speaker_key": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
-          "anchor": {"$ref": "#/$defs/anchor"},
-          "choices": {"type": "array", "maxItems": 8, "items": {"type": "string", "minLength": 1, "maxLength": 80}}
+          "id": {
+            "type": "string",
+            "pattern": "^q[0-9]+$"
+          },
+          "question": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "speaker_key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "anchor": {
+            "$ref": "#/$defs/anchor"
+          },
+          "choices": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        }
+      }
+    },
+    "gap_actions": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "gap_id",
+          "mode",
+          "reason",
+          "confidence",
+          "category"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^c[0-9]+$"
+          },
+          "gap_id": {
+            "type": "string",
+            "pattern": "^g[0-9]+$"
+          },
+          "mode": {
+            "enum": [
+              "remove",
+              "shorten"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "category": {
+            "const": "silence"
+          }
         }
       }
     }
@@ -140,11 +445,131 @@
   "$defs": {
     "anchor": {
       "oneOf": [
-        {"type": "object", "additionalProperties": false, "required": ["kind", "id", "offset_hint"], "properties": {"kind": {"const": "word"}, "id": {"type": "string", "pattern": "^w[0-9]+$"}, "offset_hint": {"enum": ["before", "at", "after"]}}},
-        {"type": "object", "additionalProperties": false, "required": ["kind", "id", "offset_hint"], "properties": {"kind": {"const": "segment"}, "id": {"type": "string", "pattern": "^s[0-9]+$"}, "offset_hint": {"enum": ["before", "at", "after"]}}},
-        {"type": "object", "additionalProperties": false, "required": ["kind", "id", "offset_hint"], "properties": {"kind": {"const": "gap"}, "id": {"type": "string", "pattern": "^g[0-9]+$"}, "offset_hint": {"enum": ["before", "at", "after"]}}},
-        {"type": "object", "additionalProperties": false, "required": ["kind", "id", "offset_hint"], "properties": {"kind": {"const": "event"}, "id": {"type": "string", "pattern": "^e[0-9]+$"}, "offset_hint": {"enum": ["before", "at", "after"]}}},
-        {"type": "object", "additionalProperties": false, "required": ["kind", "id", "offset_hint"], "properties": {"kind": {"const": "cut"}, "id": {"type": "string", "pattern": "^c[0-9]+$"}, "offset_hint": {"enum": ["before", "at", "after"]}}}
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "id",
+            "offset_hint"
+          ],
+          "properties": {
+            "kind": {
+              "const": "word"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^w[0-9]+$"
+            },
+            "offset_hint": {
+              "enum": [
+                "before",
+                "at",
+                "after"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "id",
+            "offset_hint"
+          ],
+          "properties": {
+            "kind": {
+              "const": "segment"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^s[0-9]+$"
+            },
+            "offset_hint": {
+              "enum": [
+                "before",
+                "at",
+                "after"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "id",
+            "offset_hint"
+          ],
+          "properties": {
+            "kind": {
+              "const": "gap"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^g[0-9]+$"
+            },
+            "offset_hint": {
+              "enum": [
+                "before",
+                "at",
+                "after"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "id",
+            "offset_hint"
+          ],
+          "properties": {
+            "kind": {
+              "const": "event"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^e[0-9]+$"
+            },
+            "offset_hint": {
+              "enum": [
+                "before",
+                "at",
+                "after"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "id",
+            "offset_hint"
+          ],
+          "properties": {
+            "kind": {
+              "const": "cut"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^c[0-9]+$"
+            },
+            "offset_hint": {
+              "enum": [
+                "before",
+                "at",
+                "after"
+              ]
+            }
+          }
+        }
       ]
     }
   }

@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "passed": true,
+  "checks": [
+    {
+      "id": "v0",
+      "name": "removed_percent",
+      "scope": "run",
+      "passed": true,
+      "threshold": 25.0,
+      "measured": 10.0,
+      "unit": "percent"
+    }
+  ],
+  "fix_suggestions": []
+}

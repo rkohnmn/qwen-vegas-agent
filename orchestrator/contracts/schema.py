@@ -11,7 +11,18 @@ from jsonschema import Draft202012Validator  # type: ignore[import-untyped]
 
 from .errors import ErrorCode, ValidationIssue
 
-_SCHEMA_NAMES = {"words", "speakers", "catalog", "edl", "ops", "config"}
+_SCHEMA_NAMES = {
+    "words",
+    "speakers",
+    "catalog",
+    "edl",
+    "ops",
+    "config",
+    "timeline",
+    "compile_report",
+    "verify_report",
+    "run_manifest",
+}
 _SCHEMA_DIR = Path(__file__).resolve().parents[2] / "schemas"
 _SAFE_PATH_PART = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,31}$")
 

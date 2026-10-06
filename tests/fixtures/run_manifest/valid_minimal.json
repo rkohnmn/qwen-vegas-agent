@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0.0",
+  "job_id": "fixture-run-1",
+  "inputs": [
+    {
+      "id": "source",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "schemas": {
+    "timeline": "1.0.0",
+    "words": "1.0.0",
+    "edl": "1.1.0",
+    "ops": "1.0.0"
+  },
+  "tools": {
+    "python": "3.12.10",
+    "ffmpeg": "missing",
+    "ffprobe": "missing",
+    "asr_engine": "FakeAsrEngine",
+    "asr_model": "fixture",
+    "align_model": "fixture"
+  },
+  "stages": [
+    {
+      "name": "synthetic",
+      "wall_clock_ms": 0,
+      "outcome": "complete"
+    }
+  ],
+  "token_estimate": {
+    "pack_characters": 8,
+    "estimated_tokens": 2,
+    "method": "ceil_chars_div_4"
+  },
+  "source_integrity": {
+    "sha256_before": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "sha256_after": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "unchanged": true
+  },
+  "outcome": {
+    "status": "complete",
+    "code": null,
+    "message": "synthetic fixture completed"
+  }
+}

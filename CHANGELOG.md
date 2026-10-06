@@ -8,6 +8,8 @@ All notable project changes are recorded here. Contract version entries are chec
 
 - Set the supported Windows development target to Python 3.12 based on the installed runtime and current WhisperX/PyTorch compatibility metadata.
 - Recorded the available CPU-only inference environment and missing `ffmpeg` / `ffprobe`; the real-media smoke portion remains stopped until those tools are installed locally.
+- Added timeline=1.0.0, compile_report=1.0.0, verify_report=1.0.0, run_manifest=1.0.0; bumped edl=1.1.0 for ID-only gap actions.
+- Updated Architecture to 1.2.0 for the M1 synthetic timeline, ID-only gap intent, and report contracts.
 
 ## [Milestone 0]
 

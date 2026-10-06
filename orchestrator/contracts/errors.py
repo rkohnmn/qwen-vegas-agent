@@ -27,6 +27,11 @@ class ErrorCode(StrEnum):
     E_OP_ORDER = "E_OP_ORDER"
     E_REF_CUT = "E_REF_CUT"
     E_REF_EVENT = "E_REF_EVENT"
+    E_REF_TRACK = "E_REF_TRACK"
+    E_REF_GROUP = "E_REF_GROUP"
+    E_REPORT_RANGE = "E_REPORT_RANGE"
+    E_REPORT_CONSISTENCY = "E_REPORT_CONSISTENCY"
+    E_MANIFEST_INTEGRITY = "E_MANIFEST_INTEGRITY"
 
 
 @dataclass(frozen=True, slots=True)

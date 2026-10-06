@@ -136,6 +136,39 @@ Alternatives: Download a binary or substitute another media executable; rejected
 
 Status: Accepted. Real-media acceptance criteria 2 and the benchmark portion of 10 are blocked pending local installation.
 
+### D-13 — EDL silence edits use gap IDs and compile configuration
+Date: 2026-10-06
+
+Decision: Add optional `gap_actions` to EDL 1.1.0. Each action names a known gap ID and uses `remove` or `shorten`; the planner never supplies a retained length.
+
+Rationale: This preserves compatibility with existing EDLs while giving the deterministic baseline planner a safe silence action. The compiler owns all numeric timing and configured retained-length decisions.
+
+Alternatives: Put a duration in EDL; rejected because it lets planner output select resolved time values.
+
+Status: Accepted.
+
+### D-14 — M1 timeline is a linked synthetic A/V group
+Date: 2026-10-06
+
+Decision: Synthesize one zero-based timeline from the source media, with one video event, one event per selected audio stream, and a single linked A/V group. Store rational fps, integer frames, source offsets, and the source hash.
+
+Rationale: This permits deterministic compiler and dry-run work without launching Vegas. The later Vegas dumper must emit compatible event/group semantics.
+
+Alternatives: Require a Vegas project before planning; deferred to the Vegas executor milestone because M1 must work offline without Vegas running.
+
+Status: Accepted.
+
+### D-15 — Run metrics are checked from integer frame totals
+Date: 2026-10-06
+
+Decision: Treat integer frame totals as authoritative for removed-percent reporting. Estimate pack tokens as `ceil(characters / 4)` and record the estimate method in the manifest.
+
+Rationale: Both metrics remain deterministic and do not require a tokenizer or floating-point time arithmetic.
+
+Alternatives: Download a tokenizer or store only a floating-point percentage; rejected to keep M1 offline and auditable.
+
+Status: Accepted.
+
 ## Reference: browser agent patterns
 
 Read-only review of the local sibling browser-agent repository, commit 04c788de21cded7070744c60a98048e9b2141f49. The folder contained no LICENSE, COPYING, or NOTICE file, so the license is unknown. No code was copied.
