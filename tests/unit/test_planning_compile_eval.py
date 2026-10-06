@@ -64,6 +64,14 @@ def test_baseline_pack_and_compile_are_id_only_and_frame_safe(tmp_path: Path) ->
     assert len(report["fade_decisions"]) == len(intervals)
     assert len(report["snaps"]) == 4
     assert any(item["code"] == "E_PACING_GAP" for item in report["rejected_items"])
+    outcomes = {item["item_id"]: item for item in report["item_outcomes"]}
+    assert outcomes["c1"]["status"] == "rejected"
+    assert outcomes["c1"]["code"] == "E_PACING_GAP"
+    assert outcomes["c2"]["status"] == "applied"
+    delete_operations = [
+        operation for operation in ops["operations"] if operation["op"] == "delete_range"
+    ]
+    assert delete_operations[0]["item_ids"] == ["c2"]
     marker_labels = {
         operation["label"] for operation in ops["operations"] if operation["op"] == "add_marker"
     }
@@ -79,7 +87,10 @@ def test_baseline_pack_and_compile_are_id_only_and_frame_safe(tmp_path: Path) ->
     assert marker_rows[0]["label"].startswith("M1_CUT_c2_silence_")
     review_path = tmp_path / "review.md"
     write_review(review_path, edl, words, report)
-    assert "| Cut count | Total removed frames | Removed percent |" in review_path.read_text()
+    review = review_path.read_text()
+    assert "| Cut count | Total removed frames | Removed percent |" in review
+    assert "## Proposed but not applied" in review
+    assert "`c1` (cut; filler; word IDs w2 through w2): `E_PACING_GAP`" in review
     assert len(intervals) == 2
     assert intervals[1].start >= 24
     assert intervals[1].end <= 51
@@ -98,7 +109,7 @@ def test_compiler_prefers_nearby_zero_crossing_and_reports_both_boundaries() -> 
     edl["gap_actions"] = []
     samples = array("h", [1000] * 64000)
     samples[4000:] = array("h", [-1000] * (len(samples) - 4000))
-    samples[7840:] = array("h", [1000] * (len(samples) - 7840))
+    samples[7680:] = array("h", [1000] * (len(samples) - 7680))
     _ops, report, intervals = compile_edl(
         edl,
         words,
@@ -113,6 +124,9 @@ def test_compiler_prefers_nearby_zero_crossing_and_reports_both_boundaries() -> 
     filler_snaps = [snap for snap in report["snaps"] if snap["id"].startswith("c1_")]
     assert {snap["id"] for snap in filler_snaps} == {"c1_in", "c1_out"}
     assert all("nearest zero crossing" in snap["reason"] for snap in filler_snaps)
+    filler_outcome = next(item for item in report["item_outcomes"] if item["item_id"] == "c1")
+    assert filler_outcome["status"] == "adjusted"
+    assert filler_outcome["delta_frames"] > 0
 
 
 def test_recorded_planner_returns_a_copy() -> None:
@@ -198,6 +212,10 @@ def test_synthetic_eval_and_truth_template() -> None:
     report = run_synthetic_eval()
     assert report["cut_precision"] == 1.0
     assert report["cut_recall"] == 1.0
+    assert report["applied_precision"] == 1.0
+    assert report["applied_recall"] == 0.5
+    assert report["proposed_rejected_or_adjusted_count"] == 1
+    assert report["proposed_rejected_or_adjusted_percent"] == 50.0
     assert report["clipped_word_rate"] == 0.0
     assert report["click_rate"] == 0.0
     assert report["verifier_passed"] is False

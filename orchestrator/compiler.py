@@ -144,6 +144,20 @@ def compile_edl(
     candidates: list[FrameInterval] = []
     snaps: list[dict[str, Any]] = []
     rejected: list[dict[str, str]] = []
+    item_outcomes: list[dict[str, Any]] = []
+
+    def reject_item(item_id: str, item_type: str, code: str, reason: str) -> None:
+        rejected.append({"id": item_id, "code": code, "reason": reason})
+        item_outcomes.append(
+            {
+                "item_id": item_id,
+                "item_type": item_type,
+                "status": "rejected",
+                "code": code,
+                "reason": reason,
+            }
+        )
+
     padding_start = Fraction(limits.head_pad_ms, 1000)
     padding_end = Fraction(limits.tail_pad_ms, 1000)
     for cut in edl.get("cuts", []):
@@ -154,9 +168,7 @@ def compile_edl(
         first = word_by_id.get(from_word) if isinstance(from_word, str) else None
         last = word_by_id.get(to_word) if isinstance(to_word, str) else None
         if first is None or last is None:
-            rejected.append(
-                {"id": str(cut_id), "code": "E_REF_WORD", "reason": "cut word ID is missing"}
-            )
+            reject_item(str(cut_id), "cut", "E_REF_WORD", "cut word ID is missing")
             continue
         first_index, first_word = first
         last_index, last_word = last
@@ -164,29 +176,20 @@ def compile_edl(
             first_word.get("alignment_status", "aligned") != "aligned"
             or last_word.get("alignment_status", "aligned") != "aligned"
         ):
-            rejected.append(
-                {
-                    "id": str(cut_id),
-                    "code": "E_WORD_UNALIGNED",
-                    "reason": "cut word has no aligned time",
-                }
-            )
+            reject_item(str(cut_id), "cut", "E_WORD_UNALIGNED", "cut word has no aligned time")
             continue
         if first_index > last_index:
-            rejected.append(
-                {"id": str(cut_id), "code": "E_CUT_ORDER", "reason": "cut word range is reversed"}
-            )
+            reject_item(str(cut_id), "cut", "E_CUT_ORDER", "cut word range is reversed")
             continue
         if any(
             isinstance(row, dict) and row.get("alignment_status", "aligned") != "aligned"
             for row in rows[first_index : last_index + 1]
         ):
-            rejected.append(
-                {
-                    "id": str(cut_id),
-                    "code": "E_WORD_UNALIGNED",
-                    "reason": "cut range includes a word without aligned timing",
-                }
+            reject_item(
+                str(cut_id),
+                "cut",
+                "E_WORD_UNALIGNED",
+                "cut range includes a word without aligned timing",
             )
             continue
         start_sec = _as_fraction(first_word["start"]) - padding_start
@@ -205,6 +208,7 @@ def compile_edl(
         )
         start_frame = max(start_frame, previous_end)
         end_frame = min(end_frame, following_start)
+        proposed_start_frame, proposed_end_frame = start_frame, end_frame
         start_frame, start_zero_crossing = _snap_to_zero_crossing(
             start_frame,
             previous_end,
@@ -224,26 +228,35 @@ def compile_edl(
             limits.zero_crossing_window_ms,
         )
         if end_frame <= start_frame:
-            rejected.append(
-                {
-                    "id": str(cut_id),
-                    "code": "E_EMPTY_RANGE",
-                    "reason": "snapping leaves no safe cut frames",
-                }
-            )
+            reject_item(str(cut_id), "cut", "E_EMPTY_RANGE", "snapping leaves no safe cut frames")
             continue
         if previous is not None and following is not None:
             preserved_gap = (start_frame - previous_end) + (following_start - end_frame)
             minimum_gap = ceil_fraction(Fraction(limits.min_gap_after_cut_ms, 1000) * fps)
             if preserved_gap < minimum_gap:
-                rejected.append(
-                    {
-                        "id": str(cut_id),
-                        "code": "E_PACING_GAP",
-                        "reason": "cut would leave less than the configured inter-word gap",
-                    }
+                reject_item(
+                    str(cut_id),
+                    "cut",
+                    "E_PACING_GAP",
+                    "cut would leave less than the configured inter-word gap",
                 )
                 continue
+        delta_frames = abs(start_frame - proposed_start_frame) + abs(end_frame - proposed_end_frame)
+        item_outcomes.append(
+            {
+                "item_id": str(cut_id),
+                "item_type": "cut",
+                "status": "adjusted" if delta_frames else "applied",
+                **(
+                    {
+                        "reason": "one or both boundaries moved to a nearby zero crossing",
+                        "delta_frames": delta_frames,
+                    }
+                    if delta_frames
+                    else {}
+                ),
+            }
+        )
         candidates.append(
             FrameInterval(start_frame, end_frame, (str(cut_id),), str(cut.get("category", "other")))
         )
@@ -275,9 +288,7 @@ def compile_edl(
         action_id = action.get("id", "unknown") if isinstance(action, dict) else "unknown"
         gap = gaps.get(action.get("gap_id")) if isinstance(action, dict) else None
         if gap is None:
-            rejected.append(
-                {"id": str(action_id), "code": "E_REF_GAP", "reason": "gap ID is missing"}
-            )
+            reject_item(str(action_id), "gap_action", "E_REF_GAP", "gap ID is missing")
             continue
         start_frame = max(0, ceil_fraction(_as_fraction(gap["start"]) * fps))
         end_frame = min(duration_frames, floor_fraction(_as_fraction(gap["end"]) * fps))
@@ -315,12 +326,8 @@ def compile_edl(
         if following is not None:
             end_frame = min(end_frame, floor_fraction(_as_fraction(following["start"]) * fps))
         if end_frame <= start_frame:
-            rejected.append(
-                {
-                    "id": str(action_id),
-                    "code": "E_EMPTY_RANGE",
-                    "reason": "gap has no safe frame range",
-                }
+            reject_item(
+                str(action_id), "gap_action", "E_EMPTY_RANGE", "gap has no safe frame range"
             )
             continue
         proposed_ranges: list[tuple[int, int]]
@@ -328,12 +335,11 @@ def compile_edl(
             retain = ceil_fraction(Fraction(limits.min_gap_after_cut_ms, 1000) * fps)
             available = end_frame - start_frame
             if available <= retain:
-                rejected.append(
-                    {
-                        "id": str(action_id),
-                        "code": "E_EMPTY_RANGE",
-                        "reason": "gap is already at or below the configured retained length",
-                    }
+                reject_item(
+                    str(action_id),
+                    "gap_action",
+                    "E_EMPTY_RANGE",
+                    "gap is already at or below the configured retained length",
                 )
                 continue
             keep_start = start_frame + (available - retain) // 2
@@ -346,6 +352,7 @@ def compile_edl(
         else:
             proposed_ranges = [(start_frame, end_frame)]
 
+        delta_frames = 0
         for range_index, (range_start, range_end) in enumerate(proposed_ranges, start=1):
             snapped_start, start_zero_crossing = _snap_to_zero_crossing(
                 range_start,
@@ -368,6 +375,7 @@ def compile_edl(
             if snapped_end <= snapped_start:
                 snapped_start, snapped_end = range_start, range_end
                 start_zero_crossing = end_zero_crossing = False
+            delta_frames += abs(snapped_start - range_start) + abs(snapped_end - range_end)
             candidates.append(
                 FrameInterval(snapped_start, snapped_end, (str(action_id),), "silence")
             )
@@ -394,6 +402,22 @@ def compile_edl(
                         ),
                     }
                 )
+
+        item_outcomes.append(
+            {
+                "item_id": str(action_id),
+                "item_type": "gap_action",
+                "status": "adjusted" if delta_frames else "applied",
+                **(
+                    {
+                        "reason": "one or more silence boundaries moved to nearby zero crossings",
+                        "delta_frames": delta_frames,
+                    }
+                    if delta_frames
+                    else {}
+                ),
+            }
+        )
 
     intervals = _intervals(candidates)
     removed_frames = sum(item.end - item.start for item in intervals)
@@ -449,6 +473,7 @@ def compile_edl(
                 "end_frame": interval.end,
                 "track_ids": track_ids,
                 "group_ids": group_ids,
+                "item_ids": list(interval.cut_ids),
             }
         )
 
@@ -479,7 +504,7 @@ def compile_edl(
         cursor = interval.end
 
     ops = {
-        "schema_version": "1.0.0",
+        "schema_version": "1.1.0",
         "header": {
             "job_id": job_id,
             "working_copy_path": working_copy_path,
@@ -489,12 +514,13 @@ def compile_edl(
         "operations": operations,
     }
     report = {
-        "schema_version": "1.2.0",
+        "schema_version": "2.0.0",
         "source_frames": duration_frames,
         "removed_frames": removed_frames,
         "removed_percent": removed_percent,
         "warnings": warnings,
         "rejected_items": rejected,
+        "item_outcomes": item_outcomes,
         "snaps": snaps,
         "fade_decisions": fade_decisions,
     }

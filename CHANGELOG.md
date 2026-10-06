@@ -7,16 +7,16 @@ All notable project changes are recorded here. Contract version entries are chec
 ### Changed
 
 - Set the supported Windows development target to Python 3.12 based on the installed runtime and current WhisperX/PyTorch compatibility metadata.
-- Recorded the available CPU-only inference environment and missing `ffmpeg` / `ffprobe`; the real-media smoke portion remains stopped until those tools are installed locally.
-- Added timeline=1.0.0, verify_report=1.0.0, run_manifest=1.0.0; bumped compile_report=1.2.0 for join fade decisions and two-sided snap records, edl=1.2.0 for ID-only gap actions and optional subtitle style, and words=2.0.0 for explicitly unaligned transcript tokens and gap refinement metadata.
+- Recorded the venv CUDA 12.8 install and missing `ffmpeg` / `ffprobe`; the real-media smoke portion remains stopped until those tools are installed locally.
+- Added timeline=1.0.0, verify_report=1.0.0, and run_manifest=1.0.0; bumped compile_report=2.0.0 for required per-cut/gap outcomes and ops=1.1.0 for optional source item IDs on final delete operations. Existing versions: edl=1.2.0, words=2.0.0, speakers=1.0.0, catalog=1.0.0.
 - Updated Architecture to 1.2.0 for the M1 synthetic timeline, ID-only gap intent, and report contracts.
 
 ### Added
 
 - Added read-only ffprobe preflight, cached 16 kHz audio extraction, a lazy WhisperX adapter with CPU fallback, and fixture-backed ASR/gap-refinement coverage.
 - Added ID-oriented packing, baseline and recorded planners, an isolated loopback-only LLM client for fake-server tests, and an M1 CLI guard that keeps live LLM requests disabled.
-- Added rational-frame compilation with aligned-word guards, optional nearby zero-crossing snaps, measured-gap cuts, per-join fade decisions, cut-ID/category marker labels, review CSV/CMX3600/Markdown artifacts, reference WAV rendering, join/pacing/clipped-word metrics, and run integrity metadata.
-- Added a one-case offline synthetic eval and M1 Vegas reflection/compile-only evidence with a human-run probe checklist.
+- Added rational-frame compilation with aligned-word guards, optional nearby zero-crossing snaps, measured-gap cuts, per-item compile outcomes linked to final ops, rejected-item review context, applied evaluation metrics, per-join fade decisions, review CSV/CMX3600/Markdown artifacts, reference audio rendering, join/pacing/clipped-word metrics, and run integrity metadata.
+- Added generated speech-like verifier coverage alongside the retained tone stress case, applied-metric reporting, and expanded EC-only Vegas metadata notes. Added the opt-in `setup --asr` installer while keeping plain setup dev-only.
 - Updated the README, roadmap, setup, security, perception, and evaluation documentation for the actual M1 implementation and its blocked real-media smoke run.
 
 ## [Milestone 0]

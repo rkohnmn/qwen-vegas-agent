@@ -1,6 +1,6 @@
 # Ops contract
 
-Schema version: 1.0.0
+Schema version: 1.1.0
 
 Schema: [ops.schema.json](../../schemas/ops.schema.json)
 
@@ -12,7 +12,7 @@ Ops is the compiler-produced executor input. This contract is not accepted from 
 
 | Field | Type | Meaning |
 |---|---|---|
-| `schema_version` | string | Required; exactly `1.0.0`. |
+| `schema_version` | string | Required; exactly `1.1.0`. |
 | `header.job_id` | string | Stable bounded job identifier. |
 | `header.working_copy_path` | string | Declared project-copy path; `check_ops` rejects escape from the supplied working directory. |
 | `header.fps` | string | Positive rational project rate, carried with every batch. |
@@ -20,14 +20,14 @@ Ops is the compiler-produced executor input. This contract is not accepted from 
 
 ## Operation union
 
-Each item has one discriminating `op` value. Frame positions/durations are non-negative integers; no floating-point seconds are accepted.
+Each item has one discriminating `op` value. Frame positions/durations are non-negative integers; no floating-point seconds are accepted. M1 `delete_range.item_ids` optionally carries the EDL cut/gap-action IDs whose ranges are represented by that final delete operation, allowing applied evaluation metrics to inspect emitted ops.
 
 | Operation | Required fields after `op` | Vegas mechanism status |
 |---|---|---|
 | `add_marker` | `marker_id`, `frame`, `label` | `UNVERIFIED` — VQ-13 |
 | `add_region` | `region_id`, `start_frame`, `end_frame`, `label` | `UNVERIFIED` — VQ-13 |
 | `split` | `event_id`, `frame`, `group_ids` | `UNVERIFIED` — VQ-07, VQ-11 |
-| `delete_range` | `start_frame`, `end_frame`, `track_ids`; optional `group_ids` | `UNVERIFIED` — VQ-07 |
+| `delete_range` | `start_frame`, `end_frame`, `track_ids`; optional `group_ids` and compiler `item_ids` | `UNVERIFIED` — VQ-07 |
 | `close_gap` | `from_frame`, `frame_count`, `track_ids`; optional `group_ids` | `UNVERIFIED` — VQ-07 |
 | `trim` | `event_id`, `start_frame`, `length_frames`; optional `take_offset_frames` | `UNVERIFIED` — VQ-07, VQ-12 |
 | `set_fade` | `event_id`, `direction`, `frames`, `curve` | `UNVERIFIED` — VQ-06 |

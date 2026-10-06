@@ -11,11 +11,12 @@
     "removed_percent",
     "warnings",
     "rejected_items",
+    "item_outcomes",
     "snaps"
   ],
   "properties": {
     "schema_version": {
-      "const": "1.2.0"
+      "const": "2.0.0"
     },
     "source_frames": {
       "type": "integer",
@@ -80,6 +81,37 @@
             "maxLength": 300
           }
         }
+      }
+    },
+    "item_outcomes": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["item_id", "item_type", "status"],
+        "properties": {
+          "item_id": {"type": "string", "minLength": 1, "maxLength": 80},
+          "item_type": {"enum": ["cut", "gap_action"]},
+          "status": {"enum": ["applied", "adjusted", "rejected"]},
+          "code": {"type": "string", "pattern": "^E_[A-Z0-9_]+$"},
+          "reason": {"type": "string", "minLength": 1, "maxLength": 300},
+          "delta_frames": {"type": "integer", "minimum": 1}
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"status": {"const": "adjusted"}}},
+            "then": {"required": ["reason", "delta_frames"], "not": {"required": ["code"]}}
+          },
+          {
+            "if": {"properties": {"status": {"const": "rejected"}}},
+            "then": {"required": ["code", "reason"], "not": {"required": ["delta_frames"]}}
+          },
+          {
+            "if": {"properties": {"status": {"const": "applied"}}},
+            "then": {"not": {"anyOf": [{"required": ["code"]}, {"required": ["delta_frames"]}]}}
+          }
+        ]
       }
     },
     "snaps": {

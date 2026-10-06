@@ -220,7 +220,7 @@ def run_synthetic_eval() -> dict[str, Any]:
     true_positive = len(expected & predicted)
     precision = true_positive / len(predicted) if predicted else 1.0
     recall = true_positive / len(expected) if expected else 1.0
-    _ops, report, intervals = compile_edl(
+    ops, report, intervals = compile_edl(
         edl,
         words,
         timeline,
@@ -228,6 +228,31 @@ def run_synthetic_eval() -> dict[str, Any]:
         working_copy_path="runs/synthetic_eval/working_copy.veg",
         config=CompileConfig(),
     )
+    truth_key_by_item_id = {
+        item["id"]: (item["remove"]["from_word"], item["remove"]["to_word"]) for item in edl["cuts"]
+    }
+    truth_key_by_item_id.update(
+        {item["id"]: ("gap", item["gap_id"]) for item in edl["gap_actions"]}
+    )
+    applied_item_ids = {
+        item_id
+        for operation in ops["operations"]
+        if operation.get("op") == "delete_range"
+        for item_id in operation.get("item_ids", [])
+    }
+    applied_predicted = {
+        truth_key_by_item_id[item_id]
+        for item_id in applied_item_ids
+        if item_id in truth_key_by_item_id
+    }
+    applied_true_positive = len(expected & applied_predicted)
+    applied_precision = applied_true_positive / len(applied_predicted) if applied_predicted else 1.0
+    applied_recall = applied_true_positive / len(expected) if expected else 1.0
+    proposed_count = len(truth_key_by_item_id)
+    not_applied_count = sum(
+        outcome["status"] in {"rejected", "adjusted"} for outcome in report["item_outcomes"]
+    )
+    not_applied_percent = not_applied_count * 100 / proposed_count if proposed_count else 0.0
     partial_word_cuts = 0
     for interval in intervals:
         for row in words["words"]:
@@ -316,9 +341,18 @@ def run_synthetic_eval() -> dict[str, Any]:
         "dataset": "synthetic-tone-silence-v1",
         "clips": 1,
         "prompt_version": "baseline-1",
-        "schema_versions": {"words": "2.0.0", "edl": "1.2.0", "ops": "1.0.0"},
+        "schema_versions": {
+            "words": "2.0.0",
+            "edl": "1.2.0",
+            "ops": "1.1.0",
+            "compile_report": "2.0.0",
+        },
         "cut_precision": round(precision, 4),
         "cut_recall": round(recall, 4),
+        "applied_precision": round(applied_precision, 4),
+        "applied_recall": round(applied_recall, 4),
+        "proposed_rejected_or_adjusted_count": not_applied_count,
+        "proposed_rejected_or_adjusted_percent": round(not_applied_percent, 4),
         "cut_offset_error_ms": {
             "mean": round(mean_offset, 3),
             "median": round(median_offset, 3),

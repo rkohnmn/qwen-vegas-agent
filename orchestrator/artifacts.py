@@ -116,6 +116,34 @@ def write_review(
         if gap_id:
             lines.append(f"- Gap: {gap_id}")
         lines.append("")
+    lines.extend(["## Proposed but not applied", ""])
+    rejected_outcomes = [
+        outcome
+        for outcome in report.get("item_outcomes", [])
+        if outcome.get("status") == "rejected"
+    ]
+    if not rejected_outcomes:
+        lines.append("No proposed cuts or gap actions were rejected.")
+    for outcome in rejected_outcomes:
+        item_id = outcome.get("item_id", "unknown")
+        source_item: dict[str, Any] = next(
+            (item for item in decisions if item.get("id") == item_id), {}
+        )
+        location = ""
+        remove = source_item.get("remove", {})
+        if isinstance(remove, dict):
+            location = (
+                f"; word IDs {remove.get('from_word', 'unknown')} through "
+                f"{remove.get('to_word', 'unknown')}"
+            )
+        elif source_item.get("gap_id"):
+            location = f"; gap ID {source_item['gap_id']}"
+        lines.append(
+            f"- `{item_id}` ({outcome.get('item_type', 'item')}; "
+            f"{source_item.get('category', 'silence')}{location}): "
+            f"`{outcome.get('code', 'E_UNKNOWN')}` — {outcome.get('reason', 'rejected')}"
+        )
+    lines.append("")
     lines.extend(
         [
             "## Compiler report",

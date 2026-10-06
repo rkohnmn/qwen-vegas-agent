@@ -1,9 +1,10 @@
 {
-  "schema_version": "1.2.0",
+  "schema_version": "2.0.0",
   "source_frames": 100,
   "removed_frames": 10,
   "removed_percent": 20.0,
   "warnings": [],
   "rejected_items": [],
+  "item_outcomes": [],
   "snaps": []
 }
