@@ -13,6 +13,10 @@ from typing import Any
 
 from orchestrator.childenv import safe_child_environment
 
+# ffprobe can stop before the decoder has flushed reordered frames at a packet-count
+# boundary. Read ahead, then classify only the requested timestamp window.
+_VFR_SAMPLE_LOOKAHEAD_PACKETS = 16
+
 
 class MediaToolError(RuntimeError):
     """Safe, typed failure from the external media tool."""
@@ -237,7 +241,7 @@ def probe_media(
                 "-select_streams",
                 str(videos[0].index),
                 "-read_intervals",
-                f"%+#{sample_packet_count}",
+                f"%+#{sample_packet_count + _VFR_SAMPLE_LOOKAHEAD_PACKETS}",
                 "-show_frames",
                 "-show_entries",
                 "frame=best_effort_timestamp_time,pkt_pts_time",
@@ -248,7 +252,7 @@ def probe_media(
             executable,
             timeout_s,
         )
-        timestamps = _timestamps(frames)
+        timestamps = _timestamps(frames)[:sample_packet_count]
         sampled_vfr = _intervals_vary(timestamps)
     rates_differ = (
         fps is not None and real_fps is not None and abs(fps - real_fps) > Fraction(1, 1000)

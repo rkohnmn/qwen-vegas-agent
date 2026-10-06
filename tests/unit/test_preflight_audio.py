@@ -88,8 +88,90 @@ def test_preflight_uses_argument_lists_and_reports_media_risks(
     assert all(kwargs["shell"] is False for _, kwargs in calls)
     assert all(args[-1] == str(media) for args, _ in calls)
     assert any("$(literal)" in args[-1] for args, _ in calls)
-    assert any("%+#64" in args for args, _ in calls)
+    assert any("%+#80" in args for args, _ in calls)
     assert media.read_bytes() == b"read-only sentinel"
+
+
+def test_preflight_looks_ahead_before_classifying_bounded_timestamp_window(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    media = tmp_path / "clip.mp4"
+    media.write_bytes(b"fixture")
+    metadata = {
+        "format": {"format_name": "mov,mp4", "duration": "2"},
+        "streams": [
+            {
+                "index": 0,
+                "codec_type": "video",
+                "codec_name": "h264",
+                "avg_frame_rate": "2997/100",
+                "r_frame_rate": "2997/100",
+                "duration": "2",
+            }
+        ],
+    }
+    responses: list[dict[str, Any]] = []
+    calls: list[list[str]] = []
+
+    def fake_run(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        calls.append(args)
+        return completed(json.dumps(responses.pop(0)))
+
+    monkeypatch.setattr(preflight.shutil, "which", lambda _: "ffprobe.exe")
+    monkeypatch.setattr(preflight.subprocess, "run", fake_run)
+
+    # The extra frame is outside the requested window and mimics an incomplete
+    # decoder tail after ffprobe stops at a packet-count boundary.
+    responses.extend(
+        [
+            metadata,
+            {
+                "frames": [
+                    {"best_effort_timestamp_time": stamp}
+                    for stamp in (
+                        "0",
+                        "0.033367",
+                        "0.066733",
+                        "0.100100",
+                        "0.133467",
+                        "0.166833",
+                        "0.266933",
+                    )
+                ]
+            },
+        ]
+    )
+    constant = preflight.probe_media(media, sample_packet_count=5)
+
+    assert constant.vfr_detected is False
+    assert len(constant.sampled_frame_timestamps) == 5
+    assert "%+#21" in calls[1]
+
+    # A cadence change inside the requested window must still be detected.
+    responses.extend(
+        [
+            metadata,
+            {
+                "frames": [
+                    {"best_effort_timestamp_time": stamp}
+                    for stamp in (
+                        "0",
+                        "0.033367",
+                        "0.066733",
+                        "0.133466",
+                        "0.166833",
+                        "0.200200",
+                        "0.233567",
+                    )
+                ]
+            },
+        ]
+    )
+    variable = preflight.probe_media(media, sample_packet_count=5)
+
+    assert variable.vfr_detected is True
+    assert len(variable.sampled_frame_timestamps) == 5
+    assert media.read_bytes() == b"fixture"
 
 
 def test_preflight_identifies_constant_rational_frame_intervals() -> None:
