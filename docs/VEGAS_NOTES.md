@@ -1,7 +1,7 @@
 # VEGAS_NOTES.md
 
 **Scope:** Everything this project knows, assumes, and still needs to prove about driving **VEGAS Pro 17** from code.
-**Document version:** 1.0.1
+**Document version:** 1.0.2
 **Companion to:** `ARCHITECTURE.md` (Sections 12, 13, 21)
 
 This is a living lab notebook. Nothing in the executor, the compiler's Vegas-facing ops, or the subtitle path should depend on a Vegas behavior that is not marked `VERIFIED` here.
@@ -19,7 +19,7 @@ This is a living lab notebook. Nothing in the executor, the compiler's Vegas-fac
 7. Known Pitfalls and Design Responses
 8. Executor Operation to API Mapping
 9. Decision Trees
-10. Draft Probe Scripts (untested)
+10. Draft Probe Scripts (compiled, not run)
 11. Test Project Corpus
 12. Safety Protocol for Testing
 13. Results Log
@@ -48,6 +48,7 @@ This is a living lab notebook. Nothing in the executor, the compiler's Vegas-fac
 | **E1** | Reported in community or official sources for a Vegas version close to 17 (14 to 16). Likely to hold, not proven. |
 | **E2** | Reported for newer versions only (for example 21 or 22), or from a third-party summary. Weak evidence for 17. |
 | **E3** | Recalled from general knowledge of the API shape. Names and signatures must be confirmed against the API summary and by compiling. |
+| **EC (compile-time only)** | Type/member metadata read without loading executable code, or source compiled against the installed Vegas assembly. Confirms names and signatures only; it is not E0 and never proves runtime behavior. |
 
 ### Status values
 
@@ -56,6 +57,7 @@ This is a living lab notebook. Nothing in the executor, the compiler's Vegas-fac
 | `UNVERIFIED` | No E0 evidence yet. |
 | `VERIFIED` | E0 evidence recorded in Section 13. |
 | `PARTIAL` | Works with limits. Limits are listed. |
+| `PARTIAL (compile-time only)` | Metadata or source compilation confirms the API surface against this install, but runtime behavior remains unverified. |
 | `DISPROVED` | Tested and does not work. Fallback is in force. |
 
 All statuses in this document start at `UNVERIFIED` unless stated otherwise.
@@ -68,21 +70,23 @@ Record the real values. Many Vegas behaviors differ by build, OS, and plugins.
 
 | Item | Value |
 | :-- | :-- |
-| VEGAS Pro version and build number (Help > About) | `_____` |
-| Install path | `_____` |
-| Windows version | `_____` |
-| .NET Framework versions installed | `_____` |
-| GPU and driver (laptop RTX 3050) | `_____` |
-| GPU acceleration setting in Vegas (Preferences > Video) | `_____` |
-| Script Menu folder (expected: `Documents\Vegas Script Menu`) | `_____` |
-| Install-folder Script Menu present? | `_____` |
-| Extensions folder (expected: under the Vegas install `Application Extensions`) | `_____` |
-| Which DLL exists in the install folder: `ScriptPortal.Vegas.dll`, `Sony.Vegas.dll`, or both | `_____` |
-| Third-party plugins installed (Sapphire, BorisFX, NewBlue, Vegasaur, and so on) | `_____` |
-| Typical source formats (camera, OBS output container and codec) | `_____` |
-| Typical project frame rates and resolutions | `_____` |
-| Typical audio layout (single mixed track vs per-speaker tracks) | `_____` |
-| Does Vegas 17 import the typical source files without conversion? | `_____` |
+| VEGAS Pro version and build number (file metadata; Help > About not opened) | `17.0.0.284` |
+| Install path | `VEGAS_INSTALL_DIR` from ignored local config; omitted from tracked docs |
+| Windows version | Windows 10 build `19045` |
+| .NET Framework versions installed | .NET Framework `4.8` |
+| GPU and driver | NVIDIA GeForce RTX 3050 Ti Laptop GPU, 4 GB; driver `595.71` |
+| GPU acceleration setting in Vegas (Preferences > Video) | Not inspected; Vegas was not launched |
+| User Script Menu folder (`Documents\Vegas Script Menu`) | Not present at inspection time |
+| Install-folder Script Menu present? | Yes |
+| `Application Extensions` folder under install | Not found at install-folder root |
+| Which DLL exists in the install folder: `ScriptPortal.Vegas.dll`, `Sony.Vegas.dll`, or both | `ScriptPortal.Vegas.dll` only; file and product version `17.0.0.284` |
+| Third-party plugins installed (Sapphire, BorisFX, NewBlue, Vegasaur, and so on) | Not inventoried; requires Vegas/plugin inspection |
+| Typical source formats (camera, OBS output container and codec) | Not established; media preflight unavailable without ffprobe |
+| Typical project frame rates and resolutions | Not established |
+| Typical audio layout (single mixed track vs per-speaker tracks) | Not established |
+| Does Vegas 17 import the typical source files without conversion? | Not tested |
+
+The VEGAS install-folder executable inventory was: `ApplicationRegistration.exe`, `CreateMinidumpx64.exe`, `ErrorReportClient.exe`, `ErrorReportLauncher.exe`, `NGenTool.exe`, `PRSConfig.exe`, `vegas170.exe`, and `vidcap60.exe`. The first four and `vegas170.exe` report Version 17.0 (Build 284); `NGenTool.exe` and `PRSConfig.exe` report `17.0.0.284`; `vidcap60.exe` reports version 6.0f (Build 1004). `vegas170.exe` is the executable name relevant to VQ-02.
 
 Intake note: screen recorders and streaming software often write containers or codecs that older Vegas builds cannot import or decode cleanly (for example MKV, HEVC, or variable frame rate files). Check this early. If sources need a remux or transcode to a Vegas-friendly intermediate, that becomes a pipeline stage (see Section 7, pitfall P8).
 
@@ -135,7 +139,29 @@ The executor and dumpers expect to use the following parts of the object model. 
 | Render | `vegas.Render(...)`, `RenderArgs`, `RenderTemplate(s)`, `RenderStarted/Finished` events | Preview and final | E3 (F-wish-list mentions render events) |
 | Project I/O | `vegas.SaveProject`, `vegas.OpenProject`, `vegas.NewProject` | Working copy | E3 |
 
-The official Scripting API Summary page (newer version linked in Section 14) lists classes including AudioEvent, AudioTrack, Effect, Effects, Envelope, EnvelopePoint(s), PlugInNode, and Vegas, so the type families above are plausible. Exact members for 17 must still be checked.
+The official Scripting API Summary page (newer version linked in Section 14) lists classes including AudioEvent, AudioTrack, Effect, Effects, Envelope, EnvelopePoint(s), PlugInNode, and Vegas, so the type families above are plausible. The M1 metadata inventory below records which names exist in this VEGAS 17 assembly; it does not establish runtime behavior.
+
+### M1 metadata inventory (EC)
+
+The full reflection-only type/member dump is in ignored output `runs/m1-vegas-metadata/ScriptPortal.Vegas.metadata.txt` (369 types and 6,695 declared-member entries in 7,064 total lines, including signatures, base types and interfaces). It was produced through .NET Framework reflection-only APIs. The table below is a condensed inventory for the members named in Sections 5 and 8. “Present” means the type/member name is in the installed assembly metadata; compile status is called out separately. This table does not establish that a Vegas operation works.
+
+| API surface used/planned | Metadata inventory | Notes |
+| :-- | :-- | :-- |
+| `ScriptPortal.Vegas.Vegas`; script entry `FromVegas(Vegas)` | Present | The three probe sources compile with the namespace and entry signature. `FromVegas` is the script contract, not an assembly member. |
+| `Project.FilePath`, `Tracks`, `Markers`, `Regions`, `MediaPool`, `Video`; `Project.Video.FrameRate` | Present | `FrameRate` is `Double`; this does not establish a rational frame-rate conversion. |
+| `Track.Events`, `Name`, `Selected`, `IsAudio()`, `IsVideo()`; `VideoTrack.AddVideoEvent(Timecode, Timecode)`; `AudioTrack.AddAudioEvent(Timecode, Timecode)` | Present | `IsVideo`, event traversal, group and event-time members compile in `TimelineDump`; both event-add overloads are in metadata. |
+| `TrackEvent.Start`, `Length`, `End`, `Split(Timecode)`, `Selected`, `ActiveTake`, `Takes`, `Group`, `FadeIn`, `FadeOut`, `RemoveSelf()` | Present | Names/signatures only; split, grouping and removal behavior are not tested. |
+| `Take.MediaPath`, `Offset`; `Media(PlugInNode)`, `Media.Generator`, `GetVideoStreamByIndex(Int32)` | Present | `Take.Offset` has a setter in metadata. |
+| `Timecode.FromMilliseconds(Double)`, `FromFrames(Int64)`, `ToMilliseconds()`, `FrameCount` | Present | `FromMilliseconds` and `ToMilliseconds` compile in `TimelineDump`; drift and project-rate behavior are untested. |
+| `UndoBlock(String)`, `Dispose()` | Present | `TextProbe` compiles with an `UndoBlock` using block. Batch undo behavior is untested. |
+| `Vegas.Transitions`, `VideoFX`, `AudioFX`, `Generators`; `PlugInNode.IsContainer`, enumeration, `Name`, `UniqueID`, `IsOFX`, `GetChildByUniqueID`, `GetChildByName` | Present | Recursive enumeration source compiles; no installed catalog was enumerated. |
+| `Effect(PlugInNode)`, `Effects.AddEffect(PlugInNode)`, `Effects.Clear()`, `Effect.OFXEffect`, `OFXEffect.Parameters`, `OFXParameter.Name` | Present | Metadata confirms these members; no effect was added and no plugin parameter was read or changed. `Effects` also inherits a generic collection `Add`. |
+| `Fade.Length`, `Curve`, `ReciprocalCurve`, `Transition`; `CurveType` | Present | `Fade.Transition` is typed as `System.Object`; applying a transition is unverified. |
+| `Envelope`, `EnvelopePoint`, `Envelope.Points`, `EnvelopePoint(Timecode, Double, CurveType)` | Present | These names/signatures are in assembly metadata; envelope edits are unverified. |
+| `Marker`, `Region`, `MarkerList`, `RegionList`, `Project.Markers`, `Project.Regions`, `Marker.RemoveSelf()` | Present | Marker/region types, constructors and collection interfaces are present. Collection mutation and prefix clearing remain untested. |
+| `Vegas.Render(...)`, `Project.Render(...)`, `RenderArgs`, `RenderTemplate`, `Vegas.RenderStarted/RenderFinished` | Present | Render types, methods and events are present; no render was attempted. The type is singular `RenderTemplate`; no `RenderTemplates` type was found. |
+| `Vegas.SaveProject(...)`, `OpenProject(...)`, `NewProject()` | Present | These methods are on `Vegas`, not `Project`; save/open behavior is untested. |
+| `AudioEvent.Volume` or `TrackEvent.Volume` | Absent | `AudioTrack.Volume` and envelope APIs are present. Event-level direct volume is not in either event type's metadata. |
 
 ---
 
@@ -159,7 +185,7 @@ Priority tags: **P0** blocks the executor, **P1** blocks a feature, **P2** quali
   5. For compiled DLL scripts or extensions: determine the .NET Framework target Vegas 17 loads without error.
 - **Pass:** Hello script runs. Language and framework limits recorded.
 - **Fallback:** Use whichever namespace compiles. Write scripts in conservative C# (no interpolation, no null-conditional) until the level is known.
-- **Status:** `UNVERIFIED`
+- **Status:** `PARTIAL (compile-time only)` — installed `ScriptPortal.Vegas.dll` version `17.0.0.284` was the reference; all three probes compile with `.NET Framework csc.exe /langversion:5`. The Vegas Script Menu/compiler and runtime remain untested.
 
 ---
 
@@ -201,7 +227,7 @@ Priority tags: **P0** blocks the executor, **P1** blocks a feature, **P2** quali
 - **Test:** Run `CatalogDump` (Section 10.1). Confirm: counts, whether containers exist and require recursion, whether third-party plugins appear, whether presets appear, and whether duplicate names exist (key collisions). Re-run after "Re-scan OFX plugins" (the Vegas menu action in the Plug-In Manager) and after toggling a plugin.
 - **Pass:** JSON catalog with unique IDs for all transitions, video FX, audio FX, generators, and preset names for the text generator.
 - **Fallback:** Maintain a hand-written catalog file that maps keys to unique IDs found by hand. Slower, but workable.
-- **Status:** `UNVERIFIED`
+- **Status:** `PARTIAL (compile-time only)` — `CatalogDump` compiles against the plugin collection and `PlugInNode` members; plugin enumeration and catalog output remain untested.
 
 ---
 
@@ -258,7 +284,7 @@ Priority tags: **P0** blocks the executor, **P1** blocks a feature, **P2** quali
 - **Test:** Run a batch of 50 mixed operations (split, delete, add marker, add text event, add transition). Press Undo once. Confirm everything reverts. Test an exception thrown mid-batch: confirm state is not left half-applied in a way that breaks the project.
 - **Pass:** Single-step undo for complete batches. Failure behavior documented.
 - **Fallback:** Rely on the working-copy rule (Section 12) and save checkpoints between batches.
-- **Status:** `UNVERIFIED`
+- **Status:** `PARTIAL (compile-time only)` — `UndoBlock(String)` and `IDisposable.Dispose()` compile in `TextProbe`; undo grouping and rollback behavior remain untested.
 
 ---
 
@@ -276,7 +302,7 @@ Priority tags: **P0** blocks the executor, **P1** blocks a feature, **P2** quali
   7. Check how many video tracks / events this creates versus a single track with all captions.
 - **Pass:** Per-event text and color set by code, reliably, at acceptable speed.
 - **Fallback chain (Architecture 13.4):** saved preset per speaker color, then external ASS burn-in, then SRT/ASS sidecar only.
-- **Status:** `UNVERIFIED`
+- **Status:** `PARTIAL (compile-time only)` — generator/media/event/OFX member names used by `TextProbe` compile against this assembly; no generator was instantiated and no text event or parameter was inspected at runtime.
 
 ---
 
@@ -303,7 +329,7 @@ Priority tags: **P0** blocks the executor, **P1** blocks a feature, **P2** quali
   5. Determine whether sample-accurate audio placement (sub-frame) is possible for audio events. If yes, audio cuts can use finer resolution than video frames.
 - **Pass:** A documented conversion function from (rational fps, frame index) to the correct Vegas `Timecode`, with zero drift over 100,000 frames. A statement on audio sub-frame precision.
 - **Fallback:** Always construct times from frame counts, never from floating seconds. Keep the project frame rate in the job as a rational string.
-- **Status:** `UNVERIFIED`
+- **Status:** `PARTIAL (compile-time only)` — `Project.Video.FrameRate` is `Double`, and `Timecode.FromFrames`, `FromMilliseconds`, and `ToMilliseconds` are present; rational-rate mapping, frame placement and drift remain untested.
 
 ---
 
@@ -449,7 +475,7 @@ This table is the contract between `ops.json` operation types and Vegas API beha
 | `add_transition` | Apply catalog transition between events | assign transition effect on fade; manage overlap | VQ-05 | UNVERIFIED |
 | `add_audio_event` | Place SFX file with gain | `AudioTrack.AddAudioEvent`, take from `Media` | VQ-18 | UNVERIFIED |
 | `set_gain` | Set event or track gain | event/track volume property or envelope | VQ-18 | UNVERIFIED |
-| `apply_fx` | Add catalog FX with optional params | `GetChildByUniqueID` + `new Effect(...)` + `Effects.Add` (E1 for add) | VQ-04, VQ-17 | PARTIAL (add is E1) |
+| `apply_fx` | Add catalog FX with optional params | `GetChildByUniqueID` + `new Effect(...)` + `Effects.AddEffect` / collection `Add` | VQ-04, VQ-17 | UNVERIFIED (member names present in EC inventory; no operation run) |
 | `add_text_event` | Create caption event with text | text generator media + event | VQ-09 | UNVERIFIED |
 | `set_text_style` | Apply speaker color/preset | RTF/param or preset | VQ-09, VQ-10 | UNVERIFIED |
 | `render_preview` | Low-res or audio-only render of a range | render API with template | VQ-14 | UNVERIFIED |
@@ -510,9 +536,9 @@ flowchart TD
 
 ---
 
-## 10. Draft Probe Scripts (untested)
+## 10. Draft Probe Scripts (compiled, not run)
 
-> **All code below is an untested draft.** It is written in conservative C# (no string interpolation, no null-conditional operators) because the script compiler's language level is unknown (VQ-01). Member names are E3 and may need adjustment after checking the real DLL. Run these on a **throwaway project**, never on real work.
+> **The code below has not been run in VEGAS.** All three source files compile against the installed Vegas assembly with the .NET Framework compiler in C# 5 mode. This confirms only the referenced member names/signatures; the Vegas Script Menu compiler and runtime remain untested. Run these on a **throwaway project**, never on real work.
 >
 > Output goes to `Documents\VegasAgent\probes\` so results are easy to paste into Section 13.
 
@@ -788,7 +814,7 @@ Ground truth for each lives next to the project (`*.truth.json`): expected cut f
 
 ## 13. Results Log
 
-Append an entry for every test. Newest at the bottom.
+Append an entry for every test. Newest at the bottom. Compile-only checks use evidence label EC and must not be recorded as E0.
 
 **Template**
 
@@ -800,13 +826,31 @@ Script/steps: <file name or numbered steps>
 Observed: <what happened, with numbers>
 Evidence: <file path to dump/render/screenshot>
 Conclusion: PASS | PARTIAL | FAIL
-Status change: VQ-xx UNVERIFIED -> VERIFIED | PARTIAL | DISPROVED
+Status change: VQ-xx UNVERIFIED -> VERIFIED | PARTIAL | PARTIAL (compile-time only) | DISPROVED
 Follow-ups: <items>
 ```
 
 **Entries**
 
-*(none yet)*
+### R-001 | VQ-01, VQ-04, VQ-09, VQ-11 | Assembly inventory and reflection-only metadata
+Date: 2026-10-06   Tester: Codex   Vegas build: 17.0.0.284   OS: Windows 10 build 19045
+Project: none (metadata-only inspection)
+Script/steps: Read `ScriptPortal.Vegas.dll` through .NET Framework reflection-only APIs; enumerate assembly types and declared members, signatures, base types and interfaces. No `Assembly.Load`, Vegas process, or probe execution.
+Observed: `ScriptPortal.Vegas.dll` is the only `*.Vegas.dll` in the install folder; file and product versions are both `17.0.0.284`. `Sony.Vegas.dll` is absent. `vegas170.exe` exists and reports Version 17.0 (Build 284). The install root contains a `Script Menu` folder but no `Application Extensions` folder; the user Documents Script Menu folder was not present at inspection time. Metadata contains 369 types and 6,695 declared-member entries (7,064 total lines).
+Evidence: ignored `runs/m1-vegas-metadata/ScriptPortal.Vegas.metadata.txt`; executable and DLL inventory recorded in Section 3.
+Conclusion: PARTIAL (compile-time only)
+Status change: VQ-01 UNVERIFIED -> PARTIAL (compile-time only); no runtime status changes.
+Follow-ups: Use `docs/HUMAN_TESTS_M1.md` to test Script Menu loading, command-line invocation, extension feasibility, and runtime behavior on a disposable project.
+
+### R-002 | VQ-01, VQ-04, VQ-08, VQ-09, VQ-11 | Probe compile-only check
+Date: 2026-10-06   Tester: Codex   Vegas build: 17.0.0.284   OS: Windows 10 build 19045
+Project: none
+Script/steps: For each existing source, compile with `.NET Framework csc.exe /nologo /langversion:5 /target:library`, reference `ScriptPortal.Vegas.dll` and `System.Windows.Forms.dll`: `CatalogDump.cs`, `TimelineDump.cs`, and `TextProbe.cs`.
+Observed: All three compiler invocations exited 0 with no diagnostics. C# language mode was explicitly set to 5. The compiler banner identifies Microsoft C# compiler 4.8.9232.0 and states it supports through C# 5; a separate `/version` query is not a supported switch. No source probe was edited or executed.
+Evidence: ignored outputs `runs/m1-vegas-metadata/compiled/CatalogDump.dll`, `TimelineDump.dll`, and `TextProbe.dll`; source files remain in `vegas/probes/`.
+Conclusion: PARTIAL (compile-time only)
+Status change: VQ-01, VQ-04, VQ-08, VQ-09, and VQ-11 have compile-time evidence only; runtime behaviors remain UNVERIFIED.
+Follow-ups: Complete `docs/HUMAN_TESTS_M1.md`; retain all Vegas behavior as unverified until observed on a throwaway project.
 
 ---
 
@@ -858,7 +902,8 @@ Before adapting any code from these, record the license in `DECISIONS.md`. When 
 | :-- | :-- | :-- |
 | 1.0.0 | initial | First complete draft. All Vegas-specific behaviors `UNVERIFIED`. Probe scripts drafted but not run. |
 | 1.0.1 | 2026-10-05 | Moved the source note to its canonical docs path; no Vegas behavior changed or was verified. |
+| 1.0.2 | 2026-10-06 | Recorded VEGAS 17.0 build 284 install metadata and reflection-only member inventory; all three probes compile in C# 5 mode. Statuses remain partial compile-time only where applicable; no Vegas script or project was run. |
 
 ---
 
-*End of VEGAS_NOTES.md v1.0.1*
+*End of VEGAS_NOTES.md v1.0.2*
