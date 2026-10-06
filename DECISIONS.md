@@ -62,13 +62,13 @@ Status: Accepted.
 ### D-06 — Dry run remains the operating default
 Date: 2026-10-06
 
-Decision: The example config uses `dry-run`; `dry-run` and `eval` task stubs return code 2.
+Decision: The example config continues to use `dry-run`. M1 implements `dry-run` and offline `eval`; `--planner llm` remains disabled in the CLI until a later milestone.
 
 Rationale: No task may imply that a pipeline stage exists before it is implemented.
 
-Alternatives: Return success with a placeholder; rejected.
+Alternatives: Change the default to unattended execution or send a live planner request during M1; rejected.
 
-Status: Accepted.
+Status: Accepted; M1 implementation follow-up recorded in this decision.
 
 ### D-07 — Broker and closed catalog contain the blast radius
 Date: 2026-10-06
@@ -169,6 +169,72 @@ Alternatives: Download a tokenizer or store only a floating-point percentage; re
 
 Status: Accepted.
 
+### D-16 — Unaligned ASR tokens keep text but have no time anchors
+Date: 2026-10-06
+
+Decision: Bump the words contract to 2.0.0. Every token explicitly records `aligned` or `unaligned`; unaligned tokens retain recognized text and use null start/end values. EDL references and compiler cut ranges may use only aligned tokens.
+
+Rationale: WhisperX alignment can fail for a segment or token. Inventing a timestamp would make later frame cuts unsafe, while discarding text would hide ASR output from review.
+
+Alternatives: Drop unaligned words or infer their times from neighboring tokens; rejected because either loses information or fabricates timing.
+
+Status: Accepted.
+
+### D-17 — Refine transcript silence gaps from local PCM energy
+Date: 2026-10-06
+
+Decision: Refine candidate gaps using configurable PCM RMS windows and a robust noise-floor threshold. Record the ASR bounds, energy-refined bounds, threshold, and method in `words.json`; the compiler snaps gap removals inward and clamps to adjacent aligned word spans.
+
+Rationale: ASR segment boundaries alone may not follow the audible silence precisely. Keeping both boundaries makes the refinement auditable and the compiler deterministic.
+
+Alternatives: Let the planner choose times or silently replace ASR boundaries; rejected because the model must not select numeric timing and the adjustment must remain inspectable.
+
+Status: Accepted; real-media thresholds remain unbenchmarked.
+
+### D-18 — M1 planner network tests stay loopback-only
+Date: 2026-10-06
+
+Decision: Keep the `LlmPlanner` adapter restricted to loopback hosts and use fake local HTTP servers in tests. The M1 dry-run CLI refuses `--planner llm`; real endpoint calls are deferred.
+
+Rationale: This validates request/response handling without sending transcripts, keys, or project data to a server during M1.
+
+Alternatives: Test against the configured remote endpoint or enable live planning by default; rejected because that would send user content and expand M1's network boundary.
+
+Status: Accepted.
+
+### D-19 — Baseline evaluation stays synthetic and dependency-light
+Date: 2026-10-06
+
+Decision: Use a generated tone/silence case and fixture-backed word boundaries for the M1 eval. Report all metrics and runtime, and label the result as a plumbing check rather than real-clip accuracy.
+
+Rationale: The current host lacks ffmpeg/ffprobe and WhisperX weights, while the eval must still run offline on a machine without media, GPU, or model dependencies.
+
+Alternatives: Download binaries, model weights, or an external tokenizer; rejected because those downloads are not needed for the offline acceptance path and real media setup is user-managed.
+
+Status: Accepted.
+
+### D-20 — Baseline pause edits retain a configured short gap
+Date: 2026-10-06
+
+Decision: The baseline planner emits `shorten` for measured pauses at least 650 ms long. The compiler keeps `compile.min_gap_after_cut_ms` of silence; it does not delete the whole pause by default.
+
+Rationale: Removing an entire gap can leave consecutive speech words touching. Retaining a deterministic short pause is easier to review and keeps edit intent ID-only.
+
+Alternatives: Remove every detected pause or let the planner choose a retained duration; rejected because either can create abrupt pacing or move timing decisions into the model.
+
+Status: Accepted.
+
+### D-21 — Measure pacing only at newly created cut joins
+Date: 2026-10-06
+
+Decision: The M1 verifier checks the mapped inter-word gap across each removed range against configured minimum and maximum thresholds, reports clipped-word boundary checks, and records a targeted suggestion for each failure.
+
+Rationale: Pacing checks should describe joins created by this edit. Natural pauses elsewhere remain source characteristics and should not trigger a cut-specific warning.
+
+Alternatives: Check every pair of transcript words or rely only on compile-time guards; rejected because the former flags untouched speech and the latter does not report configured join pacing.
+
+Status: Accepted.
+
 ## Reference: browser agent patterns
 
 Read-only review of the local sibling browser-agent repository, commit 04c788de21cded7070744c60a98048e9b2141f49. The folder contained no LICENSE, COPYING, or NOTICE file, so the license is unknown. No code was copied.
@@ -197,3 +263,15 @@ These projects informed the design; their licenses have not been checked and no 
 | pytest | Unit tests | 8.4.2 | MIT |
 | ruff | Lint and format | 0.12.12 | MIT |
 | mypy | Strict Python typing | 1.18.2 | MIT |
+
+
+### D-22 — Prefer nearby zero crossings and report both boundaries
+Date: 2026-10-06
+
+Decision: When normalized PCM is available, the compiler may move each planned cut boundary to the nearest sign change within a 20 ms window, constrained to the safe adjacent silence and integer frame grid. Record both incoming and outgoing boundary resolutions, including cases with no usable crossing. The reference pipeline enables this setting; standalone compile stages use PCM only when `--audio` is supplied.
+
+Rationale: Frame-aligned cuts remain authoritative for the VEGAS ops contract, while a nearby zero crossing can reduce audio discontinuities without allowing a cut inside aligned speech.
+
+Alternatives: Let the planner choose the crossing time or alter cuts without retaining the word/frame guard; rejected because timing remains compiler-owned and must stay auditable.
+
+Status: Accepted; synthetic sign-change coverage passes. Real speech behavior is unbenchmarked until the media smoke run can execute.

@@ -1,13 +1,19 @@
 # Roadmap
 
-Milestone 0 is the contract and validation foundation. Runtime editing is not implemented.
-
 | Milestone | Scope | Exit evidence |
 |---|---|---|
-| M1 — Transcript-driven rough cut | Ingest a project copy; produce word-aligned transcripts; pack one pass; plan cuts; compile exact frames; show a dry run. Keep human review as the default. | Unit/schema checks, labeled clip evals, and Vegas executor tests on throwaway projects. |
-| M2 — Speaker-colored subtitles | Map speaker keys to user colors, build subtitle lines deterministically, render or export SRT/ASS, report low-confidence attribution. | Subtitle sync and color accuracy, VQ-09/VQ-10 evidence, and fixture-backed verification. |
-| M3 — Transitions and SFX | Build a closed local catalog, add catalog-approved transitions/SFX and explicit fades, apply safe gain. | Catalog key checks, loudness/click metrics, VQ-05/VQ-06/VQ-18 evidence, license records. |
-| M4 — Vision review | Add bounded frame requests, visual checks, and preview verification without giving the model filesystem access. | Measured review accuracy, request bounds, and VQ-14 evidence for preview rendering. |
-| M5 — Full auto mode | Add bounded correction loops, thresholds, stop/abort handling, and unattended execution only after human-reviewed reliability gates. | Regression evals, emergency-stop tests, path confinement, and all blocking Vegas questions resolved. |
+| M1 — Local-first rough cut | Implement media preflight, word-level ASR adapter, ID packing/planning, rational-frame compilation, review artifacts, reference audio rendering, verifier, and offline evaluation. Real-media smoke remains blocked by missing local `ffmpeg`/`ffprobe` and ASR weights. | Pinned checks pass; synthetic metrics are recorded; smoke run and ASR benchmark are recorded once local tools and weights are available; source hash remains unchanged. |
+| M2 — VEGAS executor | Apply validated `ops.json` only to a working copy, with per-batch undo, stop checks, operation results, and path confinement. | Human probe checklist completed; settle required Vegas questions below; executor tests on disposable Vegas projects. |
+| M3 — Speaker-colored subtitles | Derive caption lines from aligned words and speaker keys, export or render subtitles, and surface low-confidence attribution. | Subtitle sync and color accuracy measured; VQ-09/VQ-10 addressed. |
+| M4 — Transitions and SFX | Build the closed local catalog, apply catalog-approved transitions/SFX and safe gain, and verify fades and loudness. | Catalog checks, click/loudness metrics, and relevant Vegas API questions addressed. |
+| M5 — LLM, vision, and bounded automation | Enable configured endpoint planning, bounded visual review, and later correction/automation loops behind human-review and emergency-stop gates. | LLM endpoint and structured output verified; request bounds, regression evals, stop handling, and reliability gates pass. |
 
-Deferred items from this milestone: perception engines, endpoint client and connection test, compiler timing/snapping, Vegas executor/extension, prompt files, eval clips/harness, and asset downloads. Implement them only under the corresponding repository and Vegas safety rules.
+## Vegas questions before M2 execution
+
+Complete [the M1 human checklist](docs/HUMAN_TESTS_M1.md). At minimum, verify undo-block behavior (VQ-08), command-line/script invocation and working-copy safety (VQ-02/VQ-15), marker and delete-range operations (VQ-04/VQ-07), and text behavior needed by later milestones (VQ-09). The existing metadata and C# compilation evidence is marked `PARTIAL (compile-time only)` and does not settle runtime behavior.
+
+## Remaining M1 work
+
+- Install `ffmpeg` and `ffprobe` locally, then run the selected smoke clip without writing to the media or VEGAS installation.
+- Install the optional WhisperX runtime and obtain its model weights through the user's chosen local setup; record model, device, compute type, peak VRAM, and real-time factor.
+- Re-run the baseline pipeline and compare source hashes before and after. Do not enable live LLM requests in M1.

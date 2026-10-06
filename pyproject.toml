@@ -13,3 +13,4 @@ files = ["orchestrator"]
 [tool.pytest.ini_options]
 testpaths = ["tests/unit"]
 addopts = "-ra"
+markers = ["integration: requires explicit permission to contact a real LLM endpoint"]

@@ -1,10 +1,11 @@
-"""Cross-platform Milestone 0 task runner."""
+"""Cross-platform local task runner for M1 and repository verification."""
 
 from __future__ import annotations
 
 import argparse
 import json
 import re
+import socket
 import subprocess
 import sys
 import tempfile
@@ -12,6 +13,8 @@ import venv
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
+
+from orchestrator.childenv import safe_child_environment
 
 ROOT = Path(__file__).resolve().parent
 REQUIREMENTS = ROOT / "requirements-dev.txt"
@@ -42,7 +45,7 @@ def task_python() -> Path:
 
 def run_command(arguments: Sequence[str]) -> int:
     print("$ " + " ".join(arguments), flush=True)
-    completed = subprocess.run(arguments, cwd=ROOT, check=False)
+    completed = subprocess.run(arguments, cwd=ROOT, check=False, env=safe_child_environment())
     return completed.returncode
 
 
@@ -69,7 +72,17 @@ def task_setup() -> int:
 def task_lint() -> int:
     python = str(task_python())
     checks = [
-        [python, "-m", "ruff", "check", "orchestrator", "perception", "tests/unit", "tasks.py"],
+        [
+            python,
+            "-m",
+            "ruff",
+            "check",
+            "orchestrator",
+            "perception",
+            "tests/unit",
+            "tests/integration",
+            "tasks.py",
+        ],
         [
             python,
             "-m",
@@ -79,6 +92,7 @@ def task_lint() -> int:
             "orchestrator",
             "perception",
             "tests/unit",
+            "tests/integration",
             "tasks.py",
         ],
         [python, "-m", "mypy", "--strict", "orchestrator"],
@@ -237,6 +251,112 @@ def _target_path(target: str) -> str:
     return cleaned.split("#", maxsplit=1)[0].split("?", maxsplit=1)[0]
 
 
+def _privacy_scan() -> list[str]:
+    """Scan tracked and unignored working files without echoing sensitive matches."""
+    try:
+        listed = subprocess.run(
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+            shell=False,
+            env=safe_child_environment(),
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return ["privacy scan could not list repository files"]
+
+    user_path_pattern = re.compile(
+        r"[A-Za-z]:\\(?:Users|Documents and Settings)\\[^\\/\s]+"
+        r"|/(?:Users|home)/[^/\s]+",
+        re.IGNORECASE,
+    )
+    sensitive_names: list[str] = []
+    local_config = ROOT / "config.local.json"
+    if local_config.is_file():
+        try:
+            local_value = load_json(local_config)
+        except (OSError, json.JSONDecodeError):
+            local_value = None
+
+        def collect_media_names(value: Any) -> None:
+            if isinstance(value, dict):
+                for nested in value.values():
+                    collect_media_names(nested)
+            elif isinstance(value, list):
+                for nested in value:
+                    collect_media_names(nested)
+            elif isinstance(value, str):
+                candidate = Path(value).name
+                if Path(candidate).suffix.lower() in {
+                    ".mp4",
+                    ".mkv",
+                    ".mov",
+                    ".avi",
+                    ".m4v",
+                    ".webm",
+                }:
+                    sensitive_names.append(candidate.casefold())
+
+        collect_media_names(local_value)
+
+    hostname = socket.gethostname().casefold().strip()
+    text_suffixes = {
+        ".bat",
+        ".cfg",
+        ".cs",
+        ".gitignore",
+        ".ini",
+        ".json",
+        ".md",
+        ".py",
+        ".ps1",
+        ".schema.json",
+        ".sh",
+        ".toml",
+        ".txt",
+        ".xml",
+        ".yaml",
+        ".yml",
+    }
+    failures: list[str] = []
+    for relative in listed.stdout.splitlines():
+        path = ROOT / relative
+        if not path.is_file() or not any(
+            relative.lower().endswith(suffix) for suffix in text_suffixes
+        ):
+            continue
+        try:
+            content = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            continue
+        lowered = content.casefold()
+        reason = None
+        if user_path_pattern.search(content):
+            reason = "absolute user path"
+        elif hostname and len(hostname) >= 5 and hostname in lowered:
+            reason = "machine hostname"
+        elif any(name in lowered for name in sensitive_names):
+            reason = "local video basename"
+        if reason:
+            failures.append(f"{relative}: contains a {reason}")
+
+    try:
+        ignored = subprocess.run(
+            ["git", "check-ignore", "--quiet", "config.local.json"],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            shell=False,
+            env=safe_child_environment(),
+        )
+    except OSError:
+        return [*failures, "config.local.json ignore rule could not be checked"]
+    if ignored.returncode != 0:
+        failures.append("config.local.json is not ignored by Git")
+    return failures
+
+
 def task_docs_check() -> int:
     markdown_files = sorted(
         path
@@ -281,6 +401,8 @@ def task_docs_check() -> int:
                     f"{markdown_path.relative_to(ROOT)}: missing documented path {mentioned}"
                 )
 
+    failures.extend(_privacy_scan())
+
     if failures:
         print("\n".join(failures), file=sys.stderr)
         return 1
@@ -288,19 +410,253 @@ def task_docs_check() -> int:
     return 0
 
 
-def task_stub(name: str) -> int:
-    print(f"{name} is not implemented in Milestone 0.")
-    return 2
+def task_dry_run(args: argparse.Namespace) -> int:
+    from orchestrator.cli import DryRunError, run_dry_run
+    from orchestrator.planner import PlannerError
+    from orchestrator.renderer import RenderError
+    from perception.asr import AsrError
+    from perception.audio import AudioExtractionError
+
+    if not args.video:
+        print("dry-run requires --video", file=sys.stderr)
+        return 2
+    try:
+        output = run_dry_run(
+            args.video,
+            max_seconds=args.max_seconds,
+            planner_name=args.planner,
+            recorded_edl=args.recorded_edl,
+            llm_endpoint=args.llm_endpoint,
+            llm_model=args.llm_model,
+        )
+    except (
+        DryRunError,
+        PlannerError,
+        AsrError,
+        AudioExtractionError,
+        RenderError,
+        OSError,
+        ValueError,
+    ) as error:
+        print(f"dry-run blocked or failed: {error}", file=sys.stderr)
+        return 1
+    print(f"dry-run artifacts written under {output.relative_to(ROOT)}")
+    return 0
+
+
+def task_preflight(args: argparse.Namespace) -> int:
+    from perception.preflight import MediaToolError, probe_media
+
+    try:
+        result = probe_media(args.video)
+    except MediaToolError as error:
+        print(f"preflight blocked or failed: {error}", file=sys.stderr)
+        return 1
+    report = {
+        "container_names": list(result.container_names),
+        "duration": str(result.duration) if result.duration is not None else None,
+        "frame_rate": str(result.frame_rate) if result.frame_rate is not None else None,
+        "real_frame_rate": str(result.real_frame_rate)
+        if result.real_frame_rate is not None
+        else None,
+        "vfr_detected": result.vfr_detected,
+        "sampled_frame_timestamps": [str(item) for item in result.sampled_frame_timestamps],
+        "streams": [
+            {
+                "index": stream.index,
+                "kind": stream.kind,
+                "codec": stream.codec,
+                "profile": stream.profile,
+                "duration": str(stream.duration) if stream.duration is not None else None,
+                "frame_rate": str(stream.frame_rate) if stream.frame_rate is not None else None,
+                "real_frame_rate": str(stream.real_frame_rate)
+                if stream.real_frame_rate is not None
+                else None,
+                "sample_rate": stream.sample_rate,
+                "channels": stream.channels,
+                "channel_layout": stream.channel_layout,
+                "width": stream.width,
+                "height": stream.height,
+            }
+            for stream in result.streams
+        ],
+        "warnings": [
+            {"code": warning.code.value, "message": warning.message} for warning in result.warnings
+        ],
+    }
+    print(json.dumps(report, indent=2))
+    return 0
+
+
+def task_transcribe(args: argparse.Namespace) -> int:
+    from orchestrator.cli import DryRunError
+    from orchestrator.stages import run_transcribe
+    from perception.asr import AsrError
+    from perception.audio import AudioExtractionError
+    from perception.preflight import MediaToolError
+
+    try:
+        output = run_transcribe(
+            args.video, max_seconds=args.max_seconds, output_root=args.output_dir
+        )
+    except (
+        DryRunError,
+        AsrError,
+        AudioExtractionError,
+        MediaToolError,
+        OSError,
+        ValueError,
+    ) as error:
+        print(f"transcribe blocked or failed: {error}", file=sys.stderr)
+        return 1
+    print(f"transcript artifacts written under {output.relative_to(ROOT)}")
+    return 0
+
+
+def task_plan(args: argparse.Namespace) -> int:
+    from orchestrator.cli import DryRunError
+    from orchestrator.stages import run_plan
+
+    try:
+        output = run_plan(
+            args.words,
+            output_root=args.output_dir,
+            recorded_edl=args.recorded_edl,
+        )
+    except (DryRunError, OSError, ValueError) as error:
+        print(f"plan blocked or failed: {error}", file=sys.stderr)
+        return 1
+    print(f"plan artifacts written under {output.relative_to(ROOT)}")
+    return 0
+
+
+def task_compile(args: argparse.Namespace) -> int:
+    from orchestrator.cli import DryRunError
+    from orchestrator.stages import run_compile
+    from perception.audio import AudioExtractionError
+
+    try:
+        output = run_compile(
+            args.words,
+            args.timeline,
+            args.edl,
+            output_root=args.output_dir,
+            audio_path=args.audio,
+        )
+    except (AudioExtractionError, DryRunError, OSError, ValueError) as error:
+        print(f"compile blocked or failed: {error}", file=sys.stderr)
+        return 1
+    print(f"compile artifacts written under {output.relative_to(ROOT)}")
+    return 0
+
+
+def task_integration() -> int:
+    print(
+        "SKIPPED by default: integration requires local media tools, ASR weights, and an "
+        "explicitly configured environment."
+    )
+    return 0
+
+
+def task_eval() -> int:
+    from orchestrator.evaluation import run_synthetic_eval
+
+    print(json.dumps(run_synthetic_eval(), ensure_ascii=False, indent=2))
+    return 0
+
+
+def task_truth_template(args: argparse.Namespace) -> int:
+    from orchestrator.contracts import validate
+    from orchestrator.evaluation import truth_template
+
+    words_path = Path(args.words)
+    output_path = Path(args.output)
+    try:
+        document = load_json(words_path)
+    except (OSError, json.JSONDecodeError):
+        print("words document could not be read", file=sys.stderr)
+        return 1
+    if validate("words", document):
+        print("words document failed contract validation", file=sys.stderr)
+        return 1
+    root = ROOT.resolve()
+    resolved_output = output_path.resolve()
+    if not resolved_output.is_relative_to(root):
+        print("truth template output must stay within the repository", file=sys.stderr)
+        return 1
+    resolved_output.parent.mkdir(parents=True, exist_ok=True)
+    resolved_output.write_text(
+        json.dumps(truth_template(document), ensure_ascii=False, indent=2) + chr(10),
+        encoding="utf-8",
+    )
+    print(f"truth template written under {resolved_output.relative_to(root)}")
+    return 0
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="task", required=True)
-    for name in ("setup", "lint", "test", "schemas", "docs-check", "dry-run", "eval"):
+    for name in (
+        "setup",
+        "lint",
+        "test",
+        "schemas",
+        "docs-check",
+        "dry-run",
+        "eval",
+        "truth-template",
+        "preflight",
+        "transcribe",
+        "plan",
+        "compile",
+        "integration",
+    ):
         subparser = subparsers.add_parser(name)
         if name == "dry-run":
-            subparser.add_argument("--job", default=None)
+            subparser.add_argument("--video", required=False)
+            subparser.add_argument("--max-seconds", type=int, default=120)
+            subparser.add_argument(
+                "--planner", choices=("baseline", "recorded", "llm"), default="baseline"
+            )
+            subparser.add_argument("--recorded-edl", default=None)
+            subparser.add_argument("--llm-endpoint", default=None)
+            subparser.add_argument("--llm-model", default="qwen")
+        if name == "truth-template":
+            subparser.add_argument("--words", required=True)
+            subparser.add_argument("--output", required=True)
+        if name in {"preflight", "transcribe"}:
+            subparser.add_argument("--video", required=True)
+        if name == "transcribe":
+            subparser.add_argument("--max-seconds", type=int, default=120)
+            subparser.add_argument("--output-dir", default=None)
+        if name == "plan":
+            subparser.add_argument("--words", required=True)
+            subparser.add_argument("--recorded-edl", default=None)
+            subparser.add_argument("--output-dir", default=None)
+        if name == "compile":
+            subparser.add_argument("--words", required=True)
+            subparser.add_argument("--timeline", required=True)
+            subparser.add_argument("--edl", required=True)
+            subparser.add_argument("--audio", default=None)
+            subparser.add_argument("--output-dir", default=None)
     args = parser.parse_args(argv)
+    project_python = task_python()
+    if (
+        args.task
+        in {
+            "schemas",
+            "eval",
+            "dry-run",
+            "truth-template",
+            "preflight",
+            "transcribe",
+            "plan",
+            "compile",
+        }
+        and Path(sys.executable).resolve() != project_python.resolve()
+    ):
+        forwarded = list(argv) if argv is not None else sys.argv[1:]
+        return run_command([str(project_python), str(ROOT / "tasks.py"), *forwarded])
 
     if args.task == "setup":
         return task_setup()
@@ -315,7 +671,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         return task_schemas()
     if args.task == "docs-check":
         return task_docs_check()
-    return task_stub(args.task)
+    if args.task == "dry-run":
+        return task_dry_run(args)
+    if args.task == "eval":
+        return task_eval()
+    if args.task == "truth-template":
+        return task_truth_template(args)
+    if args.task == "preflight":
+        return task_preflight(args)
+    if args.task == "transcribe":
+        return task_transcribe(args)
+    if args.task == "plan":
+        return task_plan(args)
+    if args.task == "compile":
+        return task_compile(args)
+    if args.task == "integration":
+        return task_integration()
+    raise AssertionError("unknown task")
 
 
 if __name__ == "__main__":

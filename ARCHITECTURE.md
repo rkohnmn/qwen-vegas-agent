@@ -2,7 +2,7 @@
 
 **Project (working title):** Local AI Video Editing Agent for VEGAS Pro 17
 **Document version:** 1.2.0
-**Status:** Milestone 1 local rough-cut implementation is in progress. This document still describes the full Vegas workflow; Vegas-specific behaviors tagged `[UNVERIFIED]` must be confirmed on a throwaway Vegas Pro 17 project before code depends on them.
+**Status:** M1 offline rough-cut code is implemented; the real-media smoke run is blocked by missing local `ffmpeg` and `ffprobe`. M1 does not execute Vegas. Vegas-specific behaviors tagged `[UNVERIFIED]` must be confirmed on a throwaway Vegas Pro 17 project before code depends on them.
 
 ---
 
@@ -212,7 +212,7 @@ flowchart TD
 ```
 
 ### 6.1 Orchestrator
-The long-running process the user starts. It is the **only** component that holds the endpoint URL and API key. Responsibilities: job state machine, scheduling GPU-heavy stages, calling the LLM, enforcing the permission policy, and mediating all communication with Vegas. Suggested implementation: Python 3.11 (WhisperX and the audio tooling ecosystem live there).
+The long-running process the user starts. It is the **only** component that holds the endpoint URL and API key. Responsibilities: job state machine, scheduling GPU-heavy stages, calling the LLM, enforcing the permission policy, and mediating all communication with Vegas. Implementation target: Python 3.12 on Windows; the active environment and WhisperX compatibility decision are recorded in `DECISIONS.md` D-11.
 
 ### 6.2 Vegas Executor
 A C# script or extension inside Vegas. It has no network access to the LLM and no knowledge of credentials. It does two things: (1) **dump** state (timeline and catalog) and (2) **apply** compiled operations. Details in Section 12.
@@ -692,6 +692,8 @@ After execution, the verifier renders a low-resolution preview and checks:
 
 Failures produce targeted fix instructions. The fix loop is bounded (default 2 iterations). Items it cannot fix are listed in the final report and, in `auto` mode, set the job status to `needs_review`.
 
+M1 verifies each reference-rendered audio join for sample discontinuity and level step, checks whether cut boundaries fall inside aligned word spans, measures post-cut inter-word gaps against the configured `compile.min_gap_after_cut_ms` and `compile.max_gap_after_cut_ms` thresholds, and checks removed-percent sanity. This M1 verifier is offline and does not render a VEGAS preview; Vegas and subtitle checks remain future work.
+
 Optionally, a vision pass reviews sampled frames for visual issues. It is budgeted and off by default for pure-dialogue edits.
 
 ---
@@ -979,4 +981,4 @@ Each item is tracked in `docs/VEGAS_NOTES.md` with a status of `verified`, `unve
 
 ---
 
-*End of ARCHITECTURE.md v1.1.0*
+*End of ARCHITECTURE.md v1.2.0*

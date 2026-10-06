@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0.0",
+  "dataset": "synthetic-tone-silence-v1",
+  "source_hash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "expected_cuts": [
+    {
+      "from_text": "um",
+      "to_text": "um",
+      "approximate_start_s": 0.28,
+      "approximate_end_s": 0.45,
+      "category": "filler"
+    },
+    {
+      "before_text": "begin",
+      "after_text": "now",
+      "approximate_start_s": 0.8,
+      "approximate_end_s": 1.7,
+      "category": "silence"
+    }
+  ],
+  "speaker_labels": [],
+  "notes": "Generated fixture boundaries for offline planner plumbing validation."
+}

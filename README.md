@@ -1,27 +1,28 @@
 # Local AI Video Editing Agent for VEGAS Pro 17
 
-**Status:** Design baseline plus Milestone 0 contract layer. Nothing edits video yet.
+**Status:** Milestone 1 offline rough-cut pipeline implemented. Real-media smoke run is blocked until local `ffmpeg` and `ffprobe` are available. No code launches or edits VEGAS.
 
-This privacy-first project is designed for 4–15 minute talking-content videos. A self-hosted Qwen endpoint proposes an edit plan using word, speaker, gap, and catalog IDs. Deterministic code is intended to resolve all numbers before VEGAS receives operations. Milestone 0 establishes and validates those data formats; it contains no ASR, model client, compiler timing logic, or Vegas executor.
+This privacy-first project targets 4–15 minute talking-content videos. Local perception produces a word-level transcript; an ID-only edit plan is validated and compiled deterministically to frame-based operations. The M1 pipeline includes media preflight, WhisperX integration, a conservative baseline planner, review artifacts, reference audio rendering, and verification. The planner's LLM adapter is restricted to loopback and is disabled in the dry-run CLI.
 
 ## Pipeline
 
 ```mermaid
 flowchart LR
-  A[Vegas project copy] --> B[Perception]
-  B --> C[Pack]
-  C --> D[Planner: EDL by ID]
-  D --> E[Contract validation]
-  E --> F[Compiler: frames and ops]
-  F --> G[Vegas executor]
-  G --> H[Verify and render]
+  A[Source media read-only] --> B[Preflight and local ASR]
+  B --> C[ID-based pack]
+  C --> D[Baseline or recorded planner]
+  D --> E[EDL validation]
+  E --> F[Rational-frame compiler]
+  F --> G[Review artifacts]
+  G --> H[Reference audio render and verification]
+  H --> I[Run manifest]
 ```
 
-The current milestone implements the contract and validation foundation only.
+M1 does not create or modify a VEGAS project. VEGAS metadata inspection and probe compilation are compile-time evidence only; a human must run the probes on a disposable project as described in [the checklist](docs/HUMAN_TESTS_M1.md).
 
 ## Quick start
 
-Install Python 3.11, then run:
+Use Python 3.12 on Windows, then run:
 
 ```powershell
 python tasks.py setup
@@ -29,20 +30,30 @@ python tasks.py lint
 python tasks.py test
 python tasks.py schemas
 python tasks.py docs-check
+python tasks.py eval
 ```
 
-Windows uses `tasks.py` directly; the Makefile is a thin wrapper for platforms with Make. `python tasks.py dry-run` and `python tasks.py eval` intentionally return code 2 because those pipelines are not implemented in Milestone 0.
+For a media run, install `ffmpeg` and `ffprobe` locally and install the optional WhisperX runtime and model weights yourself. The project does not download media binaries or ASR weights. Then run:
 
-See [Windows setup](docs/SETUP.md) and [security boundaries](docs/SECURITY.md).
+```powershell
+python tasks.py dry-run --video <path> --max-seconds 120 --planner baseline
+```
+
+The command writes run artifacts beneath `runs/` and cached audio/models beneath `cache/`. It hashes the source before and after processing. See [Windows setup](docs/SETUP.md) and [security boundaries](docs/SECURITY.md).
+
+The stages can also be run separately with `python tasks.py preflight --video <path>`, `transcribe --video <path>`, `plan --words <words.json>`, and `compile --words <words.json> --timeline <timeline.json> --edl <edl.json>`. `python tasks.py compile --words <words.json> --timeline <timeline.json> --edl <edl.json> --audio <normalized-mono.wav>` can use the optional audio input for nearby zero-crossing snaps. Without `--audio`, compilation stays frame- and silence-aligned. `python tasks.py integration` reports a skipped-by-default status; `eval` remains fully offline.
+
+## Current limits
+
+- The development environment has no `ffmpeg` or `ffprobe`, and no WhisperX package or model weights. The selected smoke clip was not processed; its ASR benchmark is therefore unavailable.
+- The synthetic baseline eval is a one-case plumbing check, not a quality estimate for real speech.
+- `--planner llm` is disabled in the CLI. The isolated client is tested only against loopback fakes; M1 makes no LLM network requests.
+- Vegas-specific runtime behavior remains unverified. No Vegas application or probe was run.
+
+The contract schemas and prose specifications are in [schemas/](schemas/) and [docs/contracts/](docs/contracts/). Remaining work and acceptance evidence are listed in [ROADMAP.md](ROADMAP.md) and [docs/EVALS.md](docs/EVALS.md).
 
 ## Hardware layout
 
-- Editing laptop: VEGAS Pro 17 and, in later milestones, the orchestrator and WhisperX perception. The design baseline targets an RTX 3050 with 4 GB VRAM.
-- Inference server: self-hosted Qwen with a multimodal projector behind `llama-server`, reached over Tailscale. The design baseline assumes a 16 GB GPU.
-- Optional CPU workers: a Ryzen 9 5900X may handle diarization and analysis if configured later.
-
-These are design targets, not benchmark results. No hardware workflow has been exercised in Milestone 0.
-
-## Project status
-
-The contract schemas and prose specifications are in [schemas/](schemas/) and [docs/contracts/](docs/contracts/). Current deferred work is listed in [ROADMAP.md](ROADMAP.md). Vegas-specific behavior remains `UNVERIFIED` in [VEGAS_NOTES.md](docs/VEGAS_NOTES.md).
+- Editing laptop: Windows, Python 3.12, local media processing and VEGAS Pro 17. The design target is a 4 GB RTX 3050 class GPU, but the active Python environment currently has CPU-only PyTorch.
+- Inference server: self-hosted Qwen through `llama-server` and Tailscale in a later milestone; M1 does not connect to it.
+- Optional CPU workers and remote processing are not implemented.
