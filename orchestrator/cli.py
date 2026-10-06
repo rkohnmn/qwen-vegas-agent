@@ -24,6 +24,7 @@ from orchestrator.contracts import (
     check_timeline,
     validate,
 )
+from orchestrator.metrics import real_time_factor
 from orchestrator.packer import build_pack
 from orchestrator.planner import (
     BaselinePlanner,
@@ -272,9 +273,7 @@ def run_dry_run(
                 "device": result.device,
                 "compute_type": result.compute_type,
                 "wall_clock_s": round(stream_elapsed, 3),
-                "real_time_factor": round(source_duration_s / stream_elapsed, 4)
-                if stream_elapsed > 0
-                else None,
+                "real_time_factor": real_time_factor(stream_elapsed, source_duration_s),
                 "vram_gb": _peak_vram_gb(result.device),
                 "fallback_reason": result.fallback_reason,
             }

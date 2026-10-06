@@ -5,12 +5,14 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from orchestrator.contracts import validate
+from orchestrator.metrics import real_time_factor
 from perception.asr import (
     AsrResult,
     AsrWord,
     FakeAsrEngine,
     WhisperXConfig,
     WhisperXEngine,
+    _alignment_model_name,
     _words_from_segments,
 )
 from perception.gaps import GapThresholds, refine_gaps
@@ -61,6 +63,41 @@ def test_alignment_mismatch_marks_segment_unaligned_without_times() -> None:
     assert all(not word.aligned and word.start is None and word.end is None for word in words)
 
 
+def test_finer_japanese_subword_alignment_is_not_promoted_to_word_timing() -> None:
+    words = _words_from_segments(
+        [{"text": "こんにちは世界"}],
+        [
+            {
+                "words": [
+                    {"word": "こんにちは", "start": 0.0, "end": 0.3},
+                    {"word": "世界", "start": 0.3, "end": 0.5},
+                ]
+            }
+        ],
+    )
+    assert len(words) == 1
+    assert words[0].aligned is False
+    assert words[0].start is None and words[0].end is None
+
+
+def test_alignment_model_name_uses_language_checkpoint_id() -> None:
+    assert (
+        _alignment_model_name(
+            "ja",
+            {"type": "huggingface"},
+            {"ja": "jonatasgrosman/wav2vec2-large-xlsr-53-japanese"},
+        )
+        == "jonatasgrosman/wav2vec2-large-xlsr-53-japanese"
+    )
+    assert _alignment_model_name("en", {"model_name": "specific/model"}, {}) == "specific/model"
+
+
+def test_real_time_factor_is_elapsed_over_media_duration() -> None:
+    assert real_time_factor(30.0, 60.0) == 0.5
+    assert real_time_factor(0.0, 60.0) is None
+    assert real_time_factor(30.0, 0.0) is None
+
+
 def test_fake_asr_fixture_is_deterministic() -> None:
     fixture = Path(__file__).parents[1] / "data" / "fake_asr.json"
     result = FakeAsrEngine.from_fixture(fixture).transcribe_aligned("ignored.wav")
@@ -92,34 +129,50 @@ def test_noise_floor_refines_gap_and_words_contract_records_both_bounds(tmp_path
     assert document["gaps"][0]["refinement"]["energy_start"] is not None
 
 
-def test_whisperx_loader_uses_supported_api_and_alignment_failure_is_flagged() -> None:
-    load_calls: list[dict[str, object]] = []
+def test_faster_whisper_loader_avoids_vad_and_alignment_failure_is_flagged() -> None:
+    load_calls: list[tuple[tuple[object, ...], dict[str, object]]] = []
+    transcribe_calls: list[dict[str, object]] = []
+
+    class Segment:
+        text = "test words"
+        start = 0.0
+        end = 0.4
 
     class Model:
-        def transcribe(self, audio: object, *, batch_size: int, language: str) -> dict[str, object]:
-            del audio, batch_size, language
-            return {"language": "en", "segments": [{"text": "test words"}]}
+        def transcribe(self, audio: object, **kwargs: object) -> tuple[object, object]:
+            transcribe_calls.append({"audio": audio, **kwargs})
+            info = SimpleNamespace(language="en", language_probability=0.97)
+            return iter([Segment()]), info
 
     def load_model(*args: object, **kwargs: object) -> Model:
-        del args
-        load_calls.append(kwargs)
+        load_calls.append((args, kwargs))
         return Model()
 
+    normalized_audio = object()
     fake_whisperx = SimpleNamespace(
-        load_model=load_model,
-        load_audio=lambda _path: object(),
+        load_audio=lambda _path: normalized_audio,
         load_align_model=lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("not aligned")),
     )
+    fake_faster_whisper = SimpleNamespace(WhisperModel=load_model)
     fake_torch = SimpleNamespace(cuda=SimpleNamespace(is_available=lambda: False))
-    engine = WhisperXEngine(WhisperXConfig(device="cpu", language="en"))
-    engine._imports = lambda: (fake_torch, fake_whisperx)  # type: ignore[method-assign]
+    engine = WhisperXEngine(WhisperXConfig(device="cpu"))
+    engine._imports = lambda: (fake_torch, fake_whisperx, fake_faster_whisper)  # type: ignore[method-assign]
     audio = Path("fake.wav")
     audio.touch()
     try:
         result = engine.transcribe_aligned(audio)
     finally:
         audio.unlink()
-    assert "batch_size" not in load_calls[0]
+
+    assert load_calls[0][0][0] == "small"
+    assert load_calls[0][1]["compute_type"] == "int8"
+    assert transcribe_calls[0]["audio"] is normalized_audio
+    assert transcribe_calls[0]["language"] is None
+    assert transcribe_calls[0]["vad_filter"] is False
+    assert transcribe_calls[0]["word_timestamps"] is False
+    assert result.detected_language == "en"
+    assert result.language_confidence == 0.97
+    assert result.align_model == "unavailable"
     assert len(result.words) == 2
     assert all(not word.aligned and word.start is None for word in result.words)
 

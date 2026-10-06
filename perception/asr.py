@@ -98,6 +98,24 @@ def _score(value: object) -> float:
     return number if math.isfinite(number) and 0 <= number <= 1 else 0.0
 
 
+def _alignment_model_name(
+    language: str,
+    metadata: Mapping[str, Any],
+    model_catalog: Mapping[str, str],
+) -> str:
+    """Prefer the checkpoint ID over WhisperX's generic pipeline type."""
+    reported = metadata.get("model_name")
+    if isinstance(reported, str) and reported:
+        return reported
+    selected = model_catalog.get(language)
+    if isinstance(selected, str) and selected:
+        return selected
+    pipeline_type = metadata.get("type")
+    if isinstance(pipeline_type, str) and pipeline_type:
+        return pipeline_type
+    return f"whisperx-default:{language}"
+
+
 def _unaligned_words(text: str, segment_index: int) -> list[AsrWord]:
     return [
         AsrWord(token, None, None, 0.0, False, segment_index)
@@ -227,7 +245,7 @@ class FakeAsrEngine:
 
 
 class WhisperXEngine:
-    """WhisperX adapter with serialized inference and automatic CPU fallback."""
+    """faster-whisper ASR with WhisperX alignment and serialized CPU fallback."""
 
     def __init__(self, config: WhisperXConfig | None = None) -> None:
         self.config = config or WhisperXConfig()
@@ -237,11 +255,11 @@ class WhisperXEngine:
         if not path.is_file():
             raise AsrError("normalized audio file does not exist")
         with _INFERENCE_LOCK:
-            torch, whisperx = self._imports()
+            torch, whisperx, faster_whisper = self._imports()
             device, compute_type, fallback_reason = self._runtime(torch)
             try:
                 return self._transcribe_on_device(
-                    path, torch, whisperx, device, compute_type, fallback_reason
+                    path, torch, whisperx, faster_whisper, device, compute_type, fallback_reason
                 )
             except Exception as error:
                 if device != "cuda" or not self._is_cuda_oom(error):
@@ -253,17 +271,20 @@ class WhisperXEngine:
                     torch.cuda.empty_cache()
                 except Exception:
                     pass
-                return self._transcribe_on_device(path, torch, whisperx, "cpu", "int8", reason)
+                return self._transcribe_on_device(
+                    path, torch, whisperx, faster_whisper, "cpu", "int8", reason
+                )
 
-    def _imports(self) -> tuple[Any, Any]:
+    def _imports(self) -> tuple[Any, Any, Any]:
         try:
             torch = importlib.import_module("torch")
             whisperx = importlib.import_module("whisperx")
+            faster_whisper = importlib.import_module("faster_whisper")
         except ImportError:
             raise AsrError(
                 "WhisperX dependencies are not installed; install the optional ASR requirements"
             ) from None
-        return torch, whisperx
+        return torch, whisperx, faster_whisper
 
     def _runtime(self, torch: Any) -> tuple[str, str, str | None]:
         requested = self.config.device
@@ -288,35 +309,45 @@ class WhisperXEngine:
         path: Path,
         torch: Any,
         whisperx: Any,
+        faster_whisper: Any,
         device: str,
         compute_type: str,
         fallback_reason: str | None,
     ) -> AsrResult:
         config = self.config
-        model = whisperx.load_model(
+        model = faster_whisper.WhisperModel(
             config.model,
-            device,
+            device=device,
             compute_type=compute_type,
-            language=None if config.language == "auto" else config.language,
             download_root=str(config.model_cache_dir),
-            threads=config.cpu_threads,
+            cpu_threads=config.cpu_threads,
+            num_workers=1,
         )
         audio = whisperx.load_audio(str(path))
-        detected_language: str | None = config.language if config.language != "auto" else None
-        language_confidence: float | None = None
-        if detected_language is None:
-            detected_language, language_confidence = self._detect_language(model, audio, whisperx)
-        raw = model.transcribe(
+        segments, info = model.transcribe(
             audio,
-            batch_size=config.batch_size,
-            language=detected_language,
+            language=None if config.language == "auto" else config.language,
+            word_timestamps=False,
+            vad_filter=False,
         )
-        if detected_language is None:
-            value = raw.get("language")
-            detected_language = value if isinstance(value, str) else None
-        raw_segments = raw.get("segments", [])
-        if not isinstance(raw_segments, list):
-            raw_segments = []
+        raw_segments = [
+            {"text": segment.text, "start": segment.start, "end": segment.end}
+            for segment in segments
+        ]
+        info_language = getattr(info, "language", None)
+        detected_language = (
+            config.language
+            if config.language != "auto"
+            else info_language
+            if isinstance(info_language, str)
+            else None
+        )
+        raw_language_confidence = getattr(info, "language_probability", None)
+        language_confidence = (
+            _score(raw_language_confidence)
+            if config.language == "auto" and raw_language_confidence is not None
+            else None
+        )
 
         del model
         gc.collect()
@@ -349,11 +380,19 @@ class WhisperXEngine:
                 raw_segments,
                 aligned_segments if isinstance(aligned_segments, list) else None,
             )
-            align_name = str(
-                metadata.get("model_name")
-                or metadata.get("type")
-                or f"whisperx-default:{detected_language}"
-            )
+            alignment_module = importlib.import_module("whisperx.alignment")
+            model_catalog: dict[str, str] = {}
+            for catalog_name in ("DEFAULT_ALIGN_MODELS_HF", "DEFAULT_ALIGN_MODELS_TORCH"):
+                catalog = getattr(alignment_module, catalog_name, {})
+                if isinstance(catalog, Mapping):
+                    model_catalog.update(
+                        {
+                            code: name
+                            for code, name in catalog.items()
+                            if isinstance(code, str) and isinstance(name, str)
+                        }
+                    )
+            align_name = _alignment_model_name(detected_language, metadata, model_catalog)
             del align_model
             gc.collect()
             if device == "cuda":
@@ -390,31 +429,3 @@ class WhisperXEngine:
             compute_type=compute_type,
             fallback_reason=fallback_reason,
         )
-
-    def _detect_language(
-        self, pipeline: Any, audio: Any, whisperx: Any
-    ) -> tuple[str | None, float | None]:
-        try:
-            asr_module = importlib.import_module("whisperx.asr")
-            sample_count = int(asr_module.N_SAMPLES)
-            sample = audio[:sample_count]
-            n_mels = pipeline.model.feat_kwargs.get("feature_size", 80)
-            mel = asr_module.log_mel_spectrogram(
-                sample,
-                n_mels=n_mels,
-                padding=max(0, sample_count - int(audio.shape[0])),
-            )
-            encoded = pipeline.model.encode(mel)
-            candidates = pipeline.model.model.detect_language(encoded)
-            token, probability = candidates[0][0]
-            language = str(token)[2:-2]
-            confidence = float(probability)
-            if not language or not math.isfinite(confidence) or not 0 <= confidence <= 1:
-                return None, None
-            return language, confidence
-        except Exception as error:
-            LOGGER.info(
-                "WhisperX language confidence unavailable (%s)",
-                type(error).__name__,
-            )
-            return None, None

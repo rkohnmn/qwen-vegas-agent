@@ -20,6 +20,7 @@ from orchestrator.contracts import (
     check_words,
     validate,
 )
+from orchestrator.metrics import real_time_factor
 from orchestrator.packer import build_pack
 from orchestrator.planner import BaselinePlanner, RecordedPlanner
 from orchestrator.timeline import build_timeline
@@ -100,7 +101,7 @@ def run_transcribe(
                 "device": result.device,
                 "compute_type": result.compute_type,
                 "wall_clock_s": round(elapsed, 3),
-                "real_time_factor": round(duration_s / elapsed, 4) if elapsed else None,
+                "real_time_factor": real_time_factor(elapsed, duration_s),
                 "vram_gb": None,
                 "fallback_reason": result.fallback_reason,
             }
