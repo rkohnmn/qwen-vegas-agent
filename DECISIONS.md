@@ -123,18 +123,18 @@ Rationale: Python 3.12.10 is the installed 64-bit runtime. The current WhisperX 
 
 Alternatives: Keep 3.11 as the target and install another Python runtime; rejected because it adds an environment requirement without improving compatibility for this milestone.
 
-Status: Accepted. Smoke ASR performance remains unmeasured because ffmpeg and ffprobe are missing.
+Status: Accepted. Smoke ASR performance remains unmeasured because the bounded preflight sample reports W_VFR and the Prompt 01b stop rule prevents processing.
 
 ### D-12 — Do not fetch ffmpeg binaries
 Date: 2026-10-06
 
-Decision: Keep preflight, extraction, and media-render smoke work stopped until the user installs `ffmpeg` and `ffprobe`. Do not fetch binaries from any source.
+Decision: Do not fetch FFmpeg binaries. Use an existing user-installed FFmpeg only through a process-local PATH override when needed. After the configured clip's read-only preflight reports W_VFR, stop before extraction or rendering and await user direction.
 
-Rationale: Milestone 1 explicitly excludes ffmpeg downloads. Both tools are absent from PATH and the checked local tool locations. Offline contracts, planners, compiler, synthetic renderer, verifier, tests, and Vegas metadata inspection can proceed independently.
+Rationale: Milestone 1 explicitly excludes FFmpeg downloads. A local WinGet FFmpeg 9.0.1 package is present outside PATH; using it for read-only preflight required no download or persistent environment change. The positive VFR sample triggers the Prompt 01b stop rule because frame-based output may not be trustworthy without an approved conformity path.
 
 Alternatives: Download a binary or substitute another media executable; rejected because the prompt permits no ffmpeg download and requires ffprobe-based inspection.
 
-Status: Accepted. Real-media acceptance criteria 2 and the benchmark portion of 10 are blocked pending local installation.
+Status: Accepted. No full media run, audio decode, ASR, or render was performed after W_VFR; the media-dependent acceptance checks remain pending user direction. No model weights were fetched.
 
 ### D-13 — EDL silence edits use gap IDs and compile configuration
 Date: 2026-10-06
@@ -207,7 +207,7 @@ Date: 2026-10-06
 
 Decision: Use a generated tone/silence case and fixture-backed word boundaries for the M1 eval. Report all metrics and runtime, and label the result as a plumbing check rather than real-clip accuracy.
 
-Rationale: The current host lacks ffmpeg/ffprobe and WhisperX weights, while the eval must still run offline on a machine without media, GPU, or model dependencies.
+Rationale: The smoke clip currently triggers the VFR stop rule, so the eval must remain independently runnable without real media, GPU, or model dependencies.
 
 Alternatives: Download binaries, model weights, or an external tokenizer; rejected because those downloads are not needed for the offline acceptance path and real media setup is user-managed.
 
@@ -251,7 +251,7 @@ Date: 2026-10-06
 
 Decision: Retain the existing 0.12 full-scale sample discontinuity and 8 dB level-step defaults. Add a generated speech-shaped noise fixture with smooth envelopes and room noise, and keep the fixed-tone fixture's expected level-step failures explicit. Do not calibrate from synthetic distributions.
 
-Rationale: The real-media smoke could not reach audio extraction because `ffmpeg` and `ffprobe` were unavailable. One generated speech-shaped case and tone stress case are not representative real-join distributions.
+Rationale: Read-only preflight reports W_VFR and processing stopped before audio extraction. One generated speech-shaped case and tone stress case are not representative real-join distributions.
 
 Alternatives: Raise the level-step threshold until synthetic tones pass; rejected because that would conceal real joins that may need review.
 
@@ -266,7 +266,7 @@ Rationale: WhisperX 3.8.6 metadata requires `torch~=2.8.0` and `torchaudio~=2.8.
 
 Alternatives: Add ASR packages to the dev lock or use unpinned system/global packages; rejected because offline checks should not need ML dependencies and Vegas must not inherit those dependencies or credentials.
 
-Status: Accepted; `python tasks.py setup --asr` exited 0. CUDA 12.8 was available in the venv on the 4095 MiB RTX 3050 Ti. WhisperX imported successfully. The complete 101-distribution version/license/purpose/installed-size inventory and retained direct wheel sizes are recorded below. No model weights were fetched because media preflight is blocked by missing ffmpeg/ffprobe.
+Status: Accepted; `python tasks.py setup --asr` exited 0. CUDA 12.8 was available in the venv on the 4095 MiB RTX 3050 Ti. WhisperX imported successfully. The complete 101-distribution version/license/purpose/installed-size inventory and retained direct wheel sizes are recorded below. No model weights were fetched because the W_VFR preflight finding triggered the Prompt 01b stop rule.
 
 ### D-26 — Bound the loopback planner boundary
 Date: 2026-10-06
@@ -278,6 +278,16 @@ Rationale: A redirect could forward the Authorization header away from the loopb
 Alternatives: Follow redirects, send full exception or compiler messages back to the model, or retry indefinitely; rejected because they expand the credential/data boundary and weaken bounded execution.
 
 Status: Accepted; covered by loopback fake-server tests. No real LLM endpoint was contacted.
+### D-27 — Stop processing after a positive VFR preflight
+Date: 2026-10-06
+
+Decision: For this smoke candidate, honor Prompt 01b's stop rule after W_VFR. The read-only sample covered the first 96 frames; average and real frame rates both reported 2997/100, while 1 of 95 intervals exceeded the 1 ms tolerance. Do not extract audio, download model weights, transcode the source, or claim downstream outputs are trustworthy until the user selects a compliant clip or approves a separate working-copy conformity path.
+
+Rationale: A bounded sample is enough to raise the configured warning but does not characterize the full clip. Proceeding with frame-based edits without resolving the warning could produce untrustworthy boundaries.
+
+Alternatives: Ignore the warning because the reported average and real rates match, or transcode the source in place; rejected by the prompt's VFR stop rule and source-read-only requirement.
+
+Status: Awaiting user direction. No source-media modification or model-weight download occurred.
 ## Reference: browser agent patterns
 
 Read-only review of the local sibling browser-agent repository, commit 04c788de21cded7070744c60a98048e9b2141f49. The folder contained no LICENSE, COPYING, or NOTICE file, so the license is unknown. No code was copied.
@@ -428,4 +438,4 @@ The ASR setup added the complete non-development dependency closure below. The s
 | whisperx | 3.8.6 | 16.5 MB wheel download; 17.14 MiB installed | BSD-2-Clause | Word-timestamped ASR/alignment adapter |
 | yarl | 1.25.1 | 0.31 MiB installed | Apache-2.0 | Yet another URL library |
 
-Inventory contains 101 ASR/PyTorch-closure distributions in the project venv. No model weights, VAD weights, diarization models, or tokens were fetched. Package installation alone did not load an ASR model; the smoke run stopped before media decoding because `ffprobe` is unavailable.
+Inventory contains 101 ASR/PyTorch-closure distributions in the project venv. No model weights, VAD weights, diarization models, or tokens were fetched. Package installation alone did not load an ASR model; read-only preflight later reported W_VFR, so no audio was decoded and no model weights were fetched.

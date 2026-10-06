@@ -1,6 +1,6 @@
 # Setup
 
-**Document version:** 1.1.0
+**Document version:** 1.1.1
 
 This guide covers the local Milestone 1 rough-cut pipeline on Windows. It never starts VEGAS or contacts an inference endpoint.
 
@@ -32,7 +32,7 @@ The setup task creates `.venv` and installs the pinned development dependencies 
 .\.venv\Scripts\Activate.ps1
 ```
 
-`python tasks.py eval` runs synthetic fixtures and requires no media, model weights, GPU, or network. A real `python tasks.py dry-run --video <path> --max-seconds 120 --planner baseline` requires local `ffmpeg`, `ffprobe`, WhisperX, and its model weights. In the current environment it stops at preflight because `ffprobe` is unavailable; no source-media run has been performed.
+`python tasks.py eval` runs synthetic fixtures and requires no media, model weights, GPU, or network. A real `python tasks.py dry-run --video <path> --max-seconds 120 --planner baseline` requires local `ffmpeg`, `ffprobe`, WhisperX, and its model weights. A read-only preflight using the locally installed FFmpeg 9.0.1 tools reported W_VFR after sampling timestamps. Per Prompt 01b, processing stopped before audio extraction; no ASR, render, or full smoke artifacts were produced.
 
 ## Measured on dev laptop
 
@@ -46,7 +46,7 @@ The setup task creates `.venv` and installs the pinned development dependencies 
 | CUDA in the global Python | Unavailable; global PyTorch remains CPU-only (`2.13.0+cpu`). |
 | CUDA in the project venv | Available; PyTorch `2.8.0+cu128` reports CUDA 12.8 and `torch.cuda.is_available()` is true. Detected GPU memory is 4095 MiB; model peak VRAM is unmeasured. |
 | VEGAS | Pro 17.0, build 284; `ScriptPortal.Vegas.dll` and `vegas170.exe` are present |
-| `ffmpeg` / `ffprobe` | Missing from PATH and the checked local tool locations. No version is available; binaries were not downloaded. |
+| `ffmpeg` / `ffprobe` | Version 9.0.1 is installed in a local WinGet package outside PATH; it was used through a process-local PATH override for read-only preflight. This project did not download binaries. |
 
 WhisperX and PyTorch support the active Python 3.12 runtime. The opt-in ASR setup installed CUDA PyTorch in the project venv and verified CUDA availability. The adapter will choose CUDA when available and falls back to CPU int8 when CUDA is unavailable or an out-of-memory retry is needed. See [WhisperX package metadata](https://pypi.org/project/whisperx/) and [PyTorch Windows installation guidance](https://docs.pytorch.org/get-started/locally/).
 
@@ -56,16 +56,16 @@ The selected smoke candidate is identified in tracked documentation only by its 
 |---|---|
 | SHA-256 prefix | `690caa6e14f57674` |
 | Duration | 78.55 seconds (Windows media properties) |
-| Frame rate | Approximately 29.97 fps (Windows media properties); rational rate not measured |
-| Container / video codec / audio codec | Not measured; `ffprobe` unavailable |
-| VFR status | Not determined; no timestamp sampling was possible |
-| Audio layout | Stereo per Windows media properties; stream count not measured |
-| Preflight warnings | No warning codes emitted; preflight stopped with `ffprobe is not installed or not available on PATH` |
+| Frame rate | 2997/100 fps (ffprobe average and real rate); Windows properties showed approximately 29.97 fps. |
+| Container / video codec / audio codec | MOV/MP4 family; H.264 High video; AAC-LC audio. |
+| VFR status | W_VFR detected. Reported average and real rates both equal 2997/100; 1 of 95 intervals among the first 96 sampled frames exceeded the 1 ms tolerance. |
+| Audio layout | One AAC-LC stream, 44100 Hz, stereo. |
+| Preflight warnings | W_VFR; reported rates match, but bounded timestamp sampling found one interval outside tolerance. |
 | Detected language / confidence | Not measured; ASR did not start |
 
-A baseline dry-run was attempted, stopped during preflight, and wrote only a blocked `run_manifest.json`; it produced no transcript, plan, review, or audio artifacts. The manifest records identical source hashes and a preflight-stage timing. The source SHA-256 was unchanged.
+An earlier baseline dry-run stopped before media inspection because ffprobe was not on PATH and wrote only a blocked `run_manifest.json`. A subsequent read-only preflight with a process-local PATH override reported W_VFR. The source hash was unchanged across the sampled preflight. No transcript, plan, review, or audio artifact was produced.
 
-The current shell still lacks `ffmpeg` and `ffprobe`; preflight stops before audio extraction. Install both locally, then rerun preflight, extraction, and the smoke benchmark. The project does not fetch binaries.
+The installed FFmpeg tools remain outside the normal shell PATH. The temporary PATH override was limited to read-only preflight. Because W_VFR was detected, no audio extraction, source transcode, or model download was started; the next processing step awaits a clip or workflow decision.
 
 ## ASR benchmark and run outputs
 

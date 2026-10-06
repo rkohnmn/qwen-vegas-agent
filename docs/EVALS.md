@@ -34,15 +34,15 @@ A unit test generates band-limited noise bursts with smooth 12 ms attacks, 18 ms
 
 ## Real-media verifier joins
 
-No real joins were measured: preflight stopped because `ffprobe` is unavailable. Thresholds remain at the existing defaults, `max_click_delta=0.12` full-scale sample delta and `max_level_step_db=8.0` dB, pending a larger real-join sample.
+No real joins were measured: read-only preflight reported W_VFR from bounded timestamp sampling, so processing stopped before audio extraction. Thresholds remain at the existing defaults, `max_click_delta=0.12` full-scale sample delta and `max_level_step_db=8.0` dB, pending a larger real-join sample.
 
 | Smoke join | Click metric | Level step | Thresholds in force | Evidence |
 |---|---:|---:|---|---|
-| Not measured | N/A | N/A | 0.12 full-scale delta; 8.0 dB | Smoke run blocked before audio extraction. |
+| Not measured | N/A | N/A | 0.12 full-scale delta; 8.0 dB | W_VFR detected in the first 96 sampled frames; no audio was extracted. |
 
 ## Real-media ASR and smoke evaluation
 
-No full pipeline run completed. A baseline dry-run was attempted and stopped at preflight with `E_MEDIA_TOOL` because `ffprobe` is not installed or not available on PATH. It wrote only a preflight-blocked `run_manifest.json`, containing the matching before/after source hashes and the preflight-stage timing; no other smoke artifacts were produced. No preflight warning codes were emitted because inspection did not start. `ffmpeg` and `ffprobe` are unavailable, so codec/VFR inspection and audio extraction cannot start. Optional ASR setup completed with WhisperX 3.8.6 and CUDA PyTorch (`2.8.0+cu128`; CUDA available in the venv, 4095 MiB device capacity). No ASR model/alignment weights or LLM endpoint were used.
+No full pipeline run completed. A baseline dry-run was attempted and stopped at preflight with `E_MEDIA_TOOL` because ffprobe was not on PATH. It wrote only a preflight-blocked `run_manifest.json`, containing matching before/after source hashes and preflight-stage timing. A subsequent read-only preflight using the installed FFmpeg 9.0.1 binaries reported W_VFR: average and real frame rates matched at 2997/100, but one of 95 sampled intervals exceeded the 1 ms tolerance. Under Prompt 01b, processing stopped before audio extraction. The bounded sample is sufficient to trigger the stop rule but does not characterize every frame in the clip. Optional ASR setup completed with WhisperX 3.8.6 and CUDA PyTorch (`2.8.0+cu128`; CUDA available in the venv, 4095 MiB device capacity). No ASR model/alignment weights or LLM endpoint were used.
 
 | ASR benchmark field | Result |
 |---|---|
@@ -53,7 +53,7 @@ No full pipeline run completed. A baseline dry-run was attempted and stopped at 
 | ASR wall time / real-time factor | Not measured |
 | Timing sanity | No words processed; short/long/unaligned counts unavailable |
 
-The candidate has a Windows-properties duration of 78.55 seconds, approximate 29.97 fps, and stereo audio. Container, codecs, rational frame rate, VFR status, language, and language confidence are unmeasured. After installing local media tools, run `python tasks.py dry-run --video <path> --max-seconds 120 --planner baseline`; it will write the smoke artifacts and `asr_benchmark.json` under `runs/`.
+The candidate duration is 78.553107 seconds. Preflight reports the MOV/MP4 family, H.264 High video, AAC-LC stereo audio at 44100 Hz, and rational average/real frame rates of 2997/100. It flags W_VFR because 1 of 95 sampled intervals exceeded the 1 ms tolerance. Language and confidence remain unmeasured. Await direction on a different CFR clip or a working-copy conformity workflow before running dry-run or ASR.
 
 No `words.json` exists for the blocked smoke, so a truth template was not generated. After a successful run, use `python tasks.py truth-template --words runs/<job_id>/words.json --output runs/<job_id>/truth_template.json`, then open it with `notepad runs/<job_id>/truth_template.json`.
 
