@@ -1,6 +1,6 @@
 # EDL contract
 
-Schema version: 1.1.0
+Schema version: 1.2.0
 
 Schema: [edl.schema.json](../../schemas/edl.schema.json)
 
@@ -12,12 +12,12 @@ The EDL is the planner's complete edit-intent document. The model chooses IDs an
 
 | Field | Type | Meaning and rules |
 |---|---|---|
-| `schema_version` | string | Required; exactly `1.1.0`. |
+| `schema_version` | string | Required; exactly `1.2.0`. |
 | `words_hash` | string | Required SHA-256 canonical hash of the exact words document. |
 | `summary` | string | Bounded plain-language overview (maximum 1,000 characters). |
 | `gap_actions` | array | Optional gap edits by `gap_id`, with `mode` `remove` or `shorten`; the compiler config supplies the retained length. No numeric time or duration is accepted. Each action carries a unique cut ID, reason, confidence, and `silence` category. |
 | `cuts` | array | Up to 500 unique `cN` IDs. Each cut contains `remove.from_word`, `remove.to_word`, bounded `reason`, confidence 0–1, and category `filler`, `silence`, `retake`, `false_start`, `dead_air`, `tangent`, or `other`. |
-| `keeps_reordered` | array | Required and empty-only in v1.1.0; schema rejects any item. Reordering is reserved for a later contract version. |
+| `keeps_reordered` | array | Required and empty-only in v1.2.0; schema rejects any item. Reordering is reserved for a later contract version. |
 | `transitions` | array | Each transition references a cut ID, has an `offset_hint` (`before`, `at`, `after`), a transition catalog key, and a bounded reason. |
 | `sfx` | array | Each item anchors to a word ID plus `offset_hint`, a catalog key, bounded gain in dB, and reason. |
 | `subtitles` | object | Catalog style key, emphasis spans by word IDs, optional break hints by word ID, and omission ranges by word IDs. Speaker colors are never supplied here. |
@@ -40,5 +40,5 @@ All strings and arrays have explicit maximums so model output fails quickly. Err
 
 | Role | Component |
 |---|---|
-| Produces | Planner (runtime prompt is deferred; no model calls in Milestone 1). |
+| Produces | Baseline or recorded planner in M1; live LLM planner requests are disabled in the CLI. |
 | Consumes | Referential validator and later deterministic compiler. |

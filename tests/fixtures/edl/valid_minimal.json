@@ -1,6 +1,6 @@
 {
-  "schema_version": "1.1.0",
-  "words_hash": "sha256:c8f7100eef3734b431ed3bccb908a94cf49806006e6c362b937f59a9765122a9",
+  "schema_version": "1.2.0",
+  "words_hash": "sha256:8aad34c52dbd4b143b3ac2f2c228b16b5bcd27a7b96c4c20756998d71b2d67eb",
   "summary": "Keep the short two-speaker conversation readable.",
   "cuts": [],
   "keeps_reordered": [],

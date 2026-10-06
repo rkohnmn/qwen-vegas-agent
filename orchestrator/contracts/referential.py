@@ -80,6 +80,13 @@ def check_words(words: Mapping[str, Any]) -> list[ValidationIssue]:
                 word_indices[word_id] = index
         start = word.get("start")
         end = word.get("end")
+        alignment_status = word.get("alignment_status", "aligned")
+        if alignment_status == "unaligned":
+            if start is not None or end is not None:
+                issues.append(
+                    _issue(ErrorCode.E_WORD_TIME, path, "unaligned word must not contain times")
+                )
+            continue
         if (
             not isinstance(start, int | float)
             or isinstance(start, bool)
@@ -88,7 +95,9 @@ def check_words(words: Mapping[str, Any]) -> list[ValidationIssue]:
             or not math.isfinite(float(start))
             or not math.isfinite(float(end))
         ):
-            issues.append(_issue(ErrorCode.E_SCHEMA, path, "word times must be finite numbers"))
+            issues.append(
+                _issue(ErrorCode.E_SCHEMA, path, "aligned word times must be finite numbers")
+            )
             continue
         if end < start:
             issues.append(_issue(ErrorCode.E_WORD_TIME, path, "word end precedes its start"))
@@ -177,6 +186,7 @@ def _anchor_reference(
     gap_ids: set[str],
     cut_ids: set[str],
     event_ids: set[str] | None,
+    aligned_word_ids: set[str],
 ) -> list[ValidationIssue]:
     kind = anchor.get("kind")
     value = anchor.get("id")
@@ -192,6 +202,12 @@ def _anchor_reference(
         known, code, label = targets[kind]
         if value not in known:
             return [_issue(code, path, f"anchor references a missing {label}")]
+        if kind == "word" and value not in aligned_word_ids:
+            return [
+                _issue(
+                    ErrorCode.E_WORD_UNALIGNED, path, "anchor uses a word without aligned timing"
+                )
+            ]
     if kind == "event" and event_ids is not None and value not in event_ids:
         return [_issue(ErrorCode.E_REF_EVENT, path, "anchor references a missing event")]
     return []
@@ -211,6 +227,7 @@ def check_edl_against(
 
     word_rows = words.get("words", [])
     word_ids: set[str] = set()
+    aligned_word_ids: set[str] = set()
     word_index: dict[str, int] = {}
     for index, row in enumerate(word_rows):
         if not isinstance(row, Mapping):
@@ -218,6 +235,8 @@ def check_edl_against(
         word_id = row.get("id")
         if isinstance(word_id, str):
             word_ids.add(word_id)
+            if row.get("alignment_status", "aligned") != "unaligned":
+                aligned_word_ids.add(word_id)
             word_index[word_id] = index
     segment_ids = _ids(words, "segments")
     gap_ids = _ids(words, "gaps")
@@ -303,6 +322,26 @@ def check_edl_against(
                     "cut references a missing word",
                 )
             )
+        if (
+            from_index is not None
+            and isinstance(from_word, str)
+            and from_word not in aligned_word_ids
+        ):
+            issues.append(
+                _issue(
+                    ErrorCode.E_WORD_UNALIGNED,
+                    f"cuts[{index}].remove.from_word",
+                    "cut uses a word without aligned timing",
+                )
+            )
+        if to_index is not None and isinstance(to_word, str) and to_word not in aligned_word_ids:
+            issues.append(
+                _issue(
+                    ErrorCode.E_WORD_UNALIGNED,
+                    f"cuts[{index}].remove.to_word",
+                    "cut uses a word without aligned timing",
+                )
+            )
         if from_index is not None and to_index is not None:
             if from_index > to_index:
                 issues.append(
@@ -310,6 +349,18 @@ def check_edl_against(
                 )
             else:
                 ranges.append((from_index, to_index, index))
+                if any(
+                    isinstance(row, Mapping)
+                    and row.get("alignment_status", "aligned") == "unaligned"
+                    for row in word_rows[from_index : to_index + 1]
+                ):
+                    issues.append(
+                        _issue(
+                            ErrorCode.E_WORD_UNALIGNED,
+                            f"cuts[{index}].remove",
+                            "cut range includes a word without aligned timing",
+                        )
+                    )
 
     ranges.sort()
     furthest_end = -1
@@ -323,6 +374,12 @@ def check_edl_against(
     def check_word_ref(value: Any, path: str) -> None:
         if isinstance(value, str) and value not in word_ids:
             issues.append(_issue(ErrorCode.E_REF_WORD, path, "reference points to a missing word"))
+        elif isinstance(value, str) and value not in aligned_word_ids:
+            issues.append(
+                _issue(
+                    ErrorCode.E_WORD_UNALIGNED, path, "reference uses a word without aligned timing"
+                )
+            )
 
     def check_catalog_ref(value: Any, path: str) -> None:
         if isinstance(value, str) and value not in catalog_keys:
@@ -403,6 +460,7 @@ def check_edl_against(
                     gap_ids,
                     cut_ids,
                     event_ids,
+                    aligned_word_ids,
                 )
             )
     return issues
