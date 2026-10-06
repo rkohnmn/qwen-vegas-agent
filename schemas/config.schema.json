@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qwen-vegas-agent.local/schemas/config.schema.json",
+  "title": "Orchestrator Configuration",
+  "description": "Local orchestrator settings. The API key is optional and remains in orchestrator memory.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["llm", "asr", "speakers", "offload", "compile", "subtitles", "mode", "auto_thresholds", "planner", "assets", "vegas", "paths"],
+  "properties": {
+    "llm": {
+      "type": "object", "additionalProperties": false,
+      "required": ["endpoint", "model", "context_tokens", "temperature", "max_output_tokens", "use_json_schema", "request_timeout_s"],
+      "properties": {
+        "endpoint": {"type": "string", "pattern": "^https://[^/\\s]+\\.ts\\.net/v1$"},
+        "api_key": {"type": "string", "maxLength": 4096},
+        "model": {"type": "string", "minLength": 1, "maxLength": 120},
+        "context_tokens": {"type": "integer", "minimum": 1024, "maximum": 262144},
+        "temperature": {"type": "number", "minimum": 0, "maximum": 2},
+        "max_output_tokens": {"type": "integer", "minimum": 1, "maximum": 32768},
+        "use_json_schema": {"type": "boolean"},
+        "request_timeout_s": {"type": "integer", "minimum": 1, "maximum": 3600}
+      }
+    },
+    "asr": {
+      "type": "object", "additionalProperties": false,
+      "required": ["engine", "model", "compute_type", "device", "language"],
+      "properties": {
+        "engine": {"type": "string", "minLength": 1, "maxLength": 80},
+        "model": {"type": "string", "minLength": 1, "maxLength": 120},
+        "compute_type": {"type": "string", "minLength": 1, "maxLength": 80},
+        "device": {"type": "string", "enum": ["cuda", "cpu", "auto"]},
+        "language": {"type": "string", "minLength": 1, "maxLength": 40}
+      }
+    },
+    "speakers": {
+      "type": "object", "additionalProperties": false,
+      "required": ["file", "mode", "diarization", "unknown_similarity_threshold"],
+      "properties": {
+        "file": {"type": "string", "minLength": 1, "maxLength": 260},
+        "mode": {"enum": ["auto", "multitrack", "diarized", "single"]},
+        "diarization": {
+          "type": "object", "additionalProperties": false,
+          "required": ["enabled", "device", "hf_token"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "device": {"enum": ["cpu", "cuda", "auto"]},
+            "hf_token": {"type": "string", "maxLength": 4096}
+          }
+        },
+        "unknown_similarity_threshold": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "offload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["enabled", "host", "tasks"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "host": {"type": "string", "maxLength": 255},
+        "tasks": {"type": "array", "maxItems": 16, "items": {"type": "string", "maxLength": 40}}
+      }
+    },
+    "compile": {
+      "type": "object", "additionalProperties": false,
+      "required": ["head_pad_ms", "tail_pad_ms", "min_gap_after_cut_ms", "audio_crossfade_ms", "max_removed_percent", "snap_zero_crossing"],
+      "properties": {
+        "head_pad_ms": {"type": "integer", "minimum": 0, "maximum": 5000},
+        "tail_pad_ms": {"type": "integer", "minimum": 0, "maximum": 5000},
+        "min_gap_after_cut_ms": {"type": "integer", "minimum": 0, "maximum": 10000},
+        "audio_crossfade_ms": {"type": "integer", "minimum": 0, "maximum": 1000},
+        "max_removed_percent": {"type": "number", "minimum": 0, "maximum": 100},
+        "snap_zero_crossing": {"type": "boolean"}
+      }
+    },
+    "subtitles": {
+      "type": "object", "additionalProperties": false,
+      "required": ["max_chars_per_line", "max_lines", "max_cps", "min_duration_ms", "also_export"],
+      "properties": {
+        "max_chars_per_line": {"type": "integer", "minimum": 1, "maximum": 200},
+        "max_lines": {"type": "integer", "minimum": 1, "maximum": 8},
+        "max_cps": {"type": "number", "minimum": 1, "maximum": 100},
+        "min_duration_ms": {"type": "integer", "minimum": 1, "maximum": 10000},
+        "also_export": {"type": "array", "maxItems": 8, "items": {"enum": ["srt", "ass"]}}
+      }
+    },
+    "mode": {"enum": ["dry-run", "review", "auto"]},
+    "auto_thresholds": {
+      "type": "object", "additionalProperties": false,
+      "required": ["min_cut_confidence", "max_warnings"],
+      "properties": {
+        "min_cut_confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "max_warnings": {"type": "integer", "minimum": 0, "maximum": 1000}
+      }
+    },
+    "planner": {
+      "type": "object", "additionalProperties": false,
+      "required": ["max_tool_rounds", "max_compile_retries", "max_verify_iterations"],
+      "properties": {
+        "max_tool_rounds": {"type": "integer", "minimum": 0, "maximum": 24},
+        "max_compile_retries": {"type": "integer", "minimum": 0, "maximum": 20},
+        "max_verify_iterations": {"type": "integer", "minimum": 0, "maximum": 20}
+      }
+    },
+    "assets": {
+      "type": "object", "additionalProperties": false,
+      "required": ["roots", "github_allowlist", "pin_commits", "ask_before_other_sources"],
+      "properties": {
+        "roots": {"type": "array", "maxItems": 32, "items": {"type": "string", "maxLength": 260}},
+        "github_allowlist": {"type": "array", "maxItems": 32, "items": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"}},
+        "pin_commits": {"type": "boolean"},
+        "ask_before_other_sources": {"type": "boolean"}
+      }
+    },
+    "vegas": {
+      "type": "object", "additionalProperties": false,
+      "required": ["transport", "work_dir", "render_template"],
+      "properties": {
+        "transport": {"enum": ["extension", "script_menu", "cli", "edl_fallback"]},
+        "work_dir": {"type": "string", "minLength": 1, "maxLength": 260},
+        "render_template": {"type": "string", "maxLength": 160}
+      }
+    },
+    "paths": {
+      "type": "object", "additionalProperties": false,
+      "required": ["cache", "runs", "stop_file"],
+      "properties": {
+        "cache": {"type": "string", "maxLength": 260},
+        "runs": {"type": "string", "maxLength": 260},
+        "stop_file": {"type": "string", "maxLength": 260}
+      }
+    }
+  }
+}

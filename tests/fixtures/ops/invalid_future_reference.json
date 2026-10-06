@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0.0",
+  "header": {
+    "job_id": "fixture-job",
+    "working_copy_path": "work/project.veg",
+    "fps": "30000/1001",
+    "source_hashes": [
+      {
+        "source_id": "camera-a",
+        "sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    ]
+  },
+  "operations": [
+    {
+      "op": "set_text_style",
+      "event_id": "e41",
+      "style_key": "txt.default.a1b2c3",
+      "color": "#4FC3F7"
+    },
+    {
+      "op": "add_text_event",
+      "event_id": "e41",
+      "track_id": "caption-track",
+      "start_frame": 1,
+      "length_frames": 5,
+      "text": "late"
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qwen-vegas-agent.local/schemas/catalog.schema.json",
+  "title": "Catalog Contract",
+  "description": "Closed internal catalog of transitions, effects, title presets, and local SFX.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "vegas_version", "plugin_list_hash", "transitions", "video_fx", "audio_fx", "text_presets", "sfx"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "vegas_version": {"type": "string", "minLength": 1, "maxLength": 40},
+    "plugin_list_hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "transitions": {"type": "array", "maxItems": 1000, "items": {"$ref": "#/$defs/transition"}},
+    "video_fx": {"type": "array", "maxItems": 5000, "items": {"$ref": "#/$defs/video_fx"}},
+    "audio_fx": {"type": "array", "maxItems": 5000, "items": {"$ref": "#/$defs/audio_fx"}},
+    "text_presets": {"type": "array", "maxItems": 1000, "items": {"$ref": "#/$defs/text_preset"}},
+    "sfx": {"type": "array", "maxItems": 5000, "items": {"$ref": "#/$defs/sfx"}}
+  },
+  "$defs": {
+    "entry_base": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "kind", "tags", "params_mode"],
+      "properties": {
+        "key": {"type": "string", "pattern": "^(tr|vfx|afx|txt|sfx)\\.[a-z0-9-]+\\.[a-f0-9]{6,12}$"},
+        "kind": {"enum": ["transition", "video_fx", "audio_fx", "text_preset", "sfx"]},
+        "tags": {"type": "array", "maxItems": 32, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 48}},
+        "params_mode": {"enum": ["params", "preset_only", "defaults_only"]},
+        "plugin_unique_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "is_ofx": {"type": "boolean"},
+        "params": {
+          "type": "object",
+          "maxProperties": 80,
+          "description": "Internal plugin parameter extension point; never copied into the model-facing summary.",
+          "additionalProperties": {"type": ["string", "number", "integer", "boolean", "null", "array", "object"]}
+        },
+        "presets": {"type": "array", "maxItems": 128, "items": {"type": "string", "minLength": 1, "maxLength": 120}},
+        "supports_color_override": {"enum": ["yes", "no", "unknown"]},
+        "default_duration_frames": {"type": "integer", "minimum": 0},
+        "path": {"type": "string", "minLength": 1, "maxLength": 1024},
+        "duration": {"type": "number", "minimum": 0},
+        "loudness_lufs": {"type": "number", "minimum": -120, "maximum": 24},
+        "license": {"type": "string", "minLength": 1, "maxLength": 160},
+        "source": {"type": "string", "minLength": 1, "maxLength": 160}
+      }
+    },
+    "transition": {
+      "allOf": [
+        {"$ref": "#/$defs/entry_base"},
+        {"properties": {"kind": {"const": "transition"}, "key": {"pattern": "^tr\\.[a-z0-9-]+\\.[a-f0-9]{6,12}$"}}, "required": ["plugin_unique_id", "default_duration_frames"]}
+      ]
+    },
+    "video_fx": {
+      "allOf": [
+        {"$ref": "#/$defs/entry_base"},
+        {"properties": {"kind": {"const": "video_fx"}, "key": {"pattern": "^vfx\\.[a-z0-9-]+\\.[a-f0-9]{6,12}$"}}, "required": ["plugin_unique_id"]}
+      ]
+    },
+    "audio_fx": {
+      "allOf": [
+        {"$ref": "#/$defs/entry_base"},
+        {"properties": {"kind": {"const": "audio_fx"}, "key": {"pattern": "^afx\\.[a-z0-9-]+\\.[a-f0-9]{6,12}$"}}, "required": ["plugin_unique_id"]}
+      ]
+    },
+    "text_preset": {
+      "allOf": [
+        {"$ref": "#/$defs/entry_base"},
+        {"properties": {"kind": {"const": "text_preset"}, "key": {"pattern": "^txt\\.[a-z0-9-]+\\.[a-f0-9]{6,12}$"}}, "required": ["presets", "supports_color_override"]}
+      ]
+    },
+    "sfx": {
+      "allOf": [
+        {"$ref": "#/$defs/entry_base"},
+        {"properties": {"kind": {"const": "sfx"}, "key": {"pattern": "^sfx\\.[a-z0-9-]+\\.[a-f0-9]{6,12}$"}}, "required": ["path", "duration", "license", "source"]}
+      ]
+    }
+  }
+}

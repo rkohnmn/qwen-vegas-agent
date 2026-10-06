@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0.0",
+  "words_hash": "sha256:c8f7100eef3734b431ed3bccb908a94cf49806006e6c362b937f59a9765122a9",
+  "summary": "Keep the short two-speaker conversation readable.",
+  "cuts": [],
+  "keeps_reordered": [],
+  "transitions": [],
+  "sfx": [],
+  "subtitles": {
+    "style": "txt.default.a1b2c3",
+    "emphasis": [],
+    "break_hints": [],
+    "omit_ranges": []
+  },
+  "tool_requests": [],
+  "questions": []
+}

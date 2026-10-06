@@ -1,0 +1,4 @@
+jsonschema==4.23.0
+pytest==8.4.2
+ruff==0.12.12
+mypy==1.18.2

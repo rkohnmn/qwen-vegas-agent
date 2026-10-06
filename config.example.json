@@ -1,0 +1,74 @@
+{
+  "llm": {
+    "endpoint": "https://<tailnet-host>.ts.net/v1",
+    "model": "qwen",
+    "context_tokens": 32768,
+    "temperature": 0.2,
+    "max_output_tokens": 6000,
+    "use_json_schema": true,
+    "request_timeout_s": 600
+  },
+  "asr": {
+    "engine": "whisperx",
+    "model": "medium",
+    "compute_type": "int8_float16",
+    "device": "cuda",
+    "language": "auto"
+  },
+  "speakers": {
+    "file": "speakers.json",
+    "mode": "auto",
+    "diarization": {
+      "enabled": true,
+      "device": "cpu",
+      "hf_token": ""
+    },
+    "unknown_similarity_threshold": 0.65
+  },
+  "offload": {
+    "enabled": false,
+    "host": "",
+    "tasks": ["diarization", "scene", "beats", "sfx_index"]
+  },
+  "compile": {
+    "head_pad_ms": 40,
+    "tail_pad_ms": 80,
+    "min_gap_after_cut_ms": 120,
+    "audio_crossfade_ms": 20,
+    "max_removed_percent": 35,
+    "snap_zero_crossing": true
+  },
+  "subtitles": {
+    "max_chars_per_line": 42,
+    "max_lines": 2,
+    "max_cps": 20,
+    "min_duration_ms": 700,
+    "also_export": ["srt", "ass"]
+  },
+  "mode": "dry-run",
+  "auto_thresholds": {
+    "min_cut_confidence": 0.85,
+    "max_warnings": 0
+  },
+  "planner": {
+    "max_tool_rounds": 3,
+    "max_compile_retries": 2,
+    "max_verify_iterations": 2
+  },
+  "assets": {
+    "roots": ["assets/"],
+    "github_allowlist": [],
+    "pin_commits": true,
+    "ask_before_other_sources": true
+  },
+  "vegas": {
+    "transport": "script_menu",
+    "work_dir": "work/",
+    "render_template": ""
+  },
+  "paths": {
+    "cache": "cache/",
+    "runs": "runs/",
+    "stop_file": "STOP"
+  }
+}

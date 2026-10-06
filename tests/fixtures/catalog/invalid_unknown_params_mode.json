@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0.0",
+  "vegas_version": "17.x",
+  "plugin_list_hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+  "transitions": [
+    {
+      "key": "tr.crossfade-short.a1b2c3",
+      "kind": "transition",
+      "plugin_unique_id": "{fixture-transition}",
+      "is_ofx": true,
+      "tags": [
+        "soft",
+        "dialogue-safe"
+      ],
+      "params_mode": "unknown",
+      "default_duration_frames": 12,
+      "params": {}
+    }
+  ],
+  "video_fx": [],
+  "audio_fx": [],
+  "text_presets": [
+    {
+      "key": "txt.default.a1b2c3",
+      "kind": "text_preset",
+      "plugin_unique_id": "{fixture-title}",
+      "tags": [
+        "subtitle",
+        "default"
+      ],
+      "params_mode": "preset_only",
+      "supports_color_override": "unknown",
+      "presets": [
+        "Default Caption"
+      ]
+    }
+  ],
+  "sfx": []
+}

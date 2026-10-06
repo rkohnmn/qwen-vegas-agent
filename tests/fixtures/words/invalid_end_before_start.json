@@ -1,0 +1,377 @@
+{
+  "schema_version": "1.0.0",
+  "source_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "fps": "30000/1001",
+  "asr": {
+    "engine": "fixture",
+    "model": "small",
+    "align_model": "fixture-aligner",
+    "params_hash": "fixture-params-v1"
+  },
+  "speaker_mode": "multitrack",
+  "words": [
+    {
+      "id": "w1",
+      "text": "So",
+      "start": 0.0,
+      "end": 0.24,
+      "speaker": "host",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 1"
+    },
+    {
+      "id": "w2",
+      "text": "today",
+      "start": 0.42,
+      "end": 0.66,
+      "speaker": "host",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 1"
+    },
+    {
+      "id": "w3",
+      "text": "we",
+      "start": 0.84,
+      "end": 0.74,
+      "speaker": "host",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 1"
+    },
+    {
+      "id": "w4",
+      "text": "are",
+      "start": 1.26,
+      "end": 1.5,
+      "speaker": "host",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 1"
+    },
+    {
+      "id": "w5",
+      "text": "testing",
+      "start": 1.68,
+      "end": 1.92,
+      "speaker": "host",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 1"
+    },
+    {
+      "id": "w6",
+      "text": "a",
+      "start": 2.1,
+      "end": 2.34,
+      "speaker": "host",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 1"
+    },
+    {
+      "id": "w7",
+      "text": "small",
+      "start": 2.52,
+      "end": 2.76,
+      "speaker": "host",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 1"
+    },
+    {
+      "id": "w8",
+      "text": "editing",
+      "start": 2.94,
+      "end": 3.18,
+      "speaker": "host",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 1"
+    },
+    {
+      "id": "w9",
+      "text": "plan",
+      "start": 3.36,
+      "end": 3.6,
+      "speaker": "host",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 1"
+    },
+    {
+      "id": "w10",
+      "text": "for",
+      "start": 3.78,
+      "end": 4.02,
+      "speaker": "host",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 1"
+    },
+    {
+      "id": "w11",
+      "text": "a",
+      "start": 4.2,
+      "end": 4.44,
+      "speaker": "host",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 1"
+    },
+    {
+      "id": "w12",
+      "text": "clear",
+      "start": 4.62,
+      "end": 4.86,
+      "speaker": "host",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 1"
+    },
+    {
+      "id": "w13",
+      "text": "conversation",
+      "start": 5.04,
+      "end": 5.28,
+      "speaker": "host",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 1"
+    },
+    {
+      "id": "w14",
+      "text": "with",
+      "start": 5.46,
+      "end": 5.7,
+      "speaker": "host",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 1"
+    },
+    {
+      "id": "w15",
+      "text": "two",
+      "start": 5.88,
+      "end": 6.12,
+      "speaker": "host",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 1"
+    },
+    {
+      "id": "w16",
+      "text": "speakers",
+      "start": 6.3,
+      "end": 6.54,
+      "speaker": "guest",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 2"
+    },
+    {
+      "id": "w17",
+      "text": "and",
+      "start": 6.72,
+      "end": 6.96,
+      "speaker": "guest",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 2"
+    },
+    {
+      "id": "w18",
+      "text": "the",
+      "start": 7.14,
+      "end": 7.38,
+      "speaker": "guest",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 2"
+    },
+    {
+      "id": "w19",
+      "text": "guest",
+      "start": 7.56,
+      "end": 7.8,
+      "speaker": "guest",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 2"
+    },
+    {
+      "id": "w20",
+      "text": "adds",
+      "start": 7.98,
+      "end": 8.22,
+      "speaker": "guest",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 2"
+    },
+    {
+      "id": "w21",
+      "text": "one",
+      "start": 8.4,
+      "end": 8.64,
+      "speaker": "guest",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 2"
+    },
+    {
+      "id": "w22",
+      "text": "useful",
+      "start": 8.82,
+      "end": 9.06,
+      "speaker": "guest",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 2"
+    },
+    {
+      "id": "w23",
+      "text": "detail",
+      "start": 9.24,
+      "end": 9.48,
+      "speaker": "guest",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 2"
+    },
+    {
+      "id": "w24",
+      "text": "about",
+      "start": 9.66,
+      "end": 9.9,
+      "speaker": "guest",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 2"
+    },
+    {
+      "id": "w25",
+      "text": "careful",
+      "start": 10.08,
+      "end": 10.32,
+      "speaker": "guest",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 2"
+    },
+    {
+      "id": "w26",
+      "text": "timing",
+      "start": 10.5,
+      "end": 10.74,
+      "speaker": "guest",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 2"
+    },
+    {
+      "id": "w27",
+      "text": "before",
+      "start": 10.92,
+      "end": 11.16,
+      "speaker": "guest",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 2"
+    },
+    {
+      "id": "w28",
+      "text": "we",
+      "start": 11.34,
+      "end": 11.58,
+      "speaker": "guest",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 2"
+    },
+    {
+      "id": "w29",
+      "text": "wrap",
+      "start": 11.76,
+      "end": 12.0,
+      "speaker": "guest",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 2"
+    },
+    {
+      "id": "w30",
+      "text": "up",
+      "start": 12.18,
+      "end": 12.42,
+      "speaker": "guest",
+      "speaker_conf": 0.98,
+      "word_conf": 0.96,
+      "track": "Mic 2"
+    }
+  ],
+  "segments": [
+    {
+      "id": "s1",
+      "word_ids": [
+        "w1",
+        "w2",
+        "w3",
+        "w4",
+        "w5",
+        "w6",
+        "w7",
+        "w8",
+        "w9",
+        "w10",
+        "w11",
+        "w12",
+        "w13",
+        "w14",
+        "w15"
+      ],
+      "speaker": "host"
+    },
+    {
+      "id": "s2",
+      "word_ids": [
+        "w16",
+        "w17",
+        "w18",
+        "w19",
+        "w20",
+        "w21",
+        "w22",
+        "w23",
+        "w24",
+        "w25",
+        "w26",
+        "w27",
+        "w28",
+        "w29",
+        "w30"
+      ],
+      "speaker": "guest"
+    }
+  ],
+  "gaps": [
+    {
+      "id": "g1",
+      "start": 6.12,
+      "end": 6.3
+    },
+    {
+      "id": "g2",
+      "start": 12.42,
+      "end": 12.6
+    }
+  ],
+  "audio_events": [
+    {
+      "type": "laughter",
+      "start": 8.1,
+      "end": 8.5
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qwen-vegas-agent.local/schemas/words.schema.json",
+  "title": "Words Contract",
+  "description": "Word-aligned perception output and its stable segment and silence-gap identifiers.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source_hash", "fps", "asr", "speaker_mode", "words", "segments", "gaps", "audio_events"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "source_hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "fps": {"type": "string", "pattern": "^[1-9][0-9]*/[1-9][0-9]*$"},
+    "asr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engine", "model", "align_model", "params_hash"],
+      "properties": {
+        "engine": {"type": "string", "minLength": 1, "maxLength": 80},
+        "model": {"type": "string", "minLength": 1, "maxLength": 120},
+        "align_model": {"type": "string", "minLength": 1, "maxLength": 120},
+        "params_hash": {"type": "string", "minLength": 1, "maxLength": 160}
+      }
+    },
+    "speaker_mode": {"enum": ["multitrack", "diarized", "single"]},
+    "words": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 200000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "text", "start", "end", "speaker", "speaker_conf", "word_conf"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^w[0-9]+$"},
+          "text": {"type": "string", "minLength": 1, "maxLength": 120},
+          "start": {"type": "number", "minimum": 0},
+          "end": {"type": "number", "minimum": 0},
+          "speaker": {"type": ["string", "null"], "pattern": "^[a-z][a-z0-9_]*$"},
+          "speaker_conf": {"type": "number", "minimum": 0, "maximum": 1},
+          "word_conf": {"type": "number", "minimum": 0, "maximum": 1},
+          "track": {"type": "string", "minLength": 1, "maxLength": 120}
+        }
+      }
+    },
+    "segments": {
+      "type": "array",
+      "maxItems": 20000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "word_ids"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^s[0-9]+$"},
+          "word_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 500,
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^w[0-9]+$"}
+          },
+          "speaker": {"type": ["string", "null"], "pattern": "^[a-z][a-z0-9_]*$"}
+        }
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "maxItems": 20000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "start", "end"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^g[0-9]+$"},
+          "start": {"type": "number", "minimum": 0},
+          "end": {"type": "number", "minimum": 0}
+        }
+      }
+    },
+    "audio_events": {
+      "type": "array",
+      "maxItems": 20000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "start", "end"],
+        "properties": {
+          "type": {"type": "string", "minLength": 1, "maxLength": 48},
+          "start": {"type": "number", "minimum": 0},
+          "end": {"type": "number", "minimum": 0}
+        }
+      }
+    }
+  }
+}

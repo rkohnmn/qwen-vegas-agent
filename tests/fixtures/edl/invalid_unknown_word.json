@@ -1,0 +1,55 @@
+{
+  "schema_version": "1.0.0",
+  "words_hash": "sha256:c8f7100eef3734b431ed3bccb908a94cf49806006e6c362b937f59a9765122a9",
+  "summary": "Remove one filler and mark the clean join.",
+  "cuts": [
+    {
+      "id": "c1",
+      "remove": {
+        "from_word": "w9999",
+        "to_word": "w5"
+      },
+      "reason": "single filler before the sentence continues",
+      "confidence": 0.91,
+      "category": "filler"
+    }
+  ],
+  "keeps_reordered": [],
+  "transitions": [
+    {
+      "at_cut": "c1",
+      "offset_hint": "at",
+      "type": "tr.crossfade-short.a1b2c3",
+      "reason": "keep the dialogue join smooth"
+    }
+  ],
+  "sfx": [
+    {
+      "at_word": "w21",
+      "offset_hint": "before",
+      "key": "sfx.whoosh-01.deaf01",
+      "gain_db": -12,
+      "reason": "quiet topic transition"
+    }
+  ],
+  "subtitles": {
+    "style": "txt.default.a1b2c3",
+    "emphasis": [
+      {
+        "word_ids": [
+          "w21",
+          "w22"
+        ],
+        "mode": "bold"
+      }
+    ],
+    "break_hints": [
+      {
+        "before_word": "w16"
+      }
+    ],
+    "omit_ranges": []
+  },
+  "tool_requests": [],
+  "questions": []
+}

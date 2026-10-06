@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0.0",
+  "header": {
+    "job_id": "fixture-job",
+    "working_copy_path": "work/project.veg",
+    "fps": "30000/1001",
+    "source_hashes": [
+      {
+        "source_id": "camera-a",
+        "sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    ]
+  },
+  "operations": [
+    {
+      "op": "add_audio_event",
+      "event_id": "e30",
+      "track_id": "sfx-track",
+      "catalog_key": "sfx.whoosh-01.deaf01",
+      "file_path": "work/assets/whoosh_01.wav",
+      "start_frame": 420,
+      "length_frames": 18,
+      "gain_db": -12.0
+    },
+    {
+      "op": "add_text_event",
+      "event_id": "e31",
+      "track_id": "caption-track",
+      "start_frame": 10,
+      "length_frames": 45,
+      "text": "Careful timing."
+    },
+    {
+      "op": "set_text_style",
+      "event_id": "e31",
+      "style_key": "txt.default.a1b2c3",
+      "plugin_unique_id": "{fixture-title}",
+      "color": "#4FC3F7"
+    },
+    {
+      "op": "render_preview",
+      "output_path": "work/output/preview.mp4",
+      "start_frame": 0,
+      "end_frame": 900,
+      "template_key": "preview-480p"
+    }
+  ]
+}

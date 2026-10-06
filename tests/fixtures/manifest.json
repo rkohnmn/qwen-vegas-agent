@@ -1,0 +1,193 @@
+{
+  "references": {
+    "words": "words/valid_realistic.json",
+    "speakers": "speakers/valid_realistic.json",
+    "catalog": "catalog/valid_realistic.json"
+  },
+  "fixtures": [
+    {
+      "contract": "words",
+      "file": "words/valid_minimal.json",
+      "expected": "valid"
+    },
+    {
+      "contract": "words",
+      "file": "words/valid_realistic.json",
+      "expected": "valid"
+    },
+    {
+      "contract": "speakers",
+      "file": "speakers/valid_minimal.json",
+      "expected": "valid"
+    },
+    {
+      "contract": "speakers",
+      "file": "speakers/valid_realistic.json",
+      "expected": "valid"
+    },
+    {
+      "contract": "catalog",
+      "file": "catalog/valid_minimal.json",
+      "expected": "valid"
+    },
+    {
+      "contract": "catalog",
+      "file": "catalog/valid_realistic.json",
+      "expected": "valid"
+    },
+    {
+      "contract": "edl",
+      "file": "edl/valid_minimal.json",
+      "expected": "valid"
+    },
+    {
+      "contract": "edl",
+      "file": "edl/valid_realistic.json",
+      "expected": "valid"
+    },
+    {
+      "contract": "ops",
+      "file": "ops/valid_minimal.json",
+      "expected": "valid"
+    },
+    {
+      "contract": "ops",
+      "file": "ops/valid_realistic.json",
+      "expected": "valid"
+    },
+    {
+      "contract": "words",
+      "file": "words/invalid_end_before_start.json",
+      "expected": "E_WORD_TIME",
+      "check": "words"
+    },
+    {
+      "contract": "words",
+      "file": "words/invalid_duplicate_id.json",
+      "expected": "E_DUPLICATE_ID",
+      "check": "words"
+    },
+    {
+      "contract": "words",
+      "file": "words/invalid_missing_segment_word.json",
+      "expected": "E_REF_WORD",
+      "check": "words"
+    },
+    {
+      "contract": "words",
+      "file": "words/invalid_bad_fps.json",
+      "expected": "E_SCHEMA"
+    },
+    {
+      "contract": "speakers",
+      "file": "speakers/invalid_bad_hex.json",
+      "expected": "E_SCHEMA"
+    },
+    {
+      "contract": "speakers",
+      "file": "speakers/invalid_bad_key.json",
+      "expected": "E_SCHEMA"
+    },
+    {
+      "contract": "catalog",
+      "file": "catalog/invalid_duplicate_key.json",
+      "expected": "E_DUPLICATE_CATALOG_KEY",
+      "check": "catalog"
+    },
+    {
+      "contract": "catalog",
+      "file": "catalog/invalid_unknown_params_mode.json",
+      "expected": "E_SCHEMA"
+    },
+    {
+      "contract": "edl",
+      "file": "edl/invalid_numeric_timestamp.json",
+      "expected": "E_SCHEMA"
+    },
+    {
+      "contract": "edl",
+      "file": "edl/invalid_unknown_catalog.json",
+      "expected": "E_REF_CATALOG",
+      "check": "edl"
+    },
+    {
+      "contract": "edl",
+      "file": "edl/invalid_unknown_word.json",
+      "expected": "E_REF_WORD",
+      "check": "edl"
+    },
+    {
+      "contract": "edl",
+      "file": "edl/invalid_words_hash_mismatch.json",
+      "expected": "E_WORDS_HASH",
+      "check": "edl"
+    },
+    {
+      "contract": "edl",
+      "file": "edl/invalid_nonempty_keeps_reordered.json",
+      "expected": "E_SCHEMA"
+    },
+    {
+      "contract": "edl",
+      "file": "edl/invalid_oversize_string.json",
+      "expected": "E_SCHEMA"
+    },
+    {
+      "contract": "edl",
+      "file": "edl/invalid_confidence_out_of_range.json",
+      "expected": "E_SCHEMA"
+    },
+    {
+      "contract": "edl",
+      "file": "edl/invalid_unknown_segment.json",
+      "expected": "E_REF_SEGMENT",
+      "check": "edl"
+    },
+    {
+      "contract": "edl",
+      "file": "edl/invalid_unknown_gap.json",
+      "expected": "E_REF_GAP",
+      "check": "edl"
+    },
+    {
+      "contract": "edl",
+      "file": "edl/invalid_unknown_speaker.json",
+      "expected": "E_REF_SPEAKER",
+      "check": "edl"
+    },
+    {
+      "contract": "edl",
+      "file": "edl/invalid_overlapping_cuts.json",
+      "expected": "E_CUT_OVERLAP",
+      "check": "edl"
+    },
+    {
+      "contract": "edl",
+      "file": "edl/invalid_reversed_cut.json",
+      "expected": "E_CUT_ORDER",
+      "check": "edl"
+    },
+    {
+      "contract": "ops",
+      "file": "ops/invalid_unknown_op.json",
+      "expected": "E_SCHEMA"
+    },
+    {
+      "contract": "ops",
+      "file": "ops/invalid_noninteger_frame.json",
+      "expected": "E_SCHEMA"
+    },
+    {
+      "contract": "ops",
+      "file": "ops/invalid_path_outside_workdir.json",
+      "expected": "E_PATH_CONFINEMENT",
+      "check": "ops"
+    },
+    {
+      "contract": "ops",
+      "file": "ops/invalid_future_reference.json",
+      "expected": "E_OP_ORDER",
+      "check": "ops"
+    }
+  ]
+}

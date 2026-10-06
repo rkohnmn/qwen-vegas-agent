@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "speakers": {
+    "host": {
+      "display": "Host",
+      "color": "#4FC3F7",
+      "track": "Mic 1",
+      "voice_profile": "voices/host.npy"
+    },
+    "guest": {
+      "display": "Guest",
+      "color": "#FFB74D",
+      "track": "Mic 2",
+      "voice_profile": "voices/guest.npy"
+    }
+  },
+  "unknown_palette": ["#BDBDBD", "#CE93D8", "#A5D6A7"]
+}
