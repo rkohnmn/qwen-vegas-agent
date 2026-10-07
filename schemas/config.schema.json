@@ -284,7 +284,20 @@
               "ass"
             ]
           }
-        }
+        },
+        "hold_ms": {"type": "integer", "minimum": 0, "maximum": 10000, "default": 100},
+        "low_speaker_conf_threshold": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.65},
+        "show_fillers": {"type": "boolean", "default": true},
+        "filler_words": {"type": "array", "maxItems": 64, "items": {"type": "string", "minLength": 1, "maxLength": 40}},
+        "profanity_policy": {"enum": ["keep", "mask", "omit"], "default": "keep"},
+        "profanity_words": {"type": "array", "maxItems": 128, "items": {"type": "string", "minLength": 1, "maxLength": 80}},
+        "outline_color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$", "default": "#000000"},
+        "outline_width": {"type": "number", "minimum": 0, "maximum": 20, "default": 2},
+        "font_name": {"type": "string", "minLength": 1, "maxLength": 80, "pattern": "^[^,\\r\\n\\[\\]]+$", "default": "Arial"},
+        "font_size": {"type": "integer", "minimum": 8, "maximum": 200, "default": 48},
+        "margin_v": {"type": "integer", "minimum": 0, "maximum": 500, "default": 48},
+        "minimum_contrast_ratio": {"type": "number", "minimum": 1, "maximum": 21, "default": 3},
+        "renderer": {"enum": ["ass_burn_in", "sidecar_only", "direct_color", "preset_per_speaker"], "default": "ass_burn_in"}
       }
     },
     "mode": {

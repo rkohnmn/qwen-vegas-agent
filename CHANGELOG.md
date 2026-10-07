@@ -6,11 +6,13 @@ All notable project changes are recorded here. Contract version entries are chec
 
 ### Added
 
+- Added captions=1.0.0 for deterministic edited-frame captions, word-ID emphasis spans, confidence flags, and speaker-map references.
 - Bumped words=2.1.0 for optional overlap markers and hybrid mode; bumped speakers=1.1.0 for track-mode and voice-profile metadata. Added deterministic offline speaker attribution, enrollment-quality helpers, confirmed ask_user handling, and synthetic fixtures. Real diarization and calibrated thresholds remain open under RV-005/RV-006.
 
 ### Changed
 
 - Updated Architecture to 1.2.4 and Setup to 1.1.4 for speaker attribution modes, local-only gates, unknown confirmation, and measured synthetic fixtures.
+- Updated Architecture to 1.2.5 and Setup to 1.1.5 for speaker-colored caption generation and its offline limits.
 
 - Bumped run_manifest=1.1.0 with optional per-file before/after integrity hashes for project and media inputs.
 

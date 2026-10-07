@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0.0",
+  "fps": "30000/1001",
+  "duration_frames": 240,
+  "captions": [
+    {
+      "id": "cap1",
+      "speaker_key": "host",
+      "text": "So today",
+      "start_frame": 0,
+      "end_frame": 20,
+      "style_key": "txt.default.a1b2c3",
+      "emphasis": [
+        {
+          "word_ids": [
+            "w2"
+          ],
+          "mode": "bold",
+          "start_codepoint": 3,
+          "end_codepoint": 8
+        }
+      ],
+      "confidence_flags": [],
+      "source_word_ids": [
+        "w1",
+        "w2"
+      ]
+    }
+  ]
+}

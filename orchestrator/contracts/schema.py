@@ -22,6 +22,7 @@ _SCHEMA_NAMES = {
     "compile_report",
     "verify_report",
     "run_manifest",
+    "captions",
 }
 _SCHEMA_DIR = Path(__file__).resolve().parents[2] / "schemas"
 _SAFE_PATH_PART = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,31}$")

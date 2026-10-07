@@ -16,6 +16,11 @@
       "expected": "valid"
     },
     {
+      "contract": "captions",
+      "file": "captions/valid_minimal.json",
+      "expected": "valid"
+    },
+    {
       "contract": "speakers",
       "file": "speakers/valid_minimal.json",
       "expected": "valid"

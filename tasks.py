@@ -31,6 +31,7 @@ VERSIONED_CONTRACTS = (
     "compile_report",
     "verify_report",
     "run_manifest",
+    "captions",
 )
 DOC_PATH_PATTERN = re.compile(r"(?<![A-Za-z0-9_])((?:docs|schemas)/[A-Za-z0-9_./*-]+)")
 MARKDOWN_LINK_PATTERN = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
@@ -242,6 +243,7 @@ def fixture_issues(
     refs: dict[str, dict[str, Any]],
 ) -> list[Any]:
     from orchestrator.contracts import (
+        check_captions,
         check_catalog,
         check_compile_report,
         check_edl_against,
@@ -273,6 +275,8 @@ def fixture_issues(
         return check_verify_report(document)
     if contract == "run_manifest":
         return check_run_manifest(document)
+    if contract == "captions":
+        return check_captions(document, refs.get("words"))
     return []
 
 

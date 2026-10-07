@@ -4,6 +4,7 @@ from .config import ConfigError, RedactingFilter, load_config, redact
 from .errors import ErrorCode, ValidationIssue
 from .hashing import hash_words
 from .referential import (
+    check_captions,
     check_catalog,
     check_compile_report,
     check_edl_against,
@@ -23,6 +24,7 @@ __all__ = [
     "ValidationIssue",
     "catalog_summary",
     "check_catalog",
+    "check_captions",
     "check_compile_report",
     "check_edl_against",
     "check_ops",

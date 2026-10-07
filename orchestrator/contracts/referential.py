@@ -735,6 +735,111 @@ def check_timeline(timeline: Mapping[str, Any]) -> list[ValidationIssue]:
     return issues
 
 
+def check_captions(
+    document: Mapping[str, Any], words: Mapping[str, Any] | None = None
+) -> list[ValidationIssue]:
+    """Check caption identity, word references, single-speaker content, bounds, and overlap."""
+    issues: list[ValidationIssue] = []
+    rows = document.get("captions", [])
+    if not isinstance(rows, list):
+        return [_issue(ErrorCode.E_SCHEMA, "captions", "captions must be an array")]
+    duration = document.get("duration_frames")
+    word_rows = words.get("words", []) if isinstance(words, Mapping) else []
+    word_by_id = (
+        {
+            row["id"]: row
+            for row in word_rows
+            if isinstance(row, Mapping) and isinstance(row.get("id"), str)
+        }
+        if isinstance(word_rows, list)
+        else {}
+    )
+    seen: set[str] = set()
+    by_speaker: dict[str, list[tuple[int, int, int]]] = {}
+    for index, caption in enumerate(rows):
+        if not isinstance(caption, Mapping):
+            continue
+        caption_id = caption.get("id")
+        path = f"captions[{index}]"
+        if isinstance(caption_id, str):
+            if caption_id in seen:
+                issues.append(
+                    _issue(ErrorCode.E_DUPLICATE_ID, f"{path}.id", "caption ID is duplicated")
+                )
+            seen.add(caption_id)
+        start, end, speaker = (
+            caption.get("start_frame"),
+            caption.get("end_frame"),
+            caption.get("speaker_key"),
+        )
+        if type(start) is int and type(end) is int and end <= start:
+            issues.append(_issue(ErrorCode.E_REPORT_RANGE, path, "caption end must follow start"))
+        if type(duration) is int and type(end) is int and end > duration:
+            issues.append(
+                _issue(
+                    ErrorCode.E_REPORT_RANGE, path, "caption end exceeds edited timeline duration"
+                )
+            )
+        if isinstance(speaker, str) and type(start) is int and type(end) is int:
+            by_speaker.setdefault(speaker, []).append((start, end, index))
+        source_ids = caption.get("source_word_ids", [])
+        if not isinstance(source_ids, list):
+            continue
+        missing = [
+            word_id
+            for word_id in source_ids
+            if isinstance(word_id, str) and word_id not in word_by_id
+        ]
+        if missing:
+            issues.append(
+                _issue(
+                    ErrorCode.E_REF_WORD,
+                    f"{path}.source_word_ids",
+                    "caption references a missing word",
+                )
+            )
+            continue
+        speaker_counts: dict[str, int] = {}
+        for word_id in source_ids:
+            word = word_by_id.get(word_id) if isinstance(word_id, str) else None
+            word_speaker = word.get("speaker") if isinstance(word, Mapping) else None
+            if isinstance(word_speaker, str):
+                speaker_counts[word_speaker] = speaker_counts.get(word_speaker, 0) + 1
+        if len(speaker_counts) > 1:
+            issues.append(
+                _issue(
+                    ErrorCode.E_CAPTION_SPEAKER,
+                    f"{path}.source_word_ids",
+                    "caption source words contain multiple speakers",
+                )
+            )
+        if speaker_counts and isinstance(speaker, str):
+            majority_count = max(speaker_counts.values())
+            majority_speakers = {
+                key for key, count in speaker_counts.items() if count == majority_count
+            }
+            if speaker not in majority_speakers:
+                issues.append(
+                    _issue(
+                        ErrorCode.E_CAPTION_SPEAKER,
+                        f"{path}.speaker_key",
+                        "caption speaker is not the majority source speaker",
+                    )
+                )
+    for _speaker, intervals in by_speaker.items():
+        ordered = sorted(intervals)
+        for previous, current in zip(ordered, ordered[1:], strict=False):
+            if current[0] < previous[1]:
+                issues.append(
+                    _issue(
+                        ErrorCode.E_CAPTION_OVERLAP,
+                        f"captions[{current[2]}]",
+                        "captions overlap on one speaker track",
+                    )
+                )
+    return issues
+
+
 def check_compile_report(report: Mapping[str, Any]) -> list[ValidationIssue]:
     """Check frame totals, the displayed removal percentage, and snap IDs."""
     issues: list[ValidationIssue] = []

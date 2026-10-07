@@ -52,7 +52,20 @@
     "also_export": [
       "srt",
       "ass"
-    ]
+    ],
+    "hold_ms": 100,
+    "low_speaker_conf_threshold": 0.65,
+    "show_fillers": true,
+    "filler_words": ["uh", "um", "erm", "er", "hmm", "mm"],
+    "profanity_policy": "keep",
+    "profanity_words": [],
+    "outline_color": "#000000",
+    "outline_width": 2,
+    "font_name": "Arial",
+    "font_size": 48,
+    "margin_v": 48,
+    "minimum_contrast_ratio": 3,
+    "renderer": "ass_burn_in"
   },
   "mode": "dry-run",
   "auto_thresholds": {
