@@ -60,7 +60,7 @@ This register tracks behavior implemented or described without live resources. C
 
 ## 4. Pending pushes and blockers
 
-- Goal 04 implementation commit `2788809` is not pushed yet. Push only after the prompt archival/completion commit and its privacy gate; then record the exact result.
+- Goal 04 commits `2788809`, `720b174`, and `83e892a` are not pushed yet. Push only after the prompt archival/completion commit and its privacy gate; then record the exact result.
 - No implementation blocker has been confirmed yet.
 
 ## 5. Provisional decisions to confirm

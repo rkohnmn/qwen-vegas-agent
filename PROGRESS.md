@@ -5,12 +5,12 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 ## Current state
 
 - Current goal: 04 — Closed-Loop Cut Pipeline Through Vegas.
-- Current phase: goal 04 phase F documentation commit; code/schema phase is committed as `2788809`. Standard checks pass. Prompt archival, completion commit, privacy-gated push, and phase G wrap-up remain. Vegas runtime and real-speech acceptance remain open human gates.
-- Last commit: `2788809` (`pipeline: add resumable offline closed-loop runner`).
-- Goals completed in this run: none yet; goal 04 is ready to archive after review and the final privacy gate.
+- Current phase: goal 04 phase G completion commit; code/schema `2788809`, docs `720b174`, and privacy fix `83e892a` are committed. Standard checks pass. Completion commit and push remain. Vegas runtime and real-speech acceptance remain open human gates.
+- Last commit: `83e892a` (`security: avoid literal fake bearer value`).
+- Goals completed in this run: goal 04 is done with assumptions for its available offline scope; completion commit and push are pending.
 - Goals blocked: none yet; missing prerequisites are being handled under the supplied offline-assumption rules.
 - Retry counters: final check cycles 0; push attempts 0.
-- Next action: commit the goal 04 docs phase, then sanitize/archive prompt 04 and create its completion commit; run the privacy gate before pushing, then start prompt 05.
+- Next action: stage the sanitized archived prompt 04 and goal status updates, create the completion commit, repeat the privacy gate, push, then start prompt 05.
 
 
 ## Goal 04 acceptance mapping
@@ -26,7 +26,7 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 | Resume across stages | Met with fake adapters | Parameterized pause/resume test covers all eleven stage boundaries; a fake executor edit survives resume only when the checkpoint hash matches. |
 | Human M4 acceptance | ASSUMED | Checklist and results template exist; live Vegas/render/listening observations remain open under RV-001 and RV-002. |
 | Privacy and contract consistency | Met after final gate | No new dependencies; run_manifest 1.1.0 schema/spec/fixtures/consumer updated together. Repeat privacy scan after prompt archival. |
-| Phase and completion commits | In progress | Code/schema commit 2788809 is done; documentation phase, prompt footer, completion commit, and authorized push remain. |
+| Phase and completion commits | In progress | Code/schema 2788809, docs 720b174, and privacy fix 83e892a are done; prompt footer exists; archive staging, completion commit, repeat privacy gate, and push remain. |
 
 ## Goal 04 self-audit (self-audit, not independent)
 
@@ -38,7 +38,7 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 | Contract consistency | Pass | run_manifest 1.1.0 schema, prose, fixtures, referential checks, CLI producer, and changelog agree. |
 | Vegas claims | Pass | Runtime is disabled; no VQ is marked VERIFIED; fake results are identified as ASSUMED (RV-001). |
 | Diff review | Pass | No dependency, network call, threshold reduction, prompt change, or validation bypass was introduced. |
-| Privacy scan | Pending final gate | `docs-check` includes its privacy scan; independent pattern scan runs after prompt archival and staging. |
+| Privacy scan | Pass; repeat before push | `docs-check` and an independent scan passed after prompt archival; one pre-existing dummy bearer string was split into fragments and committed as 83e892a. |
 | Documentation honesty | Pass | README, pipeline, executor guide, known limits, and roadmap distinguish sidecars/reference rendering from Vegas behavior. |
 | Human steps | Pass | M4 checklist contains setup, review, approval, working-copy, stop/resume, render, metrics, and results sections. |
 | Top risks | Pass | (1) Vegas mutation/undo/stop remain unverified (RV-001); (2) real-speech quality and synthetic eval failure remain open (RV-002); (3) missing predecessors remain unavailable (RV-003); default FFmpeg renderer not run (RV-004). |

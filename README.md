@@ -59,7 +59,7 @@ After a manual VEGAS render, `watch-render` waits for a confined output file to 
 | Goal | Status | Date | Commit | Revisit items |
 |---|---|---|---|---|
 | 01b–03 | Blocked; prompt sources absent from this checkout | — | — | RV-003 |
-| 04 — Closed-loop cut pipeline | In progress; offline implementation ready for final review | 2026-10-07 | `2788809` implementation | RV-001, RV-002, RV-003, RV-004 |
+| 04 — Closed-loop cut pipeline | Done with assumptions; offline scope complete | 2026-10-07 | `2788809` implementation, `720b174` docs, `83e892a` privacy fix | RV-001, RV-002, RV-003, RV-004 |
 | 05–13 | Not started | — | — | To be assigned as each prompt is run |
 
 ### What works today (tested)
