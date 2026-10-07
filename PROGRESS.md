@@ -5,12 +5,12 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 ## Current state
 
 - Current goal: 06 — Subtitles with Speaker Colors.
-- Current phase: Goal 06 phase G — acceptance audit, prompt archival, privacy gate, completion commit, and authorized push. Goal 06 phases A–F: 59ce2ba, ca2ce47, 03c29cb, 46cb96b, 23e9c5e, and 44b9221.
-- Last completed Goal 05 implementation/documentation commit: 529996a; completion/archive commit c799ecc. Goal 06 phases A–F are committed; the phase G completion commit and push remain.
+- Current phase: Goal 06 phase G — completion commit b8bab7e is created; authorized push remains. Goal 06 phases A–F: 59ce2ba, ca2ce47, 03c29cb, 46cb96b, 23e9c5e, and 44b9221.
+- Last completed Goal 05 implementation/documentation commit: 529996a; completion/archive commit c799ecc. Goal 06 completion commit b8bab7e is local and awaits the push check.
 - Goals completed in this run: 04 and 05 — done with assumptions; origin/main includes both completion commits.
 - Goals blocked: 01b–03 — source prompts and prerequisite evidence are missing (RV-003); no claim of completion.
 - Retry counters: Goal 05 had one targeted timeout-test repair, one ruff repair cycle, and one mypy repair cycle; all were fixed and rerun. Final unit suite: 126 passed. Goal 05 push succeeded.
-- Next action: run final documentation and privacy checks, commit Goal 06 completion and prompt archival, push to origin/main when safe, then immediately start Goal 07. Keep Vegas text operations disabled until E0 probes.
+- Next action: run the final documentation/privacy check on this status update, fetch origin/main, push when it is an ancestor, then immediately start Goal 07. Keep Vegas text operations disabled until E0 probes.
 
 ## Ten-line plan for goal 06
 

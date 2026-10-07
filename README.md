@@ -61,7 +61,7 @@ After a manual VEGAS render, `watch-render` waits for a confined output file to 
 | 01b–03 | Blocked; prompt sources absent from this checkout | — | — | RV-003 |
 | 04 — Closed-loop cut pipeline | Done with assumptions; offline scope complete | 2026-10-07 | `f7e88d0` completion (pushed) | RV-001, RV-002, RV-003, RV-004 |
 | 05 — Speaker attribution | Done with assumptions; offline core complete | 2026-10-07 | `529996a` implementation and docs | RV-005, RV-006 |
-| 06 — Subtitles with Speaker Colors | Done with assumptions; offline sidecars complete | 2026-10-07 | `44b9221` implementation/docs; completion commit pending | RV-007, RV-008 |
+| 06 — Subtitles with Speaker Colors | Done with assumptions; offline sidecars complete | 2026-10-07 | `b8bab7e` completion (push pending) | RV-007, RV-008 |
 | 07–13 | Not started | — | — | To be assigned as each prompt is run |
 
 ### What works today (tested)
