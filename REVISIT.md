@@ -12,7 +12,8 @@ This register tracks behavior implemented or described without live resources. C
 6. Supply an HF token only if a future approved model download requires it. Never store it in the repository or pass it to child processes.
 7. Complete the style interview, choose and document an asset-license decision, and provide an approved SFX library before enabling those features.
 8. Complete the Goal 06 style/probe gate and evaluate the local ASS burn-in path before enabling caption rendering or Vegas operations.
-9. Run human acceptance tests and release checks on a clean checkout after all offline checks pass.
+9. Complete the Goal 07 catalog/transition and SFX license/runtime checks (RV-009, RV-010) before enabling any corresponding executor capability.
+10. Run human acceptance tests and release checks on a clean checkout after all offline checks pass.
 
 ## 2. Items
 
@@ -58,11 +59,12 @@ This register tracks behavior implemented or described without live resources. C
 - Vegas transport, edit strategy, subtitle path, and render mechanism: provisional choices are recorded in `docs/VEGAS_DECISIONS.md`; confirm them with the probes before enabling runtime alternatives.
 - Release license: no license is selected; a human must choose one before packaging/release work.
 - Style interview and sound-effect source: absent; features depending on them remain disabled or use deterministic fakes.
+- Goal 07 G4 transition allowlist and licensed SFX folder: assume an empty default transition allowlist and no usable SFX until an explicitly licensed local library is supplied (RV-009, RV-010).
 
 ## 4. Pending pushes and blockers
 
 - Goal 04 commits `2788809`, `720b174`, `83e892a`, and `f7e88d0` were pushed successfully to `origin/main` after the privacy gate. Future goal commits require their own privacy-gated push.
-- No implementation blocker has been confirmed yet.
+- No push blocker is open. Goal 07 has two open resource/runtime revisit items, RV-009 and RV-010; offline work continues.
 
 ## 5. Provisional decisions to confirm
 
@@ -70,6 +72,8 @@ This register tracks behavior implemented or described without live resources. C
 - Edit strategy: explicit gap closing behind a rebuild-capable interface; keep linked A/V groups together.
 - Subtitle path: burned-in captions plus a sidecar as the default when that goal is reached.
 - Audio joins: short fixed crossfades pending human listening and click measurements.
+- Goal 07 catalog: deterministic closed keys and disabled-by-default entries; no Vegas mutation capability until RV-009 probes provide E0 evidence.
+- Goal 07 SFX: local-only, license-required assets; no default sample and no planner exposure until RV-010 is cleared.
 - Rendering: manual render plus watched output as the fallback until Vegas render scripting is proven.
 
 ## 6. Human-only actions
@@ -78,6 +82,7 @@ This register tracks behavior implemented or described without live resources. C
 - Provide and label approved short clips; review and listen to edited joins.
 - Install or locate a local FFmpeg build before using the `run-job` default reference renderer (RV-004).
 - Complete `STYLE_INTERVIEW.md`, choose the project license, and provide an approved SFX library.
+- Provide G4's rough transition list and run M7 catalog, transition, effect, SFX placement, and level checks on disposable media (RV-009, RV-010).
 - Enable a server or provide a token only for explicitly documented later integration tests; no such resource is assumed available.
 
 
@@ -139,4 +144,28 @@ This register tracks behavior implemented or described without live resources. C
 - **Who:** Agent when local FFmpeg is available; no download during this run.
 - **Severity:** blocker for end-to-end burn-in; sidecar export remains available.
 - **Related VQ IDs:** none; dependency RV-004.
+- **Status:** open.
+
+### RV-009 — Goal 07 Vegas catalog and transition/effect operations
+
+- **Feature or claim:** Runtime catalog enumeration (including nested plugin folders/presets), transition application/duration, audio joins, and parameterizable Vegas effects; corresponding executor operations.
+- **Why untested:** G4's rough transition allowlist is absent. VQ-04 has compile-time-only evidence; VQ-05, VQ-06, and VQ-17 are UNVERIFIED. The repository has no runtime executor, and AGENTS.md prohibits building on unprobed Vegas APIs.
+- **Assumption and locations:** Continue with fixture/dumper-driven catalog construction and deterministic validation. Keep the default transition allowlist empty, all newly dumped entries disabled unless explicitly enabled in the human tag file, and executor mutation capabilities empty. Do not implement or advertise Vegas mutation support before probes. See `orchestrator/catalog.py`, `orchestrator/compiler.py`, `docs/VEGAS_NOTES.md`, and `docs/VEGAS_DECISIONS.md` as they are completed.
+- **Exact test:** A human follows `docs/HUMAN_TESTS_M7.md` on a disposable VEGAS Pro 17 project and synthetic two-event media. Run the catalog probe; record recursion, counts, duplicate names, stable IDs, and plugin hash. Apply a dissolve and one stylized transition, control duration, inspect audio/video sync, measure short audio fades, and test one OFX parameter of each supported type. Record E0 results and update VQ-04/05/06/17 before enabling any executor capability.
+- **Expected result and record:** Catalog contents and keys are repeatable after a rescan; each enabled operation is applied with measured duration and no A/V desync; unsupported FX parameters remain disabled. Record build, plugin-list hash, counts, per-operation outcomes, rendered-frame/listening checks, and E0 evidence IDs without private project paths.
+- **Who:** Human with VEGAS Pro 17; agent can update the catalog/executor after redacted E0 evidence exists.
+- **Severity:** blocker for Vegas catalog claims and all real transition/effect mutations; offline catalog and compiler tests continue.
+- **Related VQ IDs:** VQ-04 PARTIAL (compile-time only), VQ-05 UNVERIFIED, VQ-06 UNVERIFIED, VQ-17 UNVERIFIED.
+- **Status:** open.
+
+### RV-010 — Goal 07 licensed SFX library and loudness/runtime evidence
+
+- **Feature or claim:** Indexing approved SFX, measuring integrated loudness/peak with FFmpeg, license-aware final manifests, and precise Vegas SFX insertion/gain.
+- **Why untested:** No starter SFX library or license sidecars are present (`assets/sfx` does not exist); local FFmpeg/ffprobe are unavailable. VQ-18 is UNVERIFIED. No file will be downloaded or inferred to be licensed.
+- **Assumption and locations:** Implement the indexer against temporary synthetic WAV fixtures and an injectable measurement adapter; files without explicit license metadata remain disabled and are excluded from planner summaries. Do not index or modify an unknown user directory. See `orchestrator/sfx.py`, `docs/SFX.md`, and `docs/VEGAS_NOTES.md` as they are completed.
+- **Exact test:** After a human supplies a local folder of approved licensed samples and local FFmpeg/ffprobe are available, run `python tasks.py sfx-index <approved_sfx_dir>`. Confirm a licensed synthetic tone's duration, sample rate, integrated loudness/true peak, fingerprint, key stability, and manifest entry; confirm a file without license metadata is disabled with a warning. Then follow `docs/HUMAN_TESTS_M7.md` to place an SFX on a word anchor in a disposable Vegas project and measure placement/gain.
+- **Expected result and record:** No network access or source-file modification; keys are stable, unlicensed items are disabled, loudness agrees with a known-level tone within the documented tolerance, and a human confirms frame placement and gain behavior. Store private indexes only under ignored `runs/`; record aggregate results and license identifiers, not private paths.
+- **Who:** Human supplies the approved library/licenses and runs Vegas checks; agent may run the local indexer when those tools/assets exist.
+- **Severity:** high for SFX selection and real placement; no blocker for synthetic index/compiler tests.
+- **Related VQ IDs:** VQ-18 UNVERIFIED; depends on VQ-06 for audio joins where applicable.
 - **Status:** open.

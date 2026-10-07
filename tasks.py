@@ -1029,6 +1029,72 @@ def task_eval() -> int:
     return 0
 
 
+def task_catalog_build(args: argparse.Namespace) -> int:
+    from orchestrator.catalog import (
+        CatalogBuildError,
+        build_catalog_from_dump,
+        generate_tag_file,
+        merge_tag_file,
+        model_catalog_summary,
+    )
+
+    dump_path = Path(args.dump)
+    output_dir = Path(args.output_dir)
+    if not output_dir.is_absolute():
+        output_dir = ROOT / output_dir
+    resolved_output = output_dir.resolve()
+    runs_root = (ROOT / "runs").resolve()
+    if not resolved_output.is_relative_to(runs_root) or resolved_output == runs_root:
+        print("catalog output must be a child of runs", file=sys.stderr)
+        return 1
+    try:
+        plugin_dump = json.loads(dump_path.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError):
+        print("catalog dump could not be read as JSON", file=sys.stderr)
+        return 1
+    if not isinstance(plugin_dump, dict):
+        print("catalog dump must be a JSON object", file=sys.stderr)
+        return 1
+    resolved_output.mkdir(parents=True, exist_ok=True)
+    tag_path = resolved_output / "catalog_tags.json"
+    catalog_path = resolved_output / "catalog.json"
+    summary_path = resolved_output / "catalog_summary.json"
+    if not args.overwrite and (catalog_path.exists() or summary_path.exists()):
+        print(
+            "catalog outputs already exist; pass --overwrite to replace derived files",
+            file=sys.stderr,
+        )
+        return 1
+    try:
+        catalog, warnings = build_catalog_from_dump(plugin_dump, vegas_version=args.vegas_version)
+        if tag_path.exists():
+            tag_file = json.loads(tag_path.read_text(encoding="utf-8-sig"))
+            if not isinstance(tag_file, dict):
+                raise CatalogBuildError("tag file must be a JSON object")
+        else:
+            tag_file = generate_tag_file(catalog)
+        catalog = merge_tag_file(catalog, tag_file)
+        summary = model_catalog_summary(catalog)
+    except (CatalogBuildError, json.JSONDecodeError, TypeError, ValueError):
+        print("catalog build failed contract or tag validation", file=sys.stderr)
+        return 1
+    if not tag_path.exists():
+        tag_json = json.dumps(generate_tag_file(catalog), indent=2) + "\n"
+        tag_path.write_text(tag_json, encoding="utf-8")
+    catalog_json = json.dumps(catalog, ensure_ascii=False, indent=2) + "\n"
+    summary_json = json.dumps(summary, ensure_ascii=False, indent=2) + "\n"
+    catalog_path.write_text(catalog_json, encoding="utf-8")
+    summary_path.write_text(summary_json, encoding="utf-8")
+    for warning in warnings:
+        print(f"warning: {warning}")
+    total = sum(
+        len(catalog[group])
+        for group in ("transitions", "video_fx", "audio_fx", "text_presets", "sfx")
+    )
+    print(f"catalog entries: {len(summary['entries'])} enabled of {total} total")
+    return 0
+
+
 def task_truth_template(args: argparse.Namespace) -> int:
     from orchestrator.contracts import validate
     from orchestrator.evaluation import truth_template
@@ -1068,6 +1134,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "docs-check",
         "dry-run",
         "eval",
+        "catalog-build",
         "truth-template",
         "preflight",
         "transcribe",
@@ -1098,6 +1165,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         if name == "truth-template":
             subparser.add_argument("--words", required=True)
             subparser.add_argument("--output", required=True)
+        if name == "catalog-build":
+            subparser.add_argument("dump", help="read-only CatalogDump JSON")
+            subparser.add_argument("--output-dir", default="runs/catalog")
+            subparser.add_argument("--vegas-version", default="unknown")
+            subparser.add_argument("--overwrite", action="store_true")
         if name in {"preflight", "transcribe"}:
             subparser.add_argument("--video", required=True)
         if name == "transcribe":
@@ -1183,6 +1255,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         in {
             "schemas",
             "eval",
+            "catalog-build",
             "dry-run",
             "truth-template",
             "preflight",
@@ -1222,6 +1295,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return task_dry_run(args)
     if args.task == "eval":
         return task_eval()
+    if args.task == "catalog-build":
+        return task_catalog_build(args)
     if args.task == "truth-template":
         return task_truth_template(args)
     if args.task == "preflight":

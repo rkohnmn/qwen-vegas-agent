@@ -12,6 +12,8 @@ def catalog_summary(catalog: dict[str, Any]) -> dict[str, Any]:
     entries: list[dict[str, Any]] = []
     for group in _CATALOG_GROUPS:
         for entry in catalog.get(group, []):
+            if entry.get("enabled", True) is not True:
+                continue
             summary_entry: dict[str, Any] = {
                 "key": entry["key"],
                 "kind": entry["kind"],

@@ -189,6 +189,12 @@ def _llm_envelope(content: str) -> bytes:
 def test_llm_planner_uses_loopback_fake_and_rejects_remote() -> None:
     words, _timeline, _truth = synthetic_case()
     response = BaselinePlanner().plan(build_pack(words).text, words, _catalog())
+    planner_catalog = _catalog()
+    planner_catalog["transitions"] = [
+        {"key": "tr.disabled.abcdef12", "enabled": False},
+        {"key": "tr.allowed.abcdef34", "enabled": True},
+    ]
+    planner_catalog["sfx"] = [{"key": "sfx.disabled.abcdef56", "enabled": False}]
     captured: dict[str, object] = {}
 
     class Handler(BaseHTTPRequestHandler):
@@ -207,7 +213,7 @@ def test_llm_planner_uses_loopback_fake_and_rejects_remote() -> None:
     test_secret = "local-" + "test-secret"
     with _loopback_server(Handler) as endpoint:
         result = LlmPlanner(endpoint, "test-model", api_key=test_secret, retry_backoff_s=0).plan(
-            build_pack(words).text, words, _catalog(), feedback=feedback
+            build_pack(words).text, words, planner_catalog, feedback=feedback
         )
     assert result == response
     assert captured["authorization"] == f"Bearer {test_secret}"
@@ -222,6 +228,10 @@ def test_llm_planner_uses_loopback_fake_and_rejects_remote() -> None:
     assert len(correction_messages) == 1
     assert "E_PACING_GAP" in correction_messages[0]
     assert "must not be echoed" not in correction_messages[0]
+    request_text = json.dumps(request["messages"])
+    assert "tr.allowed.abcdef34" in request_text
+    assert "tr.disabled.abcdef12" not in request_text
+    assert "sfx.disabled.abcdef56" not in request_text
     with pytest.raises(PlannerError) as remote_error:
         LlmPlanner("https://example.com/v1", "test-model")
     assert "example.com" not in str(remote_error.value)

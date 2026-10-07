@@ -7,7 +7,7 @@
   "additionalProperties": false,
   "required": ["schema_version", "vegas_version", "plugin_list_hash", "transitions", "video_fx", "audio_fx", "text_presets", "sfx"],
   "properties": {
-    "schema_version": {"const": "1.0.0"},
+    "schema_version": {"const": "1.1.0"},
     "vegas_version": {"type": "string", "minLength": 1, "maxLength": 40},
     "plugin_list_hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
     "transitions": {"type": "array", "maxItems": 1000, "items": {"$ref": "#/$defs/transition"}},
@@ -22,10 +22,12 @@
       "additionalProperties": false,
       "required": ["key", "kind", "tags", "params_mode"],
       "properties": {
-        "key": {"type": "string", "pattern": "^(tr|vfx|afx|txt|sfx)\\.[a-z0-9-]+\\.[a-f0-9]{6,12}$"},
+        "key": {"type": "string", "pattern": "^(tr|vfx|afx|txt|sfx)\\.[a-z0-9-]+\\.[a-f0-9]{6,12}$", "maxLength": 80},
         "kind": {"enum": ["transition", "video_fx", "audio_fx", "text_preset", "sfx"]},
-        "tags": {"type": "array", "maxItems": 32, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 48}},
+        "tags": {"type": "array", "maxItems": 32, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,47}$", "minLength": 1, "maxLength": 48}},
         "params_mode": {"enum": ["params", "preset_only", "defaults_only"]},
+        "enabled": {"type": "boolean"},
+        "allowed_contexts": {"type": "array", "maxItems": 32, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,47}$", "minLength": 1, "maxLength": 48}},
         "plugin_unique_id": {"type": "string", "minLength": 1, "maxLength": 256},
         "is_ofx": {"type": "boolean"},
         "params": {

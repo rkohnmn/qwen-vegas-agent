@@ -5,6 +5,7 @@ All notable project changes are recorded here. Contract version entries are chec
 ## [Unreleased] — Milestone 1
 
 ### Added
+- Bumped catalog=1.1.0 with optional enabled/context policy fields; added a deterministic internal catalog builder and opt-in tag-file support. Newly built plugin entries default disabled, and disabled entries are filtered from the planner summary.
 
 - Added captions=1.0.0 for deterministic edited-frame captions, word-ID emphasis spans, confidence flags, and speaker-map references. Added safe SRT/ASS sidecars, candidate and approved caption sets, transcript-free review warnings, and a confined `burn-captions` command for local FFmpeg after manual rendering. Vegas text operations and end-to-end burn-in remain gated by RV-007/RV-008.
 - Bumped words=2.1.0 for optional overlap markers and hybrid mode; bumped speakers=1.1.0 for track-mode and voice-profile metadata. Added deterministic offline speaker attribution, enrollment-quality helpers, confirmed ask_user handling, and synthetic fixtures. Real diarization and calibrated thresholds remain open under RV-005/RV-006.

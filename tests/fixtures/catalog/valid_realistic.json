@@ -1,11 +1,13 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "vegas_version": "17.x",
   "plugin_list_hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
   "transitions": [
     {
       "key": "tr.crossfade-short.a1b2c3",
       "kind": "transition",
+      "enabled": true,
+      "allowed_contexts": ["topic_boundary"],
       "plugin_unique_id": "{fixture-transition}",
       "is_ofx": true,
       "tags": [
@@ -21,6 +23,7 @@
     {
       "key": "vfx.blur.abcdef",
       "kind": "video_fx",
+      "enabled": true,
       "plugin_unique_id": "{fixture-video-fx}",
       "is_ofx": true,
       "tags": [
@@ -36,6 +39,7 @@
     {
       "key": "afx.compressor.123abc",
       "kind": "audio_fx",
+      "enabled": true,
       "plugin_unique_id": "{fixture-audio-fx}",
       "is_ofx": true,
       "tags": [
@@ -48,6 +52,7 @@
     {
       "key": "txt.default.a1b2c3",
       "kind": "text_preset",
+      "enabled": true,
       "plugin_unique_id": "{fixture-title}",
       "tags": [
         "subtitle",
@@ -64,6 +69,7 @@
     {
       "key": "sfx.whoosh-01.deaf01",
       "kind": "sfx",
+      "enabled": true,
       "path": "assets/sfx/whoosh_01.wav",
       "tags": [
         "whoosh",

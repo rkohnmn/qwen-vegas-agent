@@ -4,13 +4,39 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 
 ## Current state
 
-- Current goal: 06 — Subtitles with Speaker Colors.
-- Current phase: Goal 06 phase G — completion commit b8bab7e is created; authorized push remains. Goal 06 phases A–F: 59ce2ba, ca2ce47, 03c29cb, 46cb96b, 23e9c5e, and 44b9221.
-- Last completed Goal 05 implementation/documentation commit: 529996a; completion/archive commit c799ecc. Goal 06 completion commit b8bab7e is local and awaits the push check.
-- Goals completed in this run: 04 and 05 — done with assumptions; origin/main includes both completion commits.
+- Current goal: 07 — Catalog, Transitions, Sound Effects, Effects.
+- Current phase: Goal 07 phase A — deterministic catalog builder, tag policy, schema update, and disabled-key planner filter are implemented; checks passed and the phase commit is next.
+- Last completed Goal 06 completion commit: b8bab7e; status follow-up 209f95c. Both are pushed; local `main` and `origin/main` matched at 209f95c after push.
+- Goals completed in this run: 04, 05, and 06 — done with assumptions; origin/main includes their completion commits.
 - Goals blocked: 01b–03 — source prompts and prerequisite evidence are missing (RV-003); no claim of completion.
-- Retry counters: Goal 05 had one targeted timeout-test repair, one ruff repair cycle, and one mypy repair cycle; all were fixed and rerun. Final unit suite: 126 passed. Goal 05 push succeeded.
-- Next action: run the final documentation/privacy check on this status update, fetch origin/main, push when it is an ancestor, then immediately start Goal 07. Keep Vegas text operations disabled until E0 probes.
+- Retry counters: Goal 05 had one targeted timeout-test repair, one ruff repair cycle, and one mypy repair cycle; all were fixed and rerun. Goal 06 post-archive docs-check first caught two missing RV/path references; both were fixed and final docs-check/revisit-check passed. Goal 06 unit suite: 141 passed, 1 skipped (FFmpeg test).
+- Next action: finish phase A verification and commit; then implement phase B, the local license-aware SFX indexer. Do not read local secret config, download tools/assets, or enable unprobed Vegas operations.
+
+## Ten-line plan for goal 07
+
+1. Re-read the complete Goal 07 prompt and inspect the catalog, EDL, ops, compile-report contracts, compiler, planner, executor boundary, and VQ-04/05/06/17/18 evidence.
+2. Record the missing G4 SFX library/transition allowlist and absent Vegas/FFmpeg runtime evidence as RV-009/RV-010 before implementation.
+3. Build deterministic collision-safe catalog keys, tag-file generation/merge, enabled filtering, full internal catalog validation, and a strict model-summary allowlist.
+4. Add a local SFX indexer with format/sample-rate checks, license-required disabled entries, stable identity keys, and an injectable FFmpeg loudness adapter; never download or copy assets.
+5. Add pure compiler rules for transition/SFX/effect eligibility, frame placement, gain ceilings, speech-peak avoidance, density limits, and per-item outcomes.
+6. Add a capability contract and make the compiler fail closed when the executor does not advertise an operation; keep real Vegas mutation ops disabled until their VQs have E0 evidence.
+7. Extend deterministic baseline planning and verification only where the existing contracts provide IDs and the safety rules allow it.
+8. Add offline fixtures/tests and `HUMAN_TESTS_M7.md`; label fake FFmpeg/catalog evidence and live Vegas/SFX claims accurately.
+9. Update schemas, specs, fixtures, consumers, CHANGELOG, decisions, Vegas notes, architecture, setup, README, evals, and revisit run order; run all available checks and synthetic eval.
+10. Self-audit, archive the sanitized prompt, run privacy checks, commit phases A–G, push only after remote ancestry is confirmed, then start Goal 08.
+
+## Goal 07 phase A record
+
+- Preflight: Goal 07 prompt reread; missing G4 transition allowlist and licensed SFX directory recorded as RV-009/RV-010 before implementation. `config.local.json` was not read. `assets/sfx` is absent.
+- Implementation: deterministic catalog builder/keys, full-list hash, human JSON tag template and strict merge, disabled-entry filtering in both summary and planner, safe tag/context patterns, and a C# dumper JSON comma fix without adding Vegas API calls. Catalog contract is 1.1.0.
+- Synthetic CLI smoke: `python tasks.py catalog-build runs/goal07/catalog_dump.json --output-dir runs/goal07/output` created three internal entries; all were disabled and the summary was empty. The files are under ignored runs.
+- `python tasks.py lint` — passed; ruff, formatting, and strict mypy.
+- `python tasks.py schemas` — passed; 11 schemas and 45 fixtures.
+- `python tasks.py docs-check` — passed after correcting one pseudo-path in this plan; links, paths, versions, changelog, privacy, and revisit checks agree.
+- `python tasks.py revisit-check` — passed; 10 registered items.
+- `.venv\Scripts\python.exe -m pytest tests\unit\test_catalog_builder.py tests\unit\test_planning_compile_eval.py::test_llm_planner_uses_loopback_fake_and_rejects_remote -q --basetemp=.pytest-temp-goal07` — passed; 11 tests. This includes the planner request filter for disabled keys.
+- No Vegas, live endpoint, SFX download, or user media was used.
+- Not run: `python tasks.py setup` because it may install packages and Goal 07 forbids downloads; C# compile-only check because `csc.exe` is not available on PATH.
 
 ## Ten-line plan for goal 06
 

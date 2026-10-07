@@ -575,3 +575,8 @@ Inventory contains 101 ASR/PyTorch-closure distributions in the project venv. Pa
 The speaker goal's G2 gate is absent: no HF read token, model-terms acceptance record, or approved voice sample is available. No diarization model card or weight was fetched, and no new dependency was added. The deterministic core uses injected local model interfaces; the CLI refuses enrollment or mixed-track attribution until an accepted local backend exists (RV-005).
 
 The checked-in speaker mode stays at single; auto remains an explicit configuration choice because the master prompt prohibits changing defaults to auto. Likely and ambiguous bleed ratios (0.20 and 0.55), overlap confidence multiplier (0.5), report threshold (0.65), enrollment duration (3 seconds), SNR (10 dB), segment consistency (0.82), and cosine threshold (existing 0.65) are fixture-only assumptions, not calibrated values (RV-005, RV-006). Changing any threshold requires real labeled recordings and a new decision.
+
+
+### D-40 — Keep the Goal 07 catalog closed and disabled by default
+
+The G4 transition allowlist and licensed SFX starter folder are absent. Do not read local secret configuration, infer licenses, or fetch assets. Build deterministic catalog keys and a human tag file, but leave newly discovered entries disabled unless the human explicitly enables them. The model receives enabled keys and safe tags only; plugin IDs and local paths remain internal. Keep the executor capability set empty for transition, effect, and SFX operations until the associated disposable-project probes record E0 evidence (RV-009, RV-010). No dependency was added.

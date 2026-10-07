@@ -1,6 +1,6 @@
 # Catalog contract
 
-Schema version: 1.0.0
+Schema version: 1.1.0
 
 Schema: [catalog.schema.json](../../schemas/catalog.schema.json)
 
@@ -12,13 +12,15 @@ The catalog is the closed set of transitions, effects, text presets, and sound e
 
 | Field | Type | Meaning and rules |
 |---|---|---|
-| `schema_version` | string | Required; exactly `1.0.0`. |
+| `schema_version` | string | Required; exactly `1.1.0`. |
 | `vegas_version` | string | Required source application version label. Vegas behavior remains `UNVERIFIED` unless a VQ entry has recorded evidence. |
 | `plugin_list_hash` | string | Required SHA-256 identity of the enumerated plugin list. |
 | `transitions`, `video_fx`, `audio_fx`, `text_presets`, `sfx` | arrays | Required category groups. Every entry has `key`, `kind`, `tags`, and `params_mode`. Group and `kind` must agree. |
 | `key` | string | Category-prefixed deterministic key, such as `tr.crossfade-short.a1b2c3`. |
 | `kind` | enum | `transition`, `video_fx`, `audio_fx`, `text_preset`, or `sfx`. |
 | `tags` | string array | Up to 32 unique descriptive tags. |
+| `enabled` | boolean, optional | Human tag-file opt-in. Missing means enabled only for backward compatibility; generated entries default to false. Disabled entries are omitted from the model-facing summary and rejected when referenced by an EDL. |
+| `allowed_contexts` | string array, optional | Closed human-selected contexts for placement policy. Empty means no context is enabled. |
 | `params_mode` | enum | `params`, `preset_only`, or `defaults_only`; it states what the compiler may apply. |
 | `plugin_unique_id` | string | Internal plugin identifier. Permitted in the catalog and ops contract only; never included in planner summaries. |
 | `params` | object | Internal extensible plugin parameter map. It is an extension point for installed plugin names/types and is never sent to the model. |
@@ -31,26 +33,30 @@ Choose the category prefix (`tr`, `vfx`, `afx`, `txt`, `sfx`); normalize the dis
 
 `check_catalog` rejects duplicate keys across every category group.
 
+## Human tag file
+
+`catalog_tags.json` is a local JSON file with `schema_version: "1.0.0"` and an `entries` array. Each row is keyed by an internal catalog key and may set `tags`, `allowed_contexts`, `params_mode`, `enabled`, and `default_duration_frames`. A first run writes a starter file with every discovered item disabled unless a caller supplies an explicit transition allowlist. The Goal 07 CLI supplies no implicit allowlist. Unknown and duplicate keys fail validation; stale entries do not silently become active. parameter mode `params` is rejected until a VQ-17-backed parameter schema is represented by a later contract update.
+
 ## Planner summary
 
 `catalog_summary` derives:
 
 ```json
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "entries": [
     {"key": "tr.crossfade-short.a1b2c3", "kind": "transition",
-     "tags": ["soft"], "params_mode": "params",
+     "tags": ["soft"], "params_mode": "defaults_only", "enabled": true,
      "default_duration_frames": 12}
   ]
 }
 ```
 
-The summary uses an explicit field allowlist. It excludes `plugin_unique_id`, `path`, and arbitrary `params` values so filesystem paths or plugin internals cannot leak through nested metadata.
+The summary uses an explicit field allowlist and includes only entries with `enabled: true` (older entries without the optional flag remain enabled for compatibility). It excludes `plugin_unique_id`, `path`, and arbitrary `params` values so filesystem paths or plugin internals cannot leak through nested metadata.
 
 ## Producer and consumer
 
 | Role | Component |
 |---|---|
-| Produces | Vegas catalog dumper; not implemented in M1. The M1 planner receives an empty catalog. The local asset index remains future work. |
+| Produces | Vegas catalog dumper plus deterministic Python builder and human JSON tag file. Runtime enumeration remains compile-only/UNVERIFIED; SFX indexing is local-only and license-gated. |
 | Consumes | Planner receives the derived summary; compiler validates keys against the full catalog. |

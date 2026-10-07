@@ -8,6 +8,7 @@ using ScriptPortal.Vegas;   // change to Sony.Vegas only if VQ-01 shows it is re
 public class EntryPoint
 {
     StringBuilder sb = new StringBuilder();
+    bool firstEntry = true;
 
     static string Esc(string s)
     {
@@ -31,11 +32,13 @@ public class EntryPoint
         }
         else
         {
+            if (!firstEntry) sb.Append(",\r\n");
+            firstEntry = false;
             sb.Append("    {\"category\":\"").Append(category).Append("\",");
             sb.Append("\"name\":\"").Append(Esc(node.Name)).Append("\",");
             sb.Append("\"unique_id\":\"").Append(Esc(node.UniqueID)).Append("\",");
             sb.Append("\"is_ofx\":").Append(node.IsOFX ? "true" : "false").Append(",");
-            sb.Append("\"depth\":").Append(depth).Append("},\r\n");
+            sb.Append("\"depth\":").Append(depth).Append("}");
         }
     }
 
@@ -48,12 +51,14 @@ public class EntryPoint
                 "VegasAgent\\probes");
             Directory.CreateDirectory(dir);
 
+            firstEntry = true;
+            sb.Length = 0;
             sb.Append("{\r\n  \"plugins\": [\r\n");
             foreach (PlugInNode n in vegas.Transitions) Walk(n, "transition", 0);
             foreach (PlugInNode n in vegas.VideoFX)     Walk(n, "video_fx", 0);
             foreach (PlugInNode n in vegas.AudioFX)     Walk(n, "audio_fx", 0);
             foreach (PlugInNode n in vegas.Generators)  Walk(n, "generator", 0);
-            sb.Append("    {}\r\n  ]\r\n}\r\n");   // trailing {} keeps the JSON valid after trailing commas
+            sb.Append("\r\n  ]\r\n}\r\n");
 
             string path = Path.Combine(dir, "catalog_dump.json");
             File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
