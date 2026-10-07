@@ -6,7 +6,7 @@ All notable project changes are recorded here. Contract version entries are chec
 
 ### Added
 
-- Added captions=1.0.0 for deterministic edited-frame captions, word-ID emphasis spans, confidence flags, and speaker-map references.
+- Added captions=1.0.0 for deterministic edited-frame captions, word-ID emphasis spans, confidence flags, and speaker-map references. Added safe SRT/ASS sidecars whose colors come only from the speaker map.
 - Bumped words=2.1.0 for optional overlap markers and hybrid mode; bumped speakers=1.1.0 for track-mode and voice-profile metadata. Added deterministic offline speaker attribution, enrollment-quality helpers, confirmed ask_user handling, and synthetic fixtures. Real diarization and calibrated thresholds remain open under RV-005/RV-006.
 
 ### Changed

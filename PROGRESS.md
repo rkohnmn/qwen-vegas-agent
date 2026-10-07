@@ -4,14 +4,28 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 
 ## Current state
 
-- Current goal: 05 — Speaker Attribution and Profiles.
-- Current phase: phases A–F are committed. Final verification, sanitized prompt archival, privacy gate, completion commit, and push are phase G.
-- Last implementation and documentation commit: 529996a (goal 05 docs, human checklist, and acceptance record); origin/main was updated through goal 04.
-- Goals completed in this run: 04 — done with assumptions; completion commit f7e88d0, pushed to origin/main. Goal 05 phases A–F are committed; prompt archival, privacy gate, completion commit, and push remain.
+- Current goal: 06 — Subtitles with Speaker Colors.
+- Current phase: Goal 06 phase B — color, contrast, and sidecar serialization. Phase A commit: 59ce2ba.
+- Last completed Goal 05 implementation/documentation commit: 529996a; completion/archive commit c799ecc. Goal 06 phase A committed as 59ce2ba.
+- Goals completed in this run: 04 and 05 — done with assumptions; origin/main includes both completion commits.
 - Goals blocked: 01b–03 — source prompts and prerequisite evidence are missing (RV-003); no claim of completion.
-- Retry counters: Goal 05 had one targeted timeout-test repair, one ruff repair cycle, and one mypy repair cycle; all were fixed and rerun. Final unit suite: 126 passed. Push attempts for goal 05: 0.
-- Next action: archive sanitized Prompt 05 with its implementation commit hash, run final checks and privacy scans, create the completion commit, push, then read and begin Prompt 06.
-## Ten-line plan for goal 05
+- Retry counters: Goal 05 had one targeted timeout-test repair, one ruff repair cycle, and one mypy repair cycle; all were fixed and rerun. Final unit suite: 126 passed. Goal 05 push succeeded.
+- Next action: finish Goal 06 color resolution, safe ASS/SRT exports, and renderer tests; keep VQ-09/VQ-10 runtime work gated on human probe evidence.
+
+## Ten-line plan for goal 06
+
+1. Read the entire prompt and audit the subtitle decision, VQ-09/VQ-10 status, words/speakers/EDL/ops contracts, and architecture section 13.
+2. Record missing style-interview/probe and local FFmpeg gates in REVISIT.md before implementation; do not launch Vegas or download tools/fonts.
+3. Add captions 1.0.0 as a closed, frame-only output contract with source word IDs and safe confidence/style metadata.
+4. Build deterministic per-speaker caption lines with configured limits, omissions, emphasis IDs, grapheme-safe splitting, and no same-track overlaps.
+5. Remap source-word timing through compiled kept ranges and test cuts, gaps, and one-frame sync using rational frame rates.
+6. Resolve colors solely from speakers.json; report contrast and low-confidence flags; export and round-trip safe SRT and ASS.
+7. Implement a renderer interface with complete sidecar output and an ASS/FFmpeg adapter that reports missing local binaries safely; do not implement unprobed Vegas mutations.
+8. Add offline verification and human checklist coverage; preserve VQ-09/VQ-10 as UNVERIFIED/PARTIAL pending their real probes.
+9. Update schema, prose contract, consumers, CHANGELOG, architecture, setup, eval, README, and Progress; run available checks and synthetic eval.
+10. Self-audit, archive the sanitized prompt, run final privacy checks, commit each phase, push when remote is an ancestor under the master authorization, then continue to Goal 07.
+
+## Ten-line plan for goal 05 (historical)
 
 1. Re-read the full goal and inspect architecture, word/speaker contracts, security, setup, evaluation, config, ASR, and CLI boundaries.
 2. Record the missing predecessor and G2 model/token/sample gates in `REVISIT.md` before implementation; do not read local secret config or download model files.
