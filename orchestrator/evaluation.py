@@ -6,6 +6,7 @@ import json
 import math
 import tempfile
 import time
+import tracemalloc
 import wave
 from array import array
 from fractions import Fraction
@@ -194,6 +195,100 @@ def synthetic_case() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     return words, timeline, truth
 
 
+def run_speaker_synthetic_eval() -> dict[str, Any]:
+    """Measure deterministic speaker logic on tiny labeled vectors and word rows."""
+    from perception.speakers import (
+        DiarizationTurn,
+        apply_bleed_confidence,
+        attribute_multitrack_words,
+        attribute_words_from_turns,
+        match_embedding,
+    )
+
+    started = time.perf_counter()
+    tracemalloc.start()
+    try:
+        multitrack_words: list[dict[str, Any]] = [
+            {"id": "w1", "track": "audio_0", "speaker": None, "speaker_conf": 0.0},
+            {"id": "w2", "track": "audio_1", "speaker": None, "speaker_conf": 0.0},
+        ]
+        attribute_multitrack_words(multitrack_words, {"audio_0": "host", "audio_1": "guest"})
+        multitrack_correct = sum(
+            word["speaker"] == expected
+            for word, expected in zip(multitrack_words, ("host", "guest"), strict=True)
+        )
+        bleed_words: list[dict[str, Any]] = [
+            {
+                "id": "w3",
+                "text": "hello",
+                "start": 1.0,
+                "end": 1.4,
+                "track": "audio_0",
+                "speaker_conf": 1.0,
+            },
+            {
+                "id": "w4",
+                "text": "hello",
+                "start": 1.0,
+                "end": 1.4,
+                "track": "audio_1",
+                "speaker_conf": 1.0,
+            },
+        ]
+        bleed_reasons = apply_bleed_confidence(
+            bleed_words,
+            {"w3": {"audio_0": 10.0}, "w4": {"audio_1": 100.0}},
+        )
+        diarized_words: list[dict[str, Any]] = [
+            {"id": "w5", "start": 0.0, "end": 1.0, "speaker": None, "speaker_conf": 0.0}
+        ]
+        attribute_words_from_turns(
+            diarized_words,
+            (DiarizationTurn("cluster_a", 0.0, 1.0), DiarizationTurn("cluster_b", 0.5, 1.0)),
+            {"cluster_a": "host", "cluster_b": "guest"},
+        )
+        unknown_key, _score = match_embedding((0.0, 1.0), {"host": (1.0, 0.0)}, threshold=0.65)
+        _current_bytes, peak_bytes = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    elapsed = time.perf_counter() - started
+    synthetic_duration_s = 10.0
+    return {
+        "dataset": "synthetic-speaker-v1",
+        "device": "CPU",
+        "model": "fixture-vectors; no checkpoint loaded",
+        "multitrack": {
+            "correct": multitrack_correct,
+            "total": 2,
+            "accuracy": multitrack_correct / 2,
+        },
+        "diarized": {
+            "correct": int(diarized_words[0]["speaker"] == "host"),
+            "total": 1,
+            "accuracy": float(diarized_words[0]["speaker"] == "host"),
+        },
+        "overlap": {
+            "correct": int(diarized_words[0]["overlap"] is True),
+            "total": 1,
+            "accuracy": float(diarized_words[0]["overlap"] is True),
+        },
+        "bleed": {
+            "flagged": int("w3" in bleed_reasons),
+            "candidates": 1,
+            "flag_rate": float("w3" in bleed_reasons),
+        },
+        "unknown_detection": {
+            "detected": int(unknown_key is None),
+            "clusters": 1,
+            "rate": float(unknown_key is None),
+        },
+        "wall_clock_ms": round(elapsed * 1000, 3),
+        "wall_clock_per_media_minute_s": round(elapsed / (synthetic_duration_s / 60), 6),
+        "peak_traced_memory_bytes": peak_bytes,
+        "scope_note": "Synthetic algorithm plumbing only; not a real-speech or model benchmark.",
+    }
+
+
 def run_synthetic_eval() -> dict[str, Any]:
     """Measure deterministic baseline selection against a tiny labeled synthetic case."""
     started = time.perf_counter()
@@ -342,7 +437,7 @@ def run_synthetic_eval() -> dict[str, Any]:
         "clips": 1,
         "prompt_version": "baseline-1",
         "schema_versions": {
-            "words": "2.0.0",
+            "words": "2.1.0",
             "edl": "1.2.0",
             "ops": "1.1.0",
             "compile_report": "2.0.0",
@@ -369,6 +464,7 @@ def run_synthetic_eval() -> dict[str, Any]:
         "estimated_tokens": pack.estimated_tokens,
         "compile_rejections": len(report["rejected_items"]),
         "planner_retries": 0,
+        "speaker_attribution": run_speaker_synthetic_eval(),
         "scope_note": "Synthetic smoke check only; not a real-clip quality estimate.",
     }
 

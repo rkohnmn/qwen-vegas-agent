@@ -41,7 +41,8 @@ def build_pack(words: dict[str, Any], *, max_words: int = 200000) -> PackResult:
             else:
                 timing = f"{float(start):.3f}-{float(end):.3f}"
         speaker = row.get("speaker") or "unknown"
-        lines.append(f"{row['id']} {timing} {speaker} {encoded}")
+        overlap = " overlap" if row.get("overlap") else ""
+        lines.append(f"{row['id']} {timing} {speaker}{overlap} {encoded}")
     lines.append("GAPS (the compiler resolves all times)")
     for gap in words.get("gaps", []):
         if not isinstance(gap, dict) or not isinstance(gap.get("id"), str):
