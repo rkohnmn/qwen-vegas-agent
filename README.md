@@ -62,7 +62,7 @@ After a manual VEGAS render, `watch-render` waits for a confined output file to 
 | 04 — Closed-loop cut pipeline | Done with assumptions; offline scope complete | 2026-10-07 | `f7e88d0` completion (pushed) | RV-001, RV-002, RV-003, RV-004 |
 | 05 — Speaker attribution | Done with assumptions; offline core complete | 2026-10-07 | `529996a` implementation and docs | RV-005, RV-006 |
 | 06 — Subtitles with Speaker Colors | Done with assumptions; offline sidecars complete | 2026-10-07 | `b8bab7e` completion (pushed in `209f95c`) | RV-007, RV-008 |
-| 07 — Catalog, Transitions, SFX, Effects | In progress; offline implementation | 2026-10-07 | — | RV-009, RV-010 |
+| 07 — Catalog, Transitions, SFX, Effects | Offline implementation complete with runtime and input gates open | 2026-10-07 | `1a25cba` compiler/policy phase | RV-009, RV-010, RV-011 |
 | 08–13 | Not started | — | — | To be assigned as each prompt is run |
 
 ### What works today (tested)
@@ -84,6 +84,7 @@ After a manual VEGAS render, `watch-render` waits for a confined output file to 
 
 - Real diarization, enrollment, speaker matching, bleed calibration, and laptop model benchmarks are not available without the accepted local model and labeled recordings: [RV-005](REVISIT.md#rv-005--goal-05-hugging-face-gate-and-voice-enrollment-samples) and [RV-006](REVISIT.md#rv-006--goal-05-real-speech-attribution-quality-and-hardware-benchmark).
 - Real speech caption sync, visual color checks, phone-size readability, 300-event Vegas performance, and style/probe sign-off remain open: [RV-007](REVISIT.md#rv-007--goal-06-caption-style-and-vegas-text-probes) and [RV-008](REVISIT.md#rv-008--goal-06-ass-burn-in-runtime-availability).
+- Catalog and SFX indexing/compiler policies are offline only. No licensed starter library or local FFmpeg measurement is available; no Vegas transition/SFX/effect operation is enabled, and the runtime EDL prompt must be restored before planner-authored catalog items are enabled: [RV-009](REVISIT.md#rv-009--goal-07-vegas-catalog-and-transition-evidence), [RV-010](REVISIT.md#rv-010--goal-07-local-sfx-library-and-ffmpeg-evidence), and [RV-011](REVISIT.md#rv-011--missing-runtime-edl-prompt-for-the-goal-07-contract-additions).
 ### Quick start for the offline runner
 
 Use Python 3.12 and provide a read-only `.veg`, its source media, validated timeline and words files, and normalized mono PCM16 WAV. The command writes to ignored `runs/`; it does not launch Vegas or ASR. See [the M4 checklist](docs/HUMAN_TESTS_M4.md).
@@ -110,7 +111,7 @@ These checks remain before treating the prototype as editing-quality validated o
 - Review the 16 English joins and investigate the 12 level-step and four pacing failures using human-reviewed evidence. Keep verifier thresholds unchanged until a representative sample supports calibration.
 - Label the ignored English truth template with word boundaries, then measure timing and cut accuracy. There is no real-media ground truth yet.
 - Complete the click-by-click checks in [the M1 VEGAS human checklist](docs/HUMAN_TESTS_M1.md) on a disposable project. Current VEGAS evidence is metadata and compile-time only.
-- Continue with Goal 07 and later transition/SFX, vision, LLM planning, automation, performance, security, and packaging prompts while the Goal 06 human caption checks remain tracked; see [the roadmap](ROADMAP.md).
+- Continue with Goal 08 and later vision, automation, performance, security, and packaging prompts while the Goal 06 and Goal 07 human checks remain tracked; see [the roadmap](ROADMAP.md).
 
 The contract schemas and prose specifications are in [schemas/](schemas/) and [docs/contracts/](docs/contracts/). Remaining work and acceptance evidence are listed in [ROADMAP.md](ROADMAP.md) and [docs/EVALS.md](docs/EVALS.md).
 

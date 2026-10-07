@@ -540,8 +540,8 @@ If a pack plus overhead exceeds the configured context, the packer falls back to
 - Never cut inside a word.
 - Minimum remaining gap between adjacent words after a cut, so speech does not sound clipped.
 - Maximum percentage of footage removed per pass (guard against runaway deletion), with a warning above threshold.
-- No transition on a cut shorter than a configured minimum.
-- SFX gain relative to local loudness, never above a ceiling, never over speech peaks unless explicitly allowed.
+- No transition operation is emitted until the compiler can identify and validate adjacent post-cut events; minimum clip-length validation remains gated on that timeline data.
+- SFX gain is derived from measured catalog loudness/peak under a configured ceiling; placements near measured speech peaks are shifted or rejected. The offline policy does not validate a Vegas render.
 - Do not remove content tagged protected (user-marked regions).
 - Subtitle readability limits (Section 13).
 

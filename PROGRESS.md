@@ -5,12 +5,12 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 ## Current state
 
 - Current goal: 07 — Catalog, Transitions, Sound Effects, Effects.
-- Current phase: Goal 07 phase C — compiler policy, capability gate, EDL 2.0.0, baseline suggestions, and offline tests are implemented; final checks passed and the phase commit is next.
+- Current phase: Goal 07 final gate — offline implementation, docs, acceptance mapping, and prompt archive are complete; privacy-gated documentation commit and authorized push remain.
 - Last completed Goal 06 completion commit: b8bab7e; status follow-up 209f95c. Both are pushed; local `main` and `origin/main` matched at 209f95c after push.
-- Goals completed in this run: 04, 05, and 06 — done with assumptions; origin/main includes their completion commits.
+- Goals completed in this run: 04, 05, 06, and 07 — offline scope done with assumptions; Goal 07 local commits are pending the authorized privacy-gated push.
 - Goals blocked: 01b–03 — source prompts and prerequisite evidence are missing (RV-003); no claim of completion.
 - Retry counters: Goal 05 had one targeted timeout-test repair, one ruff repair cycle, and one mypy repair cycle; all were fixed and rerun. Goal 06 post-archive docs-check first caught two missing RV/path references; both were fixed and final docs-check/revisit-check passed. Goal 06 unit suite: 141 passed, 1 skipped (FFmpeg test).
-- Next action: commit phase C, then finish the Goal 07 documentation, human checklist, acceptance map, prompt archive, and final privacy-gated push. Do not read local secret config, download tools/assets, or enable unprobed Vegas operations.
+- Next action: run the final privacy gate, commit the archived prompt/completion record, confirm remote ancestry, push main, then begin Goal 08. Do not read local secret config, download tools/assets, or enable unprobed Vegas operations.
 
 ## Ten-line plan for goal 07
 
@@ -223,7 +223,44 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 - Decisions and revisit: D-41 records fail-closed runtime behavior; D-42 removes planner-owned SFX gain. RV-009/RV-010/RV-011 track missing Vegas/FFmpeg evidence, licensed SFX inputs, and the missing runtime EDL prompt.
 - `python tasks.py lint` — passed; Ruff, format check, strict mypy (33 source files).
 - `python tasks.py schemas` — passed; 12 schemas and 50 fixtures.
-- `python tasks.py test` — passed; 173 passed, 2 skipped (local FFmpeg/ffprobe checks).
+- `python tasks.py test` — passed; 174 passed, 2 skipped (local FFmpeg/ffprobe checks).
 - `python tasks.py docs-check` and `python tasks.py revisit-check` — passed; 11 revisit items.
 - `python tasks.py eval` — synthetic only; cut precision/recall 1.0/1.0, applied precision/recall 1.0/0.5, join-level verifier still failed, runtime 154.484 ms / 2.3173 s per synthetic minute, 63 estimated tokens, 0 planner retries.
 - Not run: real FFmpeg tone measurement, C# compile-only check (no compiler found on PATH), VEGAS probes/runtime, live LLM endpoint, and user media. No dependency, asset, or model download.
+
+
+## Goal 07 acceptance mapping
+
+| Criterion | Status | Evidence or revisit |
+|---|---|---|
+| 1. Offline checks and Vegas boundary | Met for available offline scope | `lint`, `test` (174 passed, 2 skipped), `schemas` (12 schemas / 50 fixtures), `docs-check`, `revisit-check`, and synthetic `eval` pass. No Vegas was run. C# compile-only verification was unavailable because no C# compiler was found on PATH. |
+| 2. Deterministic collision-safe catalog and safe summary | Met with synthetic dump | Duplicate-name keys remain distinct and stable; model summary omits plugin IDs and paths. Synthetic smoke produced three disabled entries and an empty summary. |
+| 3. Typed catalog/context rejection | Met offline; runtime transition application open | Missing/disabled keys, dialogue-safety violations, and disallowed contexts have typed rejection tests. Current timeline data cannot identify post-cut event pairs or minimum clip lengths; all otherwise-eligible transitions fail closed with `E_TRANSITION_BOUNDARY_UNRESOLVED` (RV-009). |
+| 4. SFX license, measurements, and key stability | Partial (RV-010) | Missing-license entries are disabled; stable keys, metadata parser, and injected measurement tests pass. Real FFmpeg ebur128 measurement against a generated known-level tone did not run because ffmpeg/ffprobe are unavailable. No approved local SFX library was supplied. |
+| 5. SFX peak avoidance and gain ceiling | Met for synthetic fixtures | Peak search shifts placement and records frame/gain adjustment. A measured-metadata matrix verifies the configured gain and peak ceilings. Playback behavior is unverified. |
+| 6. Executor capability gate | Met offline | Capability contract defaults to no optional operations; tests prove unadvertised operations are rejected and only the required VQ evidence enables synthetic capability fixtures. No runtime executor advertises support. |
+| 7. C# 5 compile and executor ops | Not run / deferred | No new Vegas executor code was added because VQ-04/05/06/17/18 lack required E0 evidence. The C# compile-only check was unavailable (no compiler on PATH); the human checklist documents it. Runtime batching, undo, stop, and Vegas application remain open. |
+| 8. Human checklist | Met as a document; execution open | `docs/HUMAN_TESTS_M7.md` includes prerequisites, expected outcomes, and a results template. Human VEGAS/library checks were not run. |
+| 9. Contracts, docs, privacy, and commits | Met for offline scope after final gate | `catalog=1.2.0`, `capabilities=1.0.0`, `edl=2.0.0`, `compile_report=2.1.0`, `run_manifest=1.2.0`; schemas, specs, fixtures, consumers, decisions, changelog, architecture, README, eval, and revisit records agree. No dependencies or assets were added. |
+
+## Goal 07 self-audit
+
+| T3 check | Result | Evidence |
+|---|---|---|
+| Reproduce available claims | Pass | `python tasks.py lint`, `schemas`, `test`, `docs-check`, `revisit-check`, and `eval` were run on the final implementation; see the phase C command record. |
+| Acceptance criteria | Pass or partial; see mapping | Real FFmpeg tone measurement, C# compile, human Vegas checks, and runtime transition event pairing remain open. |
+| Hard rules | Pass | No Vegas, local endpoint, user media, local secret config, download, or new dependency was used. New catalog entries remain disabled; default capabilities remain empty; EDL cannot supply gain, time, path, plugin ID, color, or effect parameters. |
+| Contract consistency | Pass | EDL 2.0.0 removes model-supplied gain and adds only key/ID-based optional catalog intent; consumers, fixtures, spec, changelog, and eval schema record agree. |
+| Vegas claims | Pass | No Vegas behavior was marked verified. The compiler fails closed where timeline event pairing and evidence are missing. |
+| Diff review | Pass | Removed the unsafe word-duration proxy for transition clip length; no operation is emitted where adjacent post-cut event IDs are unresolved. |
+| Privacy scan | Pass after archive required | `docs-check` includes a tracked/unignored-file privacy scan; repeat after prompt archival and immediately before push. |
+| Documentation honesty | Pass | Human checklist, CATALOG/SFX guides, Architecture, Executor guide, README, Roadmap, and RV-009/010/011 identify offline-only evidence and all gates. |
+| Human steps | Written; not run | T1 checklist covers C# compile-only, catalog enumeration, transition/A/V review, licensed-tone measurement, SFX level, and manifest license checks. |
+| Main risks | Open | (1) No runtime executor or E0 Vegas evidence (RV-009); (2) no local FFmpeg/approved licensed SFX library (RV-010); (3) missing runtime EDL prompt required by contract change (RV-011). |
+
+## Goal 07 final report
+
+- Catalog statistics: synthetic fixture smoke found 3 internal entries; enabled 0, disabled 3, planner-visible 0. No real VEGAS catalog dump or local SFX index was available; parameterizable entries were not verified.
+- Contract changes: catalog 1.1.0 then 1.2.0; new capabilities 1.0.0; EDL 2.0.0; compile_report 2.1.0; run_manifest 1.2.0.
+- Prompt 08 handoff: restore `skills/EDL_PROMPT.md`; target EDL 2.0.0; keep `effects` limited to event ID + enabled effect key + reason, allow transitions at exactly one cut or gap ID, keep SFX gain out of EDL, and preserve the no-path/no-plugin-ID/no-parameter rule. Goal 07 does not edit runtime prompt text.
+- Phase commits: A `037bb73`, B `a169518`, C `1a25cba`. Completion commit and push are pending after prompt archive/privacy review.
