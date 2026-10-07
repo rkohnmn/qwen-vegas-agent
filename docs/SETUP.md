@@ -1,6 +1,6 @@
 # Setup
 
-**Document version:** 1.1.2
+**Document version:** 1.1.3
 
 This guide covers the local Milestone 1 rough-cut pipeline on Windows. It never starts VEGAS or contacts an inference endpoint.
 
@@ -32,7 +32,7 @@ The setup task creates `.venv` and installs the pinned development dependencies 
 .\.venv\Scripts\Activate.ps1
 ```
 
-`python tasks.py eval` runs synthetic fixtures and requires no media, model weights, GPU, or network. A real `python tasks.py dry-run --video <path> --max-seconds 120 --planner baseline` requires local `ffmpeg`, `ffprobe`, WhisperX, and the approved ASR/alignment weights. The real-media smoke completed end to end. Corrected bounded VFR sampling and a full decoded-frame scan classified the selected source as CFR; the original source stayed read-only. ASR detected Japanese. The aligner returned finer subword timings that did not match the contract’s word units, so the adapter retained all 30 phrase-level tokens without time anchors; the run produced no cuts and no real joins.
+`python tasks.py eval` runs synthetic fixtures and requires no media, model weights, GPU, or network. A real `python tasks.py dry-run --video <path> --max-seconds 120 --planner baseline` requires local `ffmpeg`, `ffprobe`, WhisperX, and approved ASR/alignment weights. The latest English real-media run reached verification using a 30 fps CFR working copy under ignored `runs/`; the original source hash remained unchanged. ASR produced timing anchors for 210/210 transcript rows, and the planner generated eight gap actions. Verification failed on 12 level-step and four pacing checks. See [the English and Japanese run records](EVALS.md); neither run contacted an LLM endpoint or launched VEGAS.
 
 ## Measured on dev laptop
 
@@ -44,13 +44,15 @@ The setup task creates `.venv` and installs the pinned development dependencies 
 | RAM | 15.4 GiB available to Windows |
 | GPU | NVIDIA GeForce RTX 3050 Ti Laptop GPU, 4 GiB VRAM; driver 595.71 |
 | CUDA in the global Python | Unavailable; global PyTorch remains CPU-only (`2.13.0+cpu`). |
-| CUDA in the project venv | Available; PyTorch `2.8.0+cu128` reports CUDA 12.8 and `torch.cuda.is_available()` is true. Detected GPU memory is 4095 MiB; the real smoke ASR peak was 1.27 GB. |
+| CUDA in the project venv | Available; PyTorch `2.8.0+cu128` reports CUDA 12.8 and `torch.cuda.is_available()` is true. Detected GPU memory is 4095 MiB; the Japanese smoke peaked at 1.27 GB, and the English run peaked at 0.578 GB. |
 | VEGAS | Pro 17.0, build 284; `ScriptPortal.Vegas.dll` and `vegas170.exe` are present |
-| `ffmpeg` / `ffprobe` | Version 9.0.1 is installed in a local WinGet package outside PATH. The smoke used a process-local PATH override; this project did not download binaries or change persistent PATH settings. |
+| `ffmpeg` / `ffprobe` | Version 9.0.1 was used in the earlier Japanese run. The English run used existing FFmpeg/ffprobe 8.1.2 from a local application bundle via a process-local PATH override. No binaries were downloaded or persistent PATH settings changed. |
 
 WhisperX and PyTorch support the active Python 3.12 runtime. The opt-in ASR setup installed CUDA PyTorch in the project venv and verified CUDA availability. The adapter selects CUDA when available and falls back to CPU int8 when CUDA is unavailable or an out-of-memory retry is needed. See [WhisperX package metadata](https://pypi.org/project/whisperx/) and [PyTorch Windows installation guidance](https://docs.pytorch.org/get-started/locally/).
 
-The selected smoke candidate is identified in tracked documentation only by its SHA-256 prefix; the source path and filename stay in ignored local configuration.
+### Historical Japanese run
+
+The candidate is identified in tracked documentation only by its SHA-256 prefix; the source path and filename stay in ignored local configuration.
 
 | Candidate field | Observation |
 |---|---|
@@ -80,9 +82,9 @@ The real-media dry run completed as `20261006T232642Z_d35580dd`. Its manifest re
 | Language / confidence | Japanese (`ja`) / 0.9399 |
 | Word timing | 30 tokens; 0 aligned and 30 unaligned. Short/long duration rates are not measurable with zero aligned tokens. |
 
-The local model snapshots did not include license files. The approved run fetched only the small ASR checkpoint and the language-selected alignment checkpoint; no VAD or diarization weights, tokens, or LLM endpoint were used. Checkpoint revisions, byte sizes, and the unresolved license metadata are recorded in `DECISIONS.md` D-32. Verify redistribution terms before packaging these weights.
+The local model snapshots did not include license files. The earlier Japanese run fetched only the small ASR checkpoint and its Japanese alignment checkpoint; no VAD or diarization weights, tokens, or LLM endpoint were used. Their revisions, byte sizes, and unresolved license metadata are recorded in `DECISIONS.md` D-32. The later English alignment checkpoint provenance is recorded in D-35. Verify redistribution terms before packaging these weights.
 
-WhisperX produced 298 timed subword rows for 30 Japanese ASR segments, and normalized concatenated text matched every segment. The rows did not match the word-level contract, so the adapter retained the original phrase-level tokens without time anchors instead of treating subword boundaries as lexical word boundaries. The baseline planner produced zero cuts and zero gap actions. The verifier passed the removed-percent check at 0%; there were no joins for click or level-step measurement. Keep thresholds at the existing defaults until real joins are available. The truth template is available under the smoke run directory for manual labeling.
+WhisperX produced 298 timed subword rows for 30 Japanese ASR segments, and normalized concatenated text matched every segment. The rows did not match the word-level contract, so the adapter retained the original phrase-level tokens without time anchors instead of treating subword boundaries as lexical word boundaries. The baseline planner produced zero cuts and zero gap actions. The verifier passed the removed-percent check at 0%; this historical run had no joins for click or level-step measurement. The corrected English run produced 16 join measurements; thresholds remain at their defaults because 12 level-step checks failed. The truth template is available under the earlier smoke run directory for manual labeling.
 
 ## M1 review artifacts and verifier
 

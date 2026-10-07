@@ -1,6 +1,6 @@
 # Evaluation results
 
-Every result reports accuracy with runtime and identifies the contract and planner versions. Synthetic evals are plumbing checks; the real-media run completed the pipeline but produced no word-aligned cuts, so it does not estimate editing quality.
+Every result reports accuracy with runtime and identifies the contract and planner versions. Synthetic evals are plumbing checks. The corrected English real-media run produced timing anchors for all transcript rows and real join measurements, but it has no word-level ground truth and the verifier failed, so it is not an editing-quality estimate.
 
 ## Synthetic baseline sanity check
 
@@ -32,15 +32,13 @@ The labeled filler and silence are selected as expected, so planner-selection pr
 
 A unit test generates band-limited noise bursts with smooth 12 ms attacks, 18 ms releases, and low-level room noise between bursts. It runs through the default verifier without changing either threshold. This generated case exercises smoother, speech-shaped amplitude variation; it is not a substitute for real speech or a calibration sample. The tone fixture remains a separate stress case with two asserted level-step failures.
 
-## Real-media verifier joins
+## Initial English verifier run
 
-The corrected preflight classified the source as CFR at `2997/100` fps. The full decoded scan covered 2,354 frames and 2,353 intervals without an interval deviating from median cadence by more than 1 ms. The completed smoke generated zero cuts and zero joins, so no real-speech join sample exists. Thresholds remain at the defaults, `max_click_delta=0.12` full-scale sample delta and `max_level_step_db=8.0` dB; the sample size is zero and does not justify calibration.
+Run `20261006T235401Z_68b01796` was the first English pass on the approved 30 fps CFR working copy. It emitted timing anchors for 55 of 210 rows and six join measurements. The verifier returned `E_VERIFY`: five level-step and two pacing checks failed; all six click checks passed. Investigation found that WhisperX split some raw ASR segments into multiple sentence-sized alignment segments, while the adapter paired results by list index. The resulting timing count is superseded by the corrected run below and D-36. This initial run did not change thresholds, contact an inference endpoint, or launch VEGAS.
 
-| Smoke joins | Click metric | Level step | Thresholds in force | Evidence |
-|---:|---:|---:|---|---|
-| 0 | N/A | N/A | 0.12 full-scale delta; 8.0 dB | No cuts or gap actions were produced. |
+The synthetic speech-shaped fixture remains a separate verifier exercise. Its smoother amplitude envelope passed under the unchanged default thresholds; the retained tone fixture still asserts two expected level-step failures. Neither fixture is a real-speech calibration sample.
 
-## Real-media ASR and smoke evaluation
+## Historical Japanese real-media ASR and smoke evaluation
 
 Run: `20261006T232642Z_d35580dd`, completed 2026-10-06 with `python tasks.py dry-run --video <selected clip> --max-seconds 120 --planner baseline`. The original source hash matched before and after the run; the test-video and VEGAS install directory listings also remained identical. The home inference server stayed off and no LLM endpoint was contacted.
 
@@ -60,6 +58,27 @@ The source descriptors are recorded without its filename or path: 78.553107 seco
 WhisperX produced 298 timed subword rows for 30 Japanese ASR segments, and normalized concatenation matched each segment. The rows did not match the word-level contract, so the adapter conservatively retained the 30 phrase-level tokens without time anchors rather than treating subword boundaries as lexical words. The baseline planner proposed 0 cuts and 0 gap actions. The compile report has no rejected or adjusted items and reports 0% removed. The verifier passed only the removed-percent check; click, level-step, pacing, and clipped-word measurements had no join or cut boundaries to inspect. This run proves pipeline completion and source integrity, not editing quality. No ground truth exists for the real recording.
 
 The truth template was generated under the ignored run directory with `python tasks.py truth-template --words runs/<job_id>/words.json --output runs/<job_id>/truth_template.json`. The local model snapshots did not contain license files; revisions and exact checkpoint sizes are recorded in `DECISIONS.md` D-32. No VAD or diarization weights, tokens, or other unapproved models were fetched.
+
+## Corrected English real-media ASR and dry-run evaluation
+
+Run: `20261007T001144Z_5475d354`. Command: `python tasks.py dry-run --video runs/20261006T235023Z_english_cfr/source_cfr.mp4 --max-seconds 120 --planner baseline`, with the already-present ffmpeg tools supplied to that process through a temporary PATH. The original 327.169-second source was not modified; the run manifest's before/after SHA-256 values for the CFR working copy match. No inference endpoint or VEGAS process was used.
+
+The source CFR copy is H.264 1280x720 with AAC stereo audio at 44,100 Hz and exactly 30/1 fps. Its bounded preflight had no warnings, and the full 9,815-frame scan found no cadence interval outside tolerance. The original source's one 9 ms cadence outlier and the CFR-copy procedure are documented above and in D-35.
+
+| ASR and pipeline field | Result |
+|---|---:|
+| Processed media / source duration | 120.000 / 327.169 seconds |
+| Detected language / confidence | English (`en`) / 0.9766 |
+| Requested ASR / alignment model | `small` / `WAV2VEC2_ASR_BASE_960H` |
+| Device / compute type / peak VRAM | CUDA / `int8_float16` / 0.578 GB |
+| ASR wall time / real-time factor | 30.747 seconds / 0.2562 |
+| Pipeline wall time / per media minute | 35.044 seconds / 17.522 seconds |
+| Word rows / timing anchors | 210 / 210 (100%); no human boundary labels |
+| Baseline EDL | 0 lexical cuts; 8 gap actions |
+| Compile result | 8/8 gap actions applied; 16 `delete_range` operations; 8.3611% removed |
+| Verifier result | Failed `E_VERIFY`: 12/16 level-step and 4/16 pacing checks failed; 16/16 click checks passed, maximum discontinuity 0.033783 against 0.12 |
+
+The corrected mapper consumes WhisperX's sentence-sized results in transcript order and retains timings only after normalized text matches. All 210 rows received timing anchors, but no word-level ground truth was available; cut precision/recall and timing accuracy remain unmeasured. The first English run's 55/210 result is a diagnosed mapping defect, not an ASR quality baseline. The truth template from the first run remains under its ignored run directory. The aligner checkpoint provenance is recorded in D-35; the mapping correction and latest run evidence are in D-36. Verifier thresholds remain `max_click_delta=0.12` and `max_level_step_db=8.0` dB.
 
 ## Metric definitions
 

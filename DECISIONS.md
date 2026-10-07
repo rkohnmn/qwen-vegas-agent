@@ -343,16 +343,16 @@ Alternatives: Report the inverse ratio as real-time factor, infer word times for
 
 Status: Accepted. The run stayed offline from the inference endpoint, left the source hash unchanged, and fetched no VAD or diarization weights. The local snapshot metadata does not establish the model licenses; manual license review remains open.
 
-### D-33 — Keep verifier thresholds until real joins exist
+### D-33 — Keep verifier thresholds pending human-reviewed joins
 Date: 2026-10-06
 
-Decision: Keep `max_click_delta=0.12` and `max_level_step_db=8.0` unchanged. Record real-join metrics as unavailable when the smoke produces no joins.
+Decision: Keep `max_click_delta=0.12` and `max_level_step_db=8.0` unchanged. Report real-join metrics when available, but do not recalibrate thresholds from a single unreviewed clip.
 
-Rationale: The real-media run had zero cuts and zero gap actions, leaving zero click/level observations. The speech-like synthetic fixture exercises smoother envelopes, while the retained tone fixture remains a stress case; neither supplies real-speech join distributions.
+Rationale: The initial English run in D-35 recorded six joins with five level-step failures and two pacing failures. The corrected run in D-36 records 16 joins, with 12 level-step and four pacing failures. The speech-like synthetic fixture exercises smoother envelopes, while the retained tone fixture remains a stress case. These runs justify review, not threshold changes.
 
 Alternatives: Raise thresholds until the tone fixture passes or claim calibration from a zero-join sample; rejected because either would overstate verifier evidence.
 
-Status: Accepted pending a real-media run that produces reviewable joins.
+Status: Accepted; defaults remain in force pending human review and a representative real-join set.
 
 
 ### D-34 — Keep Japanese subword times out of the word-level contract
@@ -365,6 +365,34 @@ Rationale: A diagnostic run returned 298 timed subword rows for 30 ASR segments,
 Alternatives: Mark the whole phrase with a broad time span, treat each subword as a word, or add a tokenizer dependency; rejected because each could create unsafe edit boundaries or require an unapproved dependency.
 
 Status: Accepted for this milestone. A language-aware segmentation stage needs a separately approved dependency and word-boundary evaluation before Japanese cuts can be trusted.
+
+
+### D-35 — Continue the real-media smoke with English and an approved CFR copy
+Date: 2026-10-06
+
+Decision: Follow the user's English-only direction and run the existing offline baseline pipeline on a 120-second window of the detected English clip. Its 327.169-second source had one cadence interval outside the 1 ms tolerance, so create a 30/1 fps H.264 working copy under ignored `runs/` and copy its AAC audio stream. Do not modify the original. Use the WhisperX default English aligner, `WAV2VEC2_ASR_BASE_960H`, after the user approved fetching that checkpoint.
+
+Evidence: A full source scan covered 9,815 frames and 9,814 intervals; one interval deviated from the median by 9 ms. The CFR copy retained 9,815 frames and had no interval outside tolerance. The original source hash matched before and after the copy was created, and the dry-run manifest reports the working copy unchanged. The initial run detected English at 0.9766 confidence and timed 55 of 210 words, but the positional alignment mapping was later found to mishandle WhisperX sentence splits; D-36 supersedes that timing count. No thresholds changed, no LLM endpoint was contacted, and VEGAS was not launched.
+
+Checkpoint: `https://download.pytorch.org/torchaudio/models/wav2vec2_fairseq_base_ls960_asr_ls960.pth`, stored only in ignored `cache/asr_models/`. Size: 377,664,473 bytes. SHA-256: `488fd4f16de84438ffc945334278c1b9fb9b7159a806c1080b16111a958c945d`. The installed torchaudio 2.8.0 pipeline documentation states that this checkpoint is distributed under the MIT License. The local checkpoint is not part of the repository.
+
+Alternatives: Process the VFR original directly, infer times for the remaining unaligned words, raise verifier thresholds to make the run pass, or enable the remote planner; rejected because frame cadence must be normalized for this smoke, word times must not be guessed, failures must remain visible, and the M1 dry-run CLI does not use the LLM endpoint.
+
+Status: Accepted as CFR and checkpoint provenance evidence. The first-run word and join metrics are superseded by D-36.
+
+
+### D-36 — Map WhisperX sentence splits back to raw ASR words
+Date: 2026-10-06
+
+Decision: Match WhisperX aligned sentence segments to raw ASR tokens in transcript order. Preserve timing only when normalized text matches the raw token sequence; keep tokens unaligned when the mapping is uncertain.
+
+Rationale: WhisperX can return more aligned segments than faster-whisper raw segments because it splits alignment output at sentence boundaries. The original positional pairing assumed equal list lengths and caused valid English timing rows to be discarded. A corrected run produced timing anchors for all 210 English words, while the token-sequence guard prevents mismatched output from receiving times.
+
+Evidence: Regression tests cover one raw segment split across sentence outputs, preservation of raw segment indices, and a text mismatch falling back to unaligned words. The corrected 120-second English run (`20261007T001144Z_5475d354`) produced 210/210 timed word rows, eight applied gap actions, and 16 join measurements. Verification returned `E_VERIFY`: 12 level-step checks and four pacing checks failed; 16/16 click checks passed. No word-level ground truth was available, so timing accuracy and editing quality remain unmeasured. Thresholds are unchanged.
+
+Alternatives: Keep positional pairing or accept mismatched alignment rows; rejected because sentence splits shift indices and mismatched tokens must not receive times.
+
+Status: Accepted for English alignment. Human review of the joins and an annotated timing evaluation remain open.
 
 
 ## Reference: browser agent patterns
