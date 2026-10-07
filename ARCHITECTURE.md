@@ -1,8 +1,8 @@
 # ARCHITECTURE.md
 
 **Project (working title):** Local AI Video Editing Agent for VEGAS Pro 17
-**Document version:** 1.2.2
-**Status:** M1 offline rough-cut implementation is complete for now as a prototype. The 120-second English smoke run reached verification using an approved 30 fps CFR working copy, produced timing anchors for 210/210 transcript rows, and applied eight baseline silence-gap actions. Verification reported 12 level-step and four pacing failures, so the run does not support an editing-quality claim. M1 does not execute Vegas. Vegas-specific behaviors tagged `[UNVERIFIED]` must be confirmed on a throwaway Vegas Pro 17 project before code depends on them.
+**Document version:** 1.2.3
+**Status:** M1 offline rough-cut implementation is complete for now as a prototype. The 120-second English smoke run reached verification using an approved 30 fps CFR working copy, produced timing anchors for 210/210 transcript rows, and applied eight baseline silence-gap actions. Verification reported 12 level-step and four pacing failures, so the run does not support an editing-quality claim. M1 does not execute Vegas. The offline job runner consumes supplied timeline/word artifacts and exercises fakes; its runtime assumptions remain open under RV-001. Vegas-specific behaviors tagged `[UNVERIFIED]` must be confirmed on a throwaway Vegas Pro 17 project before code depends on them.
 
 ---
 
@@ -245,7 +245,7 @@ flowchart TD
     B --> C[3 Pack]
     C --> D[4 Plan]
     D --> E[5 Compile and Validate]
-    E --> F[6 Dry Run]
+    E --> F[6 Dry Run Review Sidecars]
     F --> G{Approved?}
     G -- review mode: user --> H[7 Execute]
     G -- auto mode: thresholds --> H
@@ -263,7 +263,7 @@ flowchart TD
 | 3 | Pack | Words, analysis, timeline, speakers, catalog | `pack.txt` (compact planner view) | Orchestrator |
 | 4 | Plan | Pack, schema, style guide, rules | `edl.json` (candidate) | LLM over Tailscale |
 | 5 | Compile | `edl.json`, `words.json`, `timeline.json`, `catalog.json` | `ops.json` plus `compile_report.json` | Orchestrator |
-| 6 | Dry run | `ops.json` | Markers in the Vegas project copy plus optional preview | Vegas |
+| 6 | Dry run | `ops.json` | `markers.csv`, `cutlist_preview.edl`, and `review.md` | Orchestrator; no Vegas mutation |
 | 7 | Execute | `ops.json` | Edited project copy | Vegas (undo-wrapped) |
 | 8 | Verify | Edited project | `verify_report.json` | Vegas render plus orchestrator analysis |
 | 9 | Final | Verified project | Final render, run manifest | Vegas |
@@ -280,7 +280,7 @@ flowchart TD
 
 **5 Compile.** The model's intent becomes frame-accurate operations or the plan is rejected with specific errors fed back to the planner for a corrected pass (max retries configurable, default 2).
 
-**6 Dry run.** Cut points, transitions, SFX placements, and subtitle spans are written as markers or regions only, no destructive edits. In review mode the user inspects these. A low-resolution preview render can be produced.
+**6 Dry run.** The offline runner writes marker CSV, CMX3600 cutlist, and Markdown review sidecars; it does not write Vegas markers or mutate a Vegas project. Vegas marker/region APIs remain unverified under VQ-13. In review mode a human can inspect the sidecars before approval. The reference WAV is not a Vegas render.
 
 **7 Execute.** Operations apply to the working copy inside a single undo block per batch.
 
@@ -292,8 +292,8 @@ flowchart TD
 
 | Mode | Behavior |
 | :-- | :-- |
-| `dry-run` | Stops after stage 6. Markers only. Default for first use on any project. |
-| `review` | Executes after explicit user approval of the dry run. |
+| `dry-run` | Produces stage 6 review sidecars only. Default for first use on any project. |
+| `review` | Requires explicit per-item approval and an enabled executor adapter; current CLI executor fails closed pending E0 human checks. |
 | `auto` | Executes without approval if all compile and confidence thresholds pass. Any `ask_user` still pauses. This is the end-state mode. |
 
 ---
@@ -595,7 +595,7 @@ Evaluated in priority order. Which one is used depends on what Vegas 17 permits 
 | Option | Mechanism | Status |
 | :-- | :-- | :-- |
 | A. Extension with timer polling | A Vegas extension (DLL) polls a job folder and executes jobs, with UI-thread marshaling | Preferred for automation. `[UNVERIFIED]` |
-| B. Script menu per job | User (or automation) launches a menu script that reads the next job file and executes it | Works for sure, less automated |
+| B. Script menu per job | User (or automation) launches a menu script that reads the next job file and executes it | `UNVERIFIED` on Vegas 17; see VQ-02 and VQ-13 |
 | C. Command-line script launch | Launch Vegas with a script argument | Documented in one third-party skill for a newer version; `[UNVERIFIED on 17]` |
 | D. EDL/marker export fallback | Orchestrator exports an EDL or marker list for manual import | Safe MVP fallback |
 
@@ -813,6 +813,7 @@ Each job writes `runs/<job_id>/` containing inputs by hash, `pack.txt`, raw mode
 
 ### 18.3 Job state machine
 `created → ingested → perceived → packed → planned → compiled → dry_run_ready → (approved) → executing → executed → verifying → verified → rendered`, with side states `awaiting_user`, `needs_review`, `failed`, `aborted`. Transitions are logged with timestamps for timing evals.
+The offline runner in `orchestrator/job_pipeline.py` checkpoints `project_copy`, `ingest`, `perceive`, `pack`, `plan`, `compile`, `dry_run`, `approve`, `execute`, `verify_fix_loop`, and `render_final`. Each reusable stage has an input hash and recorded output hashes in ignored `job_state.json`. Resume rejects changed declared inputs and recomputes an artifact whose hash no longer matches. The CLI consumes a `.veg` copy, declared media, a validated timeline dump, aligned words, and normalized audio; it does not create Vegas dumps, run ASR, launch Vegas, or produce a Vegas render. Review-mode execution is disabled unless an executor adapter is injected; fake/reference results do not establish Vegas behavior (RV-001).
 
 ### 18.4 Logging
 Structured logs with levels. Timing per stage. Token counts per LLM call. No secrets, no full media paths beyond what is necessary.
@@ -975,10 +976,10 @@ Each item is tracked in `docs/VEGAS_NOTES.md` with a status of `verified`, `unve
 | Diarized mode | Speaker identity derived from analyzing mixed audio and matching voice profiles. |
 | OFX | OpenFX plugin standard. Vegas exposes parameters for OFX effects through scripting. |
 | Undo block | A Vegas scripting construct grouping edits into a single undo step. |
-| Dry run | Marker-only pass showing planned edits without altering media events. |
+| Dry run | Review-sidecar pass showing planned edits without altering media events or Vegas projects. |
 | Snap | Moving a model-intended boundary to a precise frame, silence gap, or zero-crossing. |
 | mmproj | Multimodal projector file enabling image input in `llama-server`. |
 
 ---
 
-*End of ARCHITECTURE.md v1.2.1*
+*End of ARCHITECTURE.md v1.2.3*

@@ -104,6 +104,24 @@ The 16 joins all come from one unlabelled recording, so the sample does not just
 
 The corrected mapper consumes WhisperX's sentence-sized results in transcript order and retains timings only after normalized text matches. All 210 rows received timing anchors, but no word-level ground truth was available; cut precision/recall and timing accuracy remain unmeasured. The first English run's 55/210 result is a diagnosed mapping defect, not an ASR quality baseline. The latest run's `truth_template.json` is an unlabeled editing skeleton under ignored `runs/`. The aligner checkpoint provenance is recorded in D-35; the mapping correction and latest run evidence are in D-36. Verifier thresholds remain `max_click_delta=0.12` and `max_level_step_db=8.0` dB.
 
+## 2026-10-07 Goal 04 offline fixture run
+
+Command: `python tasks.py eval`. Dataset: `synthetic-tone-silence-v1` (one synthetic clip); schemas: words 2.0.0, EDL 1.2.0, ops 1.1.0, compile report 2.0.0.
+
+| Metric | Result |
+|---|---:|
+| Planner cut precision / recall | 1.00 / 1.00 |
+| Applied cut precision / recall | 1.00 / 0.50 |
+| Proposed cuts/gap actions rejected or adjusted | 1 / 2 (50%) |
+| Cut offset error, mean / median / maximum | 0 / 0 / 0 ms on resolved anchors |
+| Clipped-word rate / click rate | 0 / 0 |
+| Verifier | Failed; `join_1_level` and `join_2_level` |
+| Removed duration | 19.1667% |
+| Wall time / per media minute | 253.8–313.1 ms / 3.8073–4.6972 s across two isolated runs |
+| Estimated tokens / planner retries | 63 / 0 |
+
+This is a synthetic plumbing result only. It is not a Vegas-rendered measurement or a real-speech quality estimate. The two level-step failures remain visible; no thresholds were relaxed. Real-speech and Vegas-rendered metrics remain open under RV-001 and RV-002.
+
 ## Metric definitions
 
 | Metric | Definition |

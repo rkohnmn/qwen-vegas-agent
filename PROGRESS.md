@@ -5,12 +5,12 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 ## Current state
 
 - Current goal: 04 — Closed-Loop Cut Pipeline Through Vegas.
-- Current phase: goal 04 phase G; offline code, docs, evaluation record, and standard checks are complete. The code/schema commit and docs/completion commits remain, followed by privacy-gated push. Vegas runtime and real-speech acceptance remain open human gates.
-- Last commit: `0eb9b1c` (`docs: clarify M1 status and remaining work`); goal 04 implementation has not yet been committed.
+- Current phase: goal 04 phase F documentation commit; code/schema phase is committed as `2788809`. Standard checks pass. Prompt archival, completion commit, privacy-gated push, and phase G wrap-up remain. Vegas runtime and real-speech acceptance remain open human gates.
+- Last commit: `2788809` (`pipeline: add resumable offline closed-loop runner`).
 - Goals completed in this run: none yet; goal 04 is ready to archive after review and the final privacy gate.
 - Goals blocked: none yet; missing prerequisites are being handled under the supplied offline-assumption rules.
 - Retry counters: final check cycles 0; push attempts 0.
-- Next action: create the code/schema commit, then the documentation and prompt-completion commits; run the privacy gate before pushing, then start prompt 05.
+- Next action: commit the goal 04 docs phase, then sanitize/archive prompt 04 and create its completion commit; run the privacy gate before pushing, then start prompt 05.
 
 
 ## Goal 04 acceptance mapping
@@ -26,7 +26,7 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 | Resume across stages | Met with fake adapters | Parameterized pause/resume test covers all eleven stage boundaries; a fake executor edit survives resume only when the checkpoint hash matches. |
 | Human M4 acceptance | ASSUMED | Checklist and results template exist; live Vegas/render/listening observations remain open under RV-001 and RV-002. |
 | Privacy and contract consistency | Met after final gate | No new dependencies; run_manifest 1.1.0 schema/spec/fixtures/consumer updated together. Repeat privacy scan after prompt archival. |
-| Phase and completion commits | In progress | Code/schema commit, documentation phase, prompt footer, completion commit, and authorized push remain. |
+| Phase and completion commits | In progress | Code/schema commit 2788809 is done; documentation phase, prompt footer, completion commit, and authorized push remain. |
 
 ## Goal 04 self-audit (self-audit, not independent)
 

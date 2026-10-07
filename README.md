@@ -43,6 +43,50 @@ The command writes run artifacts beneath `runs/` and cached audio/models beneath
 
 The stages can also be run separately with `python tasks.py preflight --video <path>`, `transcribe --video <path>`, `plan --words <words.json>`, and `compile --words <words.json> --timeline <timeline.json> --edl <edl.json>`. `python tasks.py compile --words <words.json> --timeline <timeline.json> --edl <edl.json> --audio <normalized-mono.wav>` can use the optional audio input for nearby zero-crossing snaps. Without `--audio`, compilation stays frame- and silence-aligned. `python tasks.py integration` reports a skipped-by-default status; `eval` remains fully offline.
 
+## Closed-loop job runner
+
+`python tasks.py run-job` exercises the resumable planning, compile, review, and reference-audio verification stages from a read-only `.veg` input plus declared source media, a timeline dump, aligned words, and normalized audio. It writes outputs under ignored `runs/`; local FFmpeg is required for the default reference-audio renderer. Dry-run is the default. Vegas execution and final video rendering remain disabled pending the human checks in [docs/HUMAN_TESTS_M4.md](docs/HUMAN_TESTS_M4.md); see [the pipeline details](docs/PIPELINE.md) and [known limits](docs/KNOWN_LIMITS.md).
+
+~~~powershell
+python tasks.py run-job --project <copy.veg> --media <source-media> --timeline <timeline.json> --words <words.json> --audio <normalized-mono.wav>
+python tasks.py watch-render --job-dir <runs/job_id> --output final_render.mp4 --timeout-s 3600
+~~~
+
+After a manual VEGAS render, `watch-render` waits for a confined output file to become non-empty and size-stable, honors a `STOP` file, and records its hash in `manual_render_result.json`. The offline `run-job` does not launch VEGAS or wait for the final render automatically.
+
+## Project status
+
+| Goal | Status | Date | Commit | Revisit items |
+|---|---|---|---|---|
+| 01b–03 | Blocked; prompt sources absent from this checkout | — | — | RV-003 |
+| 04 — Closed-loop cut pipeline | In progress; offline implementation ready for final review | 2026-10-07 | `2788809` implementation | RV-001, RV-002, RV-003, RV-004 |
+| 05–13 | Not started | — | — | To be assigned as each prompt is run |
+
+### What works today (tested)
+
+- Offline stage runner validates supplied timeline and word artifacts, writes review sidecars, resumes hash-checked stages, and records source integrity. Tests use injected fake renderers; the CLI default renderer needs local FFmpeg (RV-004). Vegas execution is disabled. See [the pipeline](docs/PIPELINE.md).
+- Per-cut approvals recompile the exact approved subset; fake executor and renderer fixtures cover review and repair behavior.
+- `watch-render` detects a stable file confined to a run directory and records its hash.
+- `python tasks.py lint`, `test`, `schemas`, `docs-check`, and `eval` are the available verification commands. Eval is synthetic and reports two level-step failures.
+
+### What is assumed (not yet tested)
+
+- VEGAS marker, edit, undo, stop, and render behavior: [RV-001](REVISIT.md#rv-001--goal-04-vegas-runtime-and-project-mutation-behavior).
+- Real-speech cut timing, sync, and listening quality: [RV-002](REVISIT.md#rv-002--goal-04-real-clip-timing-sync-and-listening-quality).
+- Missing predecessor prompts and human gates: [RV-003](REVISIT.md#rv-003--missing-predecessor-and-reusable-prompt-artifacts).
+- Default reference rendering needs local FFmpeg: [RV-004](REVISIT.md#rv-004--goal-04-default-reference-renderer-availability).
+
+### Quick start for the offline runner
+
+Use Python 3.12 and provide a read-only `.veg`, its source media, validated timeline and words files, and normalized mono PCM16 WAV. The command writes to ignored `runs/`; it does not launch Vegas or ASR. See [the M4 checklist](docs/HUMAN_TESTS_M4.md).
+
+~~~powershell
+python tasks.py run-job --project <copy.veg> --media <source-media> --timeline <timeline.json> --words <words.json> --audio <normalized-mono.wav>
+python tasks.py watch-render --job-dir <runs/job_id> --output final_render.mp4 --timeout-s 3600
+~~~
+
+Track open assumptions in [REVISIT.md](REVISIT.md), follow the [human test checklists](docs/HUMAN_TESTS_M4.md), and see [completed prompts](<completed prompts/>).
+
 ## Current limits
 
 - The corrected English run used `small` ASR and WhisperX's `WAV2VEC2_ASR_BASE_960H` alignment checkpoint on CUDA (`int8_float16`), with 0.578 GB peak VRAM. ASR detected English at 0.9766 confidence; normalized alignment text matched all 210 transcript rows. Duration sanity flagged eight rows under 20 ms and two over 2 seconds. The baseline planner applied eight gap actions and produced 16 joins, but no lexical cuts. All 16 click checks and all 32 clipped-word checks passed; 12 level-step checks and four pacing checks failed. No human ground truth was available, so timing accuracy remains unmeasured. The home inference server remained off and no LLM endpoint was contacted.

@@ -1,7 +1,7 @@
 # VEGAS_NOTES.md
 
 **Scope:** Everything this project knows, assumes, and still needs to prove about driving **VEGAS Pro 17** from code.
-**Document version:** 1.0.4
+**Document version:** 1.0.5
 **Companion to:** `ARCHITECTURE.md` (Sections 12, 13, 21)
 
 This is a living lab notebook. Nothing in the executor, the compiler's Vegas-facing ops, or the subtitle path should depend on a Vegas behavior that is not marked `VERIFIED` here.
@@ -58,6 +58,7 @@ This is a living lab notebook. Nothing in the executor, the compiler's Vegas-fac
 | `VERIFIED` | E0 evidence recorded in Section 13. |
 | `PARTIAL` | Works with limits. Limits are listed. |
 | `PARTIAL (compile-time only)` | Metadata or source compilation confirms the API surface against this install, but runtime behavior remains unverified. |
+| `ASSUMED` | A design or feature is implemented or selected using fakes/fixtures only; it is not evidence and does not imply runtime behavior; see RV-001. |
 | `DISPROVED` | Tested and does not work. Fallback is in force. |
 
 All statuses in this document start at `UNVERIFIED` unless stated otherwise.
@@ -963,7 +964,8 @@ Before adapting any code from these, record the license in `DECISIONS.md`. When 
 | 1.0.2 | 2026-10-06 | Recorded VEGAS 17.0 build 284 install metadata and reflection-only member inventory; all three probes compile in C# 5 mode. Statuses remain partial compile-time only where applicable; no Vegas script or project was run. |
 | 1.0.3 | 2026-10-06 | Added Prompt 01b metadata follow-ups for gain, extension, time/frame-rate, fades, render templates, and executor mechanism notes; corrected the R-003 placement. Metadata remains EC only. |
 | 1.0.4 | 2026-10-06 | Completed exact ProjectTimecode and RulerFormat coverage, expanded the Fade inventory, and included the RenderTemplate initializer. Runtime status remains UNVERIFIED. |
+| 1.0.5 | 2026-10-07 | Added ASSUMED as a design-only status for the offline runner and fake adapters; no Vegas runtime behavior is implied or verified (RV-001). |
 
 ---
 
-*End of VEGAS_NOTES.md v1.0.4*
+*End of VEGAS_NOTES.md v1.0.5*

@@ -6,7 +6,11 @@ All notable project changes are recorded here. Contract version entries are chec
 
 ### Changed
 
-- Updated AGENTS.md to 1.1.1 and Architecture to 1.2.2 to mark M1 implementation complete for now as an offline prototype, with real-speech review and Vegas runtime validation still open; corrected the stale Architecture preflight status.
+- Bumped run_manifest=1.1.0 with optional per-file before/after integrity hashes for project and media inputs.
+
+- Marked the VEGAS script-menu route UNVERIFIED on Pro 17, added a provisional decision memo and executor-status guide, and corrected architecture dry-run text to describe offline sidecars; no Vegas behavior was verified. VEGAS_NOTES 1.0.5 defines ASSUMED as design-only status (RV-001).
+
+- Updated AGENTS.md to 1.1.1 and Architecture to 1.2.3 to mark M1 implementation complete for now as an offline prototype, with real-speech review and Vegas runtime validation still open; corrected stale Architecture status and dry-run claims.
 - Updated README and Roadmap with the remaining M1 validation work and M2–M5 project status.
 - Run strict mypy over both `orchestrator/` and `perception/`, matching the repository lint contract.
 - Corrected the current `ops` schema version recorded in preflight-blocked and completed run manifests, with a regression test for the blocked-manifest path.
@@ -22,6 +26,8 @@ All notable project changes are recorded here. Contract version entries are chec
 - Updated Architecture to 1.2.0 for the M1 synthetic timeline, ID-only gap intent, and report contracts.
 
 ### Added
+
+- Added a resumable offline job runner with hash-checked stage artifacts, per-cut approval, checkpointed repair re-execution, file-based reference WAV verification, typed failures, and a confined manual-render watcher command. Vegas execution remains disabled pending human E0 checks.
 
 - Fixed bounded ffprobe VFR sampling by looking ahead 16 packets while classifying only the requested timestamp window; regression tests cover tail artifacts and in-window cadence changes.
 - Completed the approved real-media dry run with unchanged source hash and protected-directory listings; recorded ASR checkpoint revisions, sizes, benchmark, and license metadata limitation.

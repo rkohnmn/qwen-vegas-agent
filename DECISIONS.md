@@ -406,6 +406,16 @@ Rationale: The M1 pipeline, synthetic checks, English real-media artifacts, and 
 Alternatives: Keep the implementation labeled in progress despite all scoped M1 components being delivered, or call the project complete; rejected because the first obscures delivered scope and the second overstates validation and future milestones.
 
 Status: Accepted; M1 implementation is complete for now, while validation tasks and M2–M5 remain open.
+### D-38 — Keep Vegas runtime choices provisional and use review sidecars
+Date: 2026-10-07
+
+Decision: Until E0 probes are available, use sidecar review artifacts, a rebuild-capable working-copy interface, short fixed crossfades, ASS burn-in plus sidecar captions, and manual rendering with a bounded output watcher as the documented fallbacks. Keep script-menu, extension, CLI launch, Vegas mutation, and scripted rendering paths disabled. Mark fake-only job behavior `ASSUMED` (RV-001) and link it to `REVISIT.md`.
+
+Rationale: The supplied goal requires implementation to continue without human Vegas results. The existing source records API metadata and probe compilation only; those do not establish runtime behavior. The project must remain useful offline without presenting a fake as E0 evidence.
+
+Alternatives: Assume menu scripts, extension polling, ripple editing, or scripted render work on this installation; rejected because the relevant Vegas questions remain open. Stop the offline work until a human can test; rejected by the run instruction, which explicitly permits fake-backed implementation with revisit records.
+
+Status: Provisional pending the probes listed in `docs/VEGAS_DECISIONS.md`.
 
 
 ## Reference: browser agent patterns
