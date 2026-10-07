@@ -447,6 +447,10 @@ def test_synthetic_eval_and_truth_template() -> None:
     assert report["verifier_passed"] is False
     assert report["failed_verification_checks"] == ["join_1_level", "join_2_level"]
     assert report["wall_clock_ms"] >= 0
+    caption_eval = report["caption_sidecars"]
+    assert caption_eval["input_words"] == 300
+    assert caption_eval["captions"] == 300
+    assert caption_eval["srt_ass_round_trip"] == "passed"
 
 
 def test_reference_renderer_uses_safe_argument_list_and_verifier_checks_every_join(

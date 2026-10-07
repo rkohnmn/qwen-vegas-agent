@@ -17,8 +17,10 @@ from perception.asr import AsrWord, FakeAsrEngine
 from perception.gaps import GapThresholds
 from perception.words import build_words_document
 
+from .caption_renderers import SidecarOnlyRenderer, parse_ass, parse_srt
+from .captions import CaptionConfig, build_captions
 from .compiler import CompileConfig, FrameInterval, compile_edl, kept_intervals
-from .contracts import check_edl_against, check_timeline, hash_words, validate
+from .contracts import check_captions, check_edl_against, check_timeline, hash_words, validate
 from .packer import build_pack
 from .planner import BaselinePlanner
 from .verifier import verify_audio
@@ -289,6 +291,84 @@ def run_speaker_synthetic_eval() -> dict[str, Any]:
     }
 
 
+def run_synthetic_caption_eval() -> dict[str, Any]:
+    """Measure a synthetic 300-caption layout/export and verify both sidecar round trips."""
+    fps = "25/1"
+    rows: list[dict[str, Any]] = []
+    cursor = 0
+    for index in range(1, 301):
+        start_frame = cursor
+        end_frame = start_frame + 10
+        rows.append(
+            {
+                "id": f"w{index}",
+                "text": f"word{index}",
+                "start": start_frame / 25,
+                "end": end_frame / 25,
+                "speaker": "host" if index % 2 else "guest",
+                "speaker_conf": 0.98,
+                "alignment_status": "aligned",
+            }
+        )
+        cursor += 25
+    words: dict[str, Any] = {"fps": fps, "words": rows}
+    edl: dict[str, Any] = {
+        "subtitles": {"style": None, "emphasis": [], "break_hints": [], "omit_ranges": []}
+    }
+    timeline: dict[str, Any] = {"fps": fps, "duration_frames": cursor + 10}
+    speakers: dict[str, Any] = {
+        "schema_version": "1.1.0",
+        "speakers": {
+            "host": {"display": "Host", "color": "#4FC3F7"},
+            "guest": {"display": "Guest", "color": "#FFB74D"},
+        },
+        "unknown_palette": ["#BDBDBD", "#CE93D8"],
+    }
+    config = CaptionConfig(max_cps=100, min_duration_ms=1, hold_ms=0)
+    started = time.perf_counter()
+    document, report = build_captions(
+        words, edl, timeline, [], config=config, speakers_document=speakers
+    )
+    layout_ms = (time.perf_counter() - started) * 1000
+    if validate("captions", document) or check_captions(document, words):
+        raise ValueError("synthetic caption evaluation produced an invalid document")
+    with tempfile.TemporaryDirectory(prefix="caption-eval-", dir=Path.cwd()) as temporary:
+        started = time.perf_counter()
+        json_path, srt_path, ass_path, _report_path = SidecarOnlyRenderer().write_sidecars(
+            temporary, document, report, speakers, config
+        )
+        export_ms = (time.perf_counter() - started) * 1000
+        if json_path.stat().st_size == 0:
+            raise ValueError("synthetic caption JSON export is empty")
+        if parse_srt(srt_path.read_text(encoding="utf-8"), fps) != [
+            {
+                "start_frame": row["start_frame"],
+                "end_frame": row["end_frame"],
+                "text": row["text"],
+            }
+            for row in document["captions"]
+        ]:
+            raise ValueError("synthetic SRT parse-back did not match caption frames")
+        if parse_ass(ass_path.read_text(encoding="utf-8"), fps) != [
+            {
+                "start_frame": row["start_frame"],
+                "end_frame": row["end_frame"],
+                "text": row["text"],
+            }
+            for row in document["captions"]
+        ]:
+            raise ValueError("synthetic ASS parse-back did not match caption frames")
+    return {
+        "input_words": len(rows),
+        "captions": len(document["captions"]),
+        "layout_wall_ms": round(layout_ms, 3),
+        "sidecar_export_wall_ms": round(export_ms, 3),
+        "srt_ass_round_trip": "passed",
+        "speaker_colors": "resolved from synthetic speakers map",
+        "scope_note": "Synthetic local measurement; not Vegas event or render performance.",
+    }
+
+
 def run_synthetic_eval() -> dict[str, Any]:
     """Measure deterministic baseline selection against a tiny labeled synthetic case."""
     started = time.perf_counter()
@@ -465,6 +545,7 @@ def run_synthetic_eval() -> dict[str, Any]:
         "compile_rejections": len(report["rejected_items"]),
         "planner_retries": 0,
         "speaker_attribution": run_speaker_synthetic_eval(),
+        "caption_sidecars": run_synthetic_caption_eval(),
         "scope_note": "Synthetic smoke check only; not a real-clip quality estimate.",
     }
 

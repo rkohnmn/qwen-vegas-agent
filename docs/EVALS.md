@@ -122,6 +122,24 @@ Command: `python tasks.py eval`. Dataset: `synthetic-tone-silence-v1` (one synth
 
 This is a synthetic plumbing result only. It is not a Vegas-rendered measurement or a real-speech quality estimate. The two level-step failures remain visible; no thresholds were relaxed. Real-speech and Vegas-rendered metrics remain open under RV-001 and RV-002.
 
+## 2026-10-07 Goal 06 synthetic caption checks
+
+Commands: `python tasks.py test` and `python tasks.py eval`. Fixtures use synthetic word IDs, synthetic speaker colors, and deterministic rational frame mapping. The suite completed 141 unit tests successfully; one generated-video ASS burn-in test was skipped because FFmpeg/ffprobe are absent (RV-008). The synthetic `eval` path generated and round-tripped 300 caption events.
+
+| Check | Result |
+|---|---:|
+| Source-to-edited mapping through synthetic removed ranges | Exact integer-frame mapping; post-cut word begins at the expected edited frame |
+| Seeded layout batch | 200 synthetic words; one speaker per caption, at most two lines in the fixture, no same-speaker overlaps |
+| SRT / ASS parse-back | Text and frame-grid timing round-trip passed, including braces, backslashes, and line breaks |
+| Color assignment | Speaker colors and unknown palette sourced from `speakers.json`; model color field rejection passed |
+| Low confidence / contrast | Flag and warning fixtures passed; no attribution is reassigned |
+| 300 synthetic captions: layout / sidecar export | 41.107 ms / 10.017 ms in the recorded `python tasks.py eval` run; 300 JSON/SRT/ASS events |
+| 300-caption Vegas performance | Not measured; human check remains open under RV-007 |
+| Rendered sync / pixel color / phone readability | Not measured; human checks remain open under RV-007/RV-008 |
+| ASS burn-in generated-clip E2E | Skipped: local FFmpeg and ffprobe are unavailable (RV-008) |
+
+These checks establish deterministic offline behavior only. They do not establish real-speech synchronization, visual contrast after rasterization, or Vegas performance.
+
 ## Metric definitions
 
 | Metric | Definition |
