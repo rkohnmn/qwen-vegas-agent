@@ -20,8 +20,11 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from orchestrator.artifacts import write_cmx_edl, write_json, write_markers, write_review
+from orchestrator.caption_renderers import SidecarOnlyRenderer, write_caption_review
+from orchestrator.captions import CaptionConfig, build_captions
 from orchestrator.compiler import CompileConfig, FrameInterval, compile_edl
 from orchestrator.contracts import (
+    check_captions,
     check_edl_against,
     check_ops,
     check_run_manifest,
@@ -458,6 +461,7 @@ def _write_decision_review(
     fps: str,
     ops: dict[str, Any],
     audit: list[dict[str, Any]],
+    caption_report: dict[str, Any],
 ) -> None:
     write_markers(root / "markers.csv", ops["operations"], fps, decisions=audit)
     write_review(root / "review.md", approved_edl, words, report)
@@ -466,6 +470,7 @@ def _write_decision_review(
         review.write("| Item | Decision |\n|---|---|\n")
         for row in audit:
             review.write(f"| {row['id']} | {row['decision']} |\n")
+    write_caption_review(root / "review.md", caption_report)
 
 
 def run_job(
@@ -474,6 +479,7 @@ def run_job(
     source_media_paths: Sequence[str | Path],
     timeline_path: str | Path,
     words_path: str | Path,
+    speakers_path: str | Path | None = None,
     audio_path: str | Path,
     run_dir: str | Path,
     options: JobOptions | None = None,
@@ -482,6 +488,7 @@ def run_job(
     decisions_path: str | Path | None = None,
     executor: JobExecutor | None = None,
     renderer: AudioRenderer | None = None,
+    caption_config: CaptionConfig | None = None,
     resume: bool = False,
 ) -> Path:
     """Run M4 stages using supplied timeline/perception artifacts.
@@ -504,6 +511,11 @@ def run_job(
     media_files = [Path(path).resolve() for path in source_media_paths]
     timeline_input = Path(timeline_path).resolve()
     words_input = Path(words_path).resolve()
+    speakers_input = (
+        Path(speakers_path).resolve()
+        if speakers_path is not None
+        else words_input.with_name("speakers.json")
+    )
     audio = Path(audio_path).resolve()
     root = Path(run_dir).resolve()
     if project.suffix.casefold() != ".veg" or not project.is_file():
@@ -512,7 +524,10 @@ def run_job(
             "E_PROJECT_INPUT",
             "project input must be an existing VEGAS project copy",
         )
-    if any(not path.is_file() for path in [*media_files, timeline_input, words_input, audio]):
+    if any(
+        not path.is_file()
+        for path in [*media_files, timeline_input, words_input, speakers_input, audio]
+    ):
         raise JobStageFailure("ingest", "E_INPUT_MISSING", "a declared input file is missing")
     if root.exists() and not resume:
         raise JobStageFailure(
@@ -537,6 +552,7 @@ def run_job(
     source_records.append(_file_record("normalized_audio", audio_hash, audio_hash))
     input_hashes["timeline"] = _sha256_file(timeline_input)
     input_hashes["words"] = _sha256_file(words_input)
+    input_hashes["speakers"] = _sha256_file(speakers_input)
     if recorded_edl_path is not None:
         input_hashes["recorded_edl"] = _sha256_file(Path(recorded_edl_path).resolve())
 
@@ -546,7 +562,7 @@ def run_job(
             raise JobStageFailure("project_copy", "E_RESUME_STATE", "saved job state is missing")
         state = _load_object(state_path, "project_copy", "saved job state")
         saved_inputs = state.get("inputs", {})
-        core_keys = {"project", "normalized_audio", "timeline", "words"} | {
+        core_keys = {"project", "normalized_audio", "timeline", "words", "speakers"} | {
             key for key in input_hashes if key.startswith("media_") or key == "recorded_edl"
         }
         if not isinstance(saved_inputs, dict) or any(
@@ -584,9 +600,17 @@ def run_job(
     pack_text = ""
     timeline: dict[str, Any] = {}
     words: dict[str, Any] = {}
+    speakers_doc: dict[str, Any] = {}
     edl: dict[str, Any] = {}
     ops: dict[str, Any] = {}
     compile_report: dict[str, Any] = {}
+    captions_document: dict[str, Any] = {}
+    captions_report: dict[str, Any] = {}
+    caption_settings = caption_config or CaptionConfig()
+    try:
+        caption_settings.validate()
+    except ValueError as error:
+        raise JobStageFailure("compile", "E_CAPTION_CONFIG", str(error)) from None
     removed: list[FrameInterval] = []
     final_message = (
         "Offline pipeline complete; Vegas execution and final rendering remain unverified."
@@ -676,8 +700,14 @@ def run_job(
             timeline = _load_object(root / "timeline.json", "ingest", "timeline")
 
         def load_words() -> None:
-            nonlocal words
+            nonlocal words, speakers_doc
             words = _load_object(words_input, "perceive", "words")
+            speakers_doc = _load_object(speakers_input, "perceive", "speaker map")
+            speaker_issues = validate("speakers", speakers_doc)
+            if speaker_issues:
+                raise JobStageFailure(
+                    "perceive", "E_SPEAKERS_INVALID", "speaker map failed contract validation"
+                )
             issues = [*validate("words", words), *check_words(words)]
             if issues:
                 raise JobStageFailure(
@@ -692,18 +722,21 @@ def run_job(
                     "word and timeline source metadata differ",
                 )
             write_json(root / "words.json", words)
+            write_json(root / "speakers.json", speakers_doc)
 
         _execute_stage(
             root,
             state,
             "perceive",
-            input_hashes["words"] + input_hashes["timeline"],
-            [root / "words.json"],
+            input_hashes["words"] + input_hashes["timeline"] + input_hashes["speakers"],
+            [root / "words.json", root / "speakers.json"],
             load_words,
         )
         pause_if_requested("perceive")
         if not words:
             words = _load_object(root / "words.json", "perceive", "words")
+        if not speakers_doc:
+            speakers_doc = _load_object(root / "speakers.json", "perceive", "speaker map")
 
         def make_pack() -> None:
             nonlocal pack_text
@@ -740,7 +773,7 @@ def run_job(
                 ) from None
             issues = [
                 *validate("edl", edl),
-                *check_edl_against(edl, words, {"speakers": {}}, catalog, timeline),
+                *check_edl_against(edl, words, speakers_doc, catalog, timeline),
             ]
             if issues:
                 raise JobStageFailure(
@@ -761,7 +794,7 @@ def run_job(
             edl = _load_object(root / "edl.json", "plan", "EDL")
 
         def compile_initial() -> None:
-            nonlocal ops, compile_report, removed
+            nonlocal ops, compile_report, removed, captions_document, captions_report
             ops, compile_report, removed = compile_edl(
                 edl,
                 words,
@@ -770,10 +803,20 @@ def run_job(
                 working_copy_path=str(copy_path),
                 config=CompileConfig(audio_crossfade_ms=options.initial_crossfade_ms),
             )
+            captions_document, captions_report = build_captions(
+                words,
+                edl,
+                timeline,
+                removed,
+                config=caption_settings,
+                speakers_document=speakers_doc,
+            )
             issues = [
                 *validate("ops", ops),
                 *check_ops(ops, root),
                 *validate("compile_report", compile_report),
+                *validate("captions", captions_document),
+                *check_captions(captions_document, words),
             ]
             if issues:
                 raise JobStageFailure(
@@ -781,11 +824,16 @@ def run_job(
                 )
             write_json(root / "ops.json", ops)
             write_json(root / "compile_report.json", compile_report)
+            SidecarOnlyRenderer().write_sidecars(
+                root, captions_document, captions_report, speakers_doc, caption_settings
+            )
 
         compile_key = _stable_hash(
             {
                 "edl": input_hashes["words"] + _stable_hash(edl),
                 "timeline": input_hashes["timeline"],
+                "speakers": input_hashes["speakers"],
+                "caption_config": repr(caption_settings),
                 "crossfade_ms": options.initial_crossfade_ms,
             }
         )
@@ -794,13 +842,24 @@ def run_job(
             state,
             "compile",
             compile_key,
-            [root / "ops.json", root / "compile_report.json"],
+            [
+                root / "ops.json",
+                root / "compile_report.json",
+                root / "captions.json",
+                root / "captions.srt",
+                root / "captions.ass",
+                root / "captions_report.json",
+            ],
             compile_initial,
         )
         pause_if_requested("compile")
         if not ops:
             ops = _load_object(root / "ops.json", "compile", "operations")
             compile_report = _load_object(root / "compile_report.json", "compile", "compile report")
+            captions_document = _load_object(root / "captions.json", "compile", "captions")
+            captions_report = _load_object(
+                root / "captions_report.json", "compile", "caption report"
+            )
             _, _, removed = compile_edl(
                 edl,
                 words,
@@ -822,6 +881,7 @@ def run_job(
                 root / "cutlist_preview.edl", timeline["fps"], timeline["duration_frames"], removed
             )
             write_review(root / "review_preview.md", edl, words, compile_report)
+            write_caption_review(root / "review_preview.md", captions_report)
             shutil.copyfile(root / "markers_preview.csv", root / "markers.csv")
             shutil.copyfile(root / "review_preview.md", root / "review.md")
 
@@ -870,8 +930,12 @@ def run_job(
             decisions = _load_object(decisions_file, "approve", "approval")
             active_edl, audit = _approved_edl(edl, decisions)
 
+            active_captions_document: dict[str, Any] = {}
+            active_captions_report: dict[str, Any] = {}
+
             def compile_approved() -> None:
                 nonlocal active_ops, active_report, active_removed
+                nonlocal active_captions_document, active_captions_report
                 active_ops, active_report, active_removed = compile_edl(
                     active_edl,
                     words,
@@ -880,10 +944,20 @@ def run_job(
                     working_copy_path=str(copy_path),
                     config=CompileConfig(audio_crossfade_ms=options.initial_crossfade_ms),
                 )
+                active_captions_document, active_captions_report = build_captions(
+                    words,
+                    active_edl,
+                    timeline,
+                    active_removed,
+                    config=caption_settings,
+                    speakers_document=speakers_doc,
+                )
                 issues = [
                     *validate("ops", active_ops),
                     *check_ops(active_ops, root),
                     *validate("compile_report", active_report),
+                    *validate("captions", active_captions_document),
+                    *check_captions(active_captions_document, words),
                 ]
                 if issues:
                     raise JobStageFailure(
@@ -894,6 +968,13 @@ def run_job(
                 write_json(root / "approved_edl.json", active_edl)
                 write_json(root / "approved_ops.json", active_ops)
                 write_json(root / "approved_compile_report.json", active_report)
+                SidecarOnlyRenderer().write_sidecars(
+                    root / "approved_captions",
+                    active_captions_document,
+                    active_captions_report,
+                    speakers_doc,
+                    caption_settings,
+                )
                 _copy_checked(project, pre_execute_checkpoint, project_hash_before)
                 _atomic_json(root / "approved_cuts.json", {"decisions": audit})
                 _write_decision_review(
@@ -904,6 +985,7 @@ def run_job(
                     fps=timeline["fps"],
                     ops=active_ops,
                     audit=audit,
+                    caption_report=active_captions_report,
                 )
 
             decision_hash = _sha256_file(decisions_file)
@@ -916,6 +998,10 @@ def run_job(
                     root / "approved_edl.json",
                     root / "approved_ops.json",
                     root / "approved_compile_report.json",
+                    root / "approved_captions" / "captions.json",
+                    root / "approved_captions" / "captions.srt",
+                    root / "approved_captions" / "captions.ass",
+                    root / "approved_captions" / "captions_report.json",
                     pre_execute_checkpoint,
                     root / "approved_cuts.json",
                     root / "markers.csv",

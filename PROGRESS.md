@@ -5,12 +5,12 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 ## Current state
 
 - Current goal: 06 — Subtitles with Speaker Colors.
-- Current phase: Goal 06 phase B — color, contrast, and sidecar serialization. Phase A commit: 59ce2ba.
-- Last completed Goal 05 implementation/documentation commit: 529996a; completion/archive commit c799ecc. Goal 06 phase A committed as 59ce2ba.
+- Current phase: Goal 06 phase C — compile and resumable job integration. Phase A: 59ce2ba; phase B: ca2ce47.
+- Last completed Goal 05 implementation/documentation commit: 529996a; completion/archive commit c799ecc. Goal 06 phases A and B are committed as 59ce2ba and ca2ce47.
 - Goals completed in this run: 04 and 05 — done with assumptions; origin/main includes both completion commits.
 - Goals blocked: 01b–03 — source prompts and prerequisite evidence are missing (RV-003); no claim of completion.
 - Retry counters: Goal 05 had one targeted timeout-test repair, one ruff repair cycle, and one mypy repair cycle; all were fixed and rerun. Final unit suite: 126 passed. Goal 05 push succeeded.
-- Next action: finish Goal 06 color resolution, safe ASS/SRT exports, and renderer tests; keep VQ-09/VQ-10 runtime work gated on human probe evidence.
+- Next action: wire sidecars into standalone and approved job compilation, then document the VQ-09/VQ-10 gate; keep all Vegas text operations disabled.
 
 ## Ten-line plan for goal 06
 

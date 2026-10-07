@@ -122,6 +122,17 @@ def _job_inputs(tmp_path: Path) -> dict[str, Any]:
     words["fps"] = timeline["fps"]
     words_path = tmp_path / "words.json"
     words_path.write_text(json.dumps(words), encoding="utf-8")
+    speakers_path = tmp_path / "speakers.json"
+    speakers_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.1.0",
+                "speakers": {"host": {"display": "Host", "color": "#4FC3F7"}},
+                "unknown_palette": ["#BDBDBD", "#CE93D8"],
+            }
+        ),
+        encoding="utf-8",
+    )
 
     audio = tmp_path / "normalized.wav"
     _write_wave(audio, array("h", [10000] * 48000))
@@ -130,6 +141,7 @@ def _job_inputs(tmp_path: Path) -> dict[str, Any]:
         "source_media_paths": [media],
         "timeline_path": timeline_path,
         "words_path": words_path,
+        "speakers_path": speakers_path,
         "audio_path": audio,
     }
 
@@ -166,10 +178,15 @@ def test_run_job_writes_review_verify_and_integrity_artifacts(
         "working_copy/project.veg",
         "timeline.json",
         "words.json",
+        "speakers.json",
         "pack.txt",
         "edl.json",
         "ops.json",
         "compile_report.json",
+        "captions.json",
+        "captions.srt",
+        "captions.ass",
+        "captions_report.json",
         "markers.csv",
         "cutlist_preview.edl",
         "review.md",
@@ -186,6 +203,11 @@ def test_run_job_writes_review_verify_and_integrity_artifacts(
     assert verify_calls == [output / "reference_preview_0.wav", output / "reference_preview_1.wav"]
     report = json.loads((output / "verify_report.json").read_text(encoding="utf-8"))
     assert report["passed"] is True
+    captions = json.loads((output / "captions.json").read_text(encoding="utf-8"))
+    caption_report = json.loads((output / "captions_report.json").read_text(encoding="utf-8"))
+    assert captions["captions"]
+    assert caption_report["caption_count"] == len(captions["captions"])
+    assert "Caption review" in (output / "review.md").read_text(encoding="utf-8")
     fixes = json.loads((output / "fixes.json").read_text(encoding="utf-8"))
     assert fixes["fixes"][0]["action"] == "widen_crossfade"
     assert fixes["fixes"][0]["from_ms"] == 20
@@ -224,6 +246,10 @@ def test_approval_recompiles_exact_approved_cut_subset(tmp_path: Path) -> None:
         renderer=FakeRenderer(repair_at_ms=0),
     )
     approved = json.loads((output / "approved_ops.json").read_text(encoding="utf-8"))
+    approved_captions = json.loads(
+        (output / "approved_captions" / "captions.json").read_text(encoding="utf-8")
+    )
+    assert approved_captions["captions"]
     applied_ids = [
         identifier
         for op in approved["operations"]

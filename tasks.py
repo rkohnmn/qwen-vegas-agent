@@ -872,6 +872,7 @@ def task_compile(args: argparse.Namespace) -> int:
             args.edl,
             output_root=args.output_dir,
             audio_path=args.audio,
+            speakers_path=args.speakers,
         )
     except (AudioExtractionError, DryRunError, OSError, ValueError) as error:
         print(f"compile blocked or failed: {error}", file=sys.stderr)
@@ -968,6 +969,7 @@ def task_run_job(args: argparse.Namespace) -> int:
             source_media_paths=args.media,
             timeline_path=args.timeline,
             words_path=args.words,
+            speakers_path=args.speakers,
             audio_path=args.audio,
             run_dir=output_dir,
             options=options,
@@ -986,6 +988,37 @@ def task_run_job(args: argparse.Namespace) -> int:
         print(f"run-job blocked or failed: {error}", file=sys.stderr)
         return 1
     print(f"run-job artifacts written under {result.relative_to(ROOT)}")
+    return 0
+
+
+def task_burn_captions(args: argparse.Namespace) -> int:
+    """Burn a generated ASS sidecar into a render confined to one ignored run directory."""
+    from orchestrator.caption_renderers import AssBurnInRenderer, CaptionRenderError
+
+    runs_root = (ROOT / "runs").resolve()
+    job_dir = Path(args.job_dir).resolve()
+    if not job_dir.is_relative_to(runs_root) or not job_dir.is_dir():
+        print("burn-captions job directory must be an existing folder under runs/", file=sys.stderr)
+        return 2
+
+    def job_path(value: str) -> Path:
+        candidate = Path(value)
+        return candidate.resolve() if candidate.is_absolute() else (job_dir / candidate).resolve()
+
+    video_path = job_path(args.video)
+    ass_path = job_path(args.ass)
+    output_path = job_path(args.output)
+    try:
+        result = AssBurnInRenderer().burn_in(
+            video_path,
+            ass_path,
+            output_path,
+            allowed_root=job_dir,
+        )
+    except (CaptionRenderError, OSError, ValueError) as error:
+        print(f"burn-captions blocked or failed: {error}", file=sys.stderr)
+        return 1
+    print(f"captioned render written under {result.relative_to(ROOT)}")
     return 0
 
 
@@ -1042,6 +1075,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "answer-speaker",
         "plan",
         "compile",
+        "burn-captions",
         "integration",
         "run-job",
         "watch-render",
@@ -1080,11 +1114,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             subparser.add_argument("--words", required=True)
             subparser.add_argument("--recorded-edl", default=None)
             subparser.add_argument("--output-dir", default=None)
+        if name == "burn-captions":
+            subparser.add_argument("--job-dir", required=True)
+            subparser.add_argument("--video", default="final_render.mp4")
+            subparser.add_argument("--ass", default="captions.ass")
+            subparser.add_argument("--output", default="final_captioned.mp4")
         if name == "compile":
             subparser.add_argument("--words", required=True)
             subparser.add_argument("--timeline", required=True)
             subparser.add_argument("--edl", required=True)
             subparser.add_argument("--audio", default=None)
+            subparser.add_argument("--speakers", default=None)
             subparser.add_argument("--output-dir", default=None)
         if name == "watch-render":
             subparser.add_argument("--job-dir", required=True)
@@ -1103,6 +1143,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             subparser.add_argument("--timeline", required=True, help="validated timeline dump")
             subparser.add_argument(
                 "--words", required=True, help="validated aligned words artifact"
+            )
+            subparser.add_argument(
+                "--speakers", default=None, help="speaker map; defaults beside words.json"
             )
             subparser.add_argument(
                 "--audio", required=True, help="normalized mono PCM16 preview source"
@@ -1148,6 +1191,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "answer-speaker",
             "plan",
             "compile",
+            "burn-captions",
             "run-job",
             "watch-render",
             "revisit-check",
@@ -1192,6 +1236,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return task_plan(args)
     if args.task == "compile":
         return task_compile(args)
+    if args.task == "burn-captions":
+        return task_burn_captions(args)
     if args.task == "integration":
         return task_integration()
     if args.task == "run-job":

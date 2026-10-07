@@ -11,9 +11,12 @@ from pathlib import Path
 from typing import Any
 
 from orchestrator.artifacts import write_json
+from orchestrator.caption_renderers import SidecarOnlyRenderer, write_caption_review
+from orchestrator.captions import CaptionConfig, build_captions
 from orchestrator.cli import DryRunError, _load_settings, _workspace_path
 from orchestrator.compiler import CompileConfig, compile_edl
 from orchestrator.contracts import (
+    check_captions,
     check_edl_against,
     check_ops,
     check_timeline,
@@ -372,8 +375,9 @@ def run_compile(
     *,
     output_root: str | Path | None = None,
     audio_path: str | Path | None = None,
+    speakers_path: str | Path | None = None,
 ) -> Path:
-    """Validate inputs and write frame-resolved ops plus compile report."""
+    """Validate inputs and write frame-resolved ops and caption sidecars."""
     try:
         words = json.loads(Path(words_path).read_text(encoding="utf-8"))
         timeline = json.loads(Path(timeline_path).read_text(encoding="utf-8"))
@@ -391,6 +395,19 @@ def run_compile(
         or check_timeline(timeline)
     ):
         raise DryRunError("words or timeline input failed contract validation")
+    speaker_file = (
+        Path(speakers_path)
+        if speakers_path is not None
+        else Path(words_path).with_name("speakers.json")
+    )
+    try:
+        speakers_doc = json.loads(speaker_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        raise DryRunError(
+            "speaker map could not be read; supply --speakers or place it beside words.json"
+        ) from None
+    if not isinstance(speakers_doc, dict) or validate("speakers", speakers_doc):
+        raise DryRunError("speaker map failed contract validation")
     catalog: dict[str, Any] = {
         "transitions": [],
         "video_fx": [],
@@ -398,10 +415,13 @@ def run_compile(
         "text_presets": [],
         "sfx": [],
     }
-    if validate("edl", edl) or check_edl_against(edl, words, {"speakers": {}}, catalog, timeline):
+    if validate("edl", edl) or check_edl_against(edl, words, speakers_doc, catalog, timeline):
         raise DryRunError("EDL input failed schema or referential validation")
     output = _new_output(output_root, "compile")
-    compile_settings = _load_settings()["compile"]
+    settings = _load_settings()
+    compile_settings = settings["compile"]
+    caption_config = CaptionConfig.from_mapping(settings.get("subtitles", {}))
+    caption_config.validate()
     config = CompileConfig(
         head_pad_ms=compile_settings["head_pad_ms"],
         tail_pad_ms=compile_settings["tail_pad_ms"],
@@ -415,7 +435,7 @@ def run_compile(
     if audio_path is not None:
         safe_audio_path = _workspace_path(audio_path, "audio analysis file")
         audio_samples, sample_rate = read_pcm16_mono(safe_audio_path)
-    ops, report, _ = compile_edl(
+    ops, report, removed = compile_edl(
         edl,
         words,
         timeline,
@@ -425,8 +445,26 @@ def run_compile(
         audio_samples=audio_samples,
         sample_rate=sample_rate,
     )
-    if validate("ops", ops) or check_ops(ops, output) or validate("compile_report", report):
-        raise DryRunError("compiler output failed contract validation")
+    caption_document, caption_report = build_captions(
+        words,
+        edl,
+        timeline,
+        removed,
+        config=caption_config,
+        speakers_document=speakers_doc,
+    )
+    if (
+        validate("ops", ops)
+        or check_ops(ops, output)
+        or validate("compile_report", report)
+        or validate("captions", caption_document)
+        or check_captions(caption_document, words)
+    ):
+        raise DryRunError("compiler or caption output failed contract validation")
     write_json(output / "ops.json", ops)
     write_json(output / "compile_report.json", report)
+    SidecarOnlyRenderer().write_sidecars(
+        output, caption_document, caption_report, speakers_doc, caption_config
+    )
+    write_caption_review(output / "review.md", caption_report)
     return output
