@@ -73,11 +73,32 @@ The source CFR copy is H.264 1280x720 with AAC stereo audio at 44,100 Hz and exa
 | Device / compute type / peak VRAM | CUDA / `int8_float16` / 0.578 GB |
 | ASR wall time / real-time factor | 30.747 seconds / 0.2562 |
 | Pipeline wall time / per media minute | 35.044 seconds / 17.522 seconds |
-| Word rows / timing anchors | 210 / 210 (100%); no human boundary labels |
+| Word rows / timing anchors / unaligned | 210 / 210 / 0; no human boundary labels |
 | Word-duration sanity | 8/210 under 20 ms (3.81%); 2/210 over 2 s (0.95%); min 20 ms, max 5,129 ms |
-| Baseline EDL | 0 lexical cuts; 8 gap actions |
+| Baseline EDL | 0 lexical cuts; 8 silence/shorten gap actions |
 | Compile result | 8/8 gap actions applied; 16 `delete_range` operations; 8.3611% removed |
 | Verifier result | Failed `E_VERIFY`: 12/16 level-step and 4/16 pacing checks failed; 16/16 click checks passed, maximum discontinuity 0.033783 against 0.12 |
+
+| Join | Click metric (limit 0.12) | Level step dB (limit 8.0) | Click | Level |
+|---|---:|---:|---|---|
+| join_1 | 0.000732 | 27.3668 | pass | fail |
+| join_2 | 0.000000 | 36.3924 | pass | fail |
+| join_3 | 0.000153 | 41.4798 | pass | fail |
+| join_4 | 0.000092 | 32.8258 | pass | fail |
+| join_5 | 0.000092 | 34.4418 | pass | fail |
+| join_6 | 0.000031 | 1.2150 | pass | pass |
+| join_7 | 0.006653 | 8.3967 | pass | fail |
+| join_8 | 0.033783 | 5.9722 | pass | pass |
+| join_9 | 0.000092 | 31.4512 | pass | fail |
+| join_10 | 0.000610 | 42.8528 | pass | fail |
+| join_11 | 0.002136 | 17.1061 | pass | fail |
+| join_12 | 0.000031 | 37.2731 | pass | fail |
+| join_13 | 0.000275 | 28.9100 | pass | fail |
+| join_14 | 0.000397 | 16.2012 | pass | fail |
+| join_15 | 0.001709 | 2.3011 | pass | pass |
+| join_16 | 0.000580 | 4.0023 | pass | pass |
+
+The 16 joins all come from one unlabelled recording, so the sample does not justify recalibrating either verifier threshold. Keep the 0.12 click and 8.0 dB level-step defaults while collecting human-reviewed real-speech evidence.
 
 The corrected mapper consumes WhisperX's sentence-sized results in transcript order and retains timings only after normalized text matches. All 210 rows received timing anchors, but no word-level ground truth was available; cut precision/recall and timing accuracy remain unmeasured. The first English run's 55/210 result is a diagnosed mapping defect, not an ASR quality baseline. The latest run's `truth_template.json` is an unlabeled editing skeleton under ignored `runs/`. The aligner checkpoint provenance is recorded in D-35; the mapping correction and latest run evidence are in D-36. Verifier thresholds remain `max_click_delta=0.12` and `max_level_step_db=8.0` dB.
 

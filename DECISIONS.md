@@ -348,7 +348,7 @@ Date: 2026-10-06
 
 Decision: Keep `max_click_delta=0.12` and `max_level_step_db=8.0` unchanged. Report real-join metrics when available, but do not recalibrate thresholds from a single unreviewed clip.
 
-Rationale: The initial English run in D-35 recorded six joins with five level-step failures and two pacing failures. The corrected run in D-36 records 16 joins, with 12 level-step and four pacing failures. The speech-like synthetic fixture exercises smoother envelopes, while the retained tone fixture remains a stress case. These runs justify review, not threshold changes.
+Rationale: The corrected run in D-36 has 16 joins from one unlabelled recording. Click values range from 0 to 0.033783 and all pass the 0.12 limit; level steps range from 1.215 to 42.8528 dB, with 12/16 above the 8.0 dB limit. Sixteen correlated joins from one clip are too small and unrepresentative to calibrate thresholds. The speech-like synthetic fixture is not a real-speech calibration sample; keep defaults until a larger, human-reviewed set exists.
 
 Alternatives: Raise thresholds until the tone fixture passes or claim calibration from a zero-join sample; rejected because either would overstate verifier evidence.
 
@@ -388,7 +388,7 @@ Decision: Match WhisperX aligned sentence segments to raw ASR tokens in transcri
 
 Rationale: WhisperX can return more aligned segments than faster-whisper raw segments because it splits alignment output at sentence boundaries. The original positional pairing assumed equal list lengths and caused valid English timing rows to be discarded. A corrected run produced timing anchors for all 210 English words, while the token-sequence guard prevents mismatched output from receiving times.
 
-Evidence: Regression tests cover one raw segment split across sentence outputs, preservation of raw segment indices, and a text mismatch falling back to unaligned words. The corrected 120-second English run (`20261007T001144Z_5475d354`) produced 210/210 timing anchors, eight applied gap actions, and 16 join measurements. Duration sanity flagged 8/210 rows under 20 ms and 2/210 above 2 seconds (maximum 5.129 seconds). Verification returned `E_VERIFY`: 12 level-step checks and four pacing checks failed; 16/16 click checks passed. An unlabeled truth template was generated under the ignored run directory. No word-level ground truth was available, so timing accuracy and editing quality remain unmeasured. Thresholds are unchanged.
+Evidence: Regression tests cover one raw segment split across sentence outputs, preservation of raw segment indices, and a text mismatch falling back to unaligned words. The corrected 120-second English run (`20261007T001144Z_5475d354`) produced 210/210 timing anchors and zero unaligned tokens, eight applied silence/shorten gap actions, and 16 join measurements. Duration sanity flagged 8/210 rows under 20 ms and 2/210 above 2 seconds (maximum 5.129 seconds). Verification returned `E_VERIFY`: 12 level-step checks and four pacing checks failed; 16/16 click checks passed. An unlabeled truth template was generated under the ignored run directory. No word-level ground truth was available, so timing accuracy and editing quality remain unmeasured. Thresholds are unchanged.
 
 Alternatives: Keep positional pairing or accept mismatched alignment rows; rejected because sentence splits shift indices and mismatched tokens must not receive times.
 
