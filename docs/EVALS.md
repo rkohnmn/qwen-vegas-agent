@@ -77,7 +77,7 @@ The source CFR copy is H.264 1280x720 with AAC stereo audio at 44,100 Hz and exa
 | Word-duration sanity | 8/210 under 20 ms (3.81%); 2/210 over 2 s (0.95%); min 20 ms, max 5,129 ms |
 | Baseline EDL | 0 lexical cuts; 8 silence/shorten gap actions |
 | Compile result | 8/8 gap actions applied; 16 `delete_range` operations; 8.3611% removed |
-| Verifier result | Failed `E_VERIFY`: 12/16 level-step and 4/16 pacing checks failed; 16/16 click checks passed, maximum discontinuity 0.033783 against 0.12 |
+| Verifier result | Failed `E_VERIFY`: 12/16 level-step and 4/16 pacing checks failed; 16/16 click and 32/32 clipped-word checks passed; removed-percent passed |
 
 | Join | Click metric (limit 0.12) | Level step dB (limit 8.0) | Click | Level |
 |---|---:|---:|---|---|
@@ -98,7 +98,7 @@ The source CFR copy is H.264 1280x720 with AAC stereo audio at 44,100 Hz and exa
 | join_15 | 0.001709 | 2.3011 | pass | pass |
 | join_16 | 0.000580 | 4.0023 | pass | pass |
 
-The 16 joins all come from one unlabelled recording, so the sample does not justify recalibrating either verifier threshold. Keep the 0.12 click and 8.0 dB level-step defaults while collecting human-reviewed real-speech evidence.
+The 16 joins all come from one unlabelled recording, so the sample does not justify recalibrating either verifier threshold. Keep the 0.12 click and 8.0 dB level-step defaults while collecting human-reviewed real-speech evidence. The 16 compiled delete ranges had zero overlap with the 210 aligned word spans when compared on the rational 30/1 frame grid.
 
 The corrected mapper consumes WhisperX's sentence-sized results in transcript order and retains timings only after normalized text matches. All 210 rows received timing anchors, but no word-level ground truth was available; cut precision/recall and timing accuracy remain unmeasured. The first English run's 55/210 result is a diagnosed mapping defect, not an ASR quality baseline. The latest run's `truth_template.json` is an unlabeled editing skeleton under ignored `runs/`. The aligner checkpoint provenance is recorded in D-35; the mapping correction and latest run evidence are in D-36. Verifier thresholds remain `max_click_delta=0.12` and `max_level_step_db=8.0` dB.
 
