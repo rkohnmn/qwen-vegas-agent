@@ -4,6 +4,8 @@ All notable project changes are recorded here. Contract version entries are chec
 
 ## [Unreleased] — Milestone 1
 
+- Bumped catalog=1.2.0 with measured SFX sample rate, peak, and content fingerprint fields; added the local SFX index command.
+
 ### Added
 - Bumped catalog=1.1.0 with optional enabled/context policy fields; added a deterministic internal catalog builder and opt-in tag-file support. Newly built plugin entries default disabled, and disabled entries are filtered from the planner summary.
 

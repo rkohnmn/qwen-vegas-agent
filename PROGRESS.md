@@ -5,12 +5,12 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 ## Current state
 
 - Current goal: 07 — Catalog, Transitions, Sound Effects, Effects.
-- Current phase: Goal 07 phase A — deterministic catalog builder, tag policy, schema update, and disabled-key planner filter are implemented; checks passed and the phase commit is next.
+- Current phase: Goal 07 phase B — local SFX indexing, CLI, catalog merge, and measured-metadata schema are implemented; offline checks passed and the phase commit is next.
 - Last completed Goal 06 completion commit: b8bab7e; status follow-up 209f95c. Both are pushed; local `main` and `origin/main` matched at 209f95c after push.
 - Goals completed in this run: 04, 05, and 06 — done with assumptions; origin/main includes their completion commits.
 - Goals blocked: 01b–03 — source prompts and prerequisite evidence are missing (RV-003); no claim of completion.
 - Retry counters: Goal 05 had one targeted timeout-test repair, one ruff repair cycle, and one mypy repair cycle; all were fixed and rerun. Goal 06 post-archive docs-check first caught two missing RV/path references; both were fixed and final docs-check/revisit-check passed. Goal 06 unit suite: 141 passed, 1 skipped (FFmpeg test).
-- Next action: finish phase A verification and commit; then implement phase B, the local license-aware SFX indexer. Do not read local secret config, download tools/assets, or enable unprobed Vegas operations.
+- Next action: commit phase B, then implement phase C pure compiler policy with all runtime Vegas operations capability-gated. Do not read local secret config, download tools/assets, or enable unprobed Vegas operations.
 
 ## Ten-line plan for goal 07
 
@@ -199,3 +199,15 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 - `python tasks.py setup` — not run; setup may install packages and Goal 06 forbids downloads.
 - Independent privacy scan — passed for 155 tracked/staged files; no target patterns or media filenames found.
 - Not run: Vegas, real speech/listening, style-interview gate, FFmpeg end-to-end burn-in, and live endpoint; see RV-003, RV-007, and RV-008.
+
+
+## Goal 07 phase B record
+
+- Phase A commit: 037bb73 catalog: add deterministic builder and opt-in tags.
+- Implementation: added python tasks.py sfx-index <dir>; recursive local indexing for a bounded audio extension/codec set; sample-rate, duration, loudness, and peak metadata; content fingerprint; stable SFX keys; safe sidecar tags; missing-license disabled state; keyword/tag lookup; safe runs/ output; optional catalog merge. Catalog is now 1.2.0.
+- Added synthetic PCM tone tests, fake measurement adapter tests, ebur128 parser test, licensing/search/key tests, and an optional real-FFmpeg known-tone test. Real FFmpeg test is skipped here because ffmpeg and ffprobe are unavailable; real measurement remains pending under RV-010.
+- python tasks.py lint — passed; ruff, formatting, strict mypy.
+- python tasks.py schemas — passed; 11 schemas and 45 fixtures.
+- python tasks.py docs-check — passed; links, contracts, changelog, and revisit markers agree.
+- Focused pytest tests/unit/test_sfx_index.py tests/unit/test_catalog_builder.py — passed, except the optional real-FFmpeg test skipped due to missing local tools.
+- No media assets were copied or modified; no download, network endpoint, or Vegas app was used.

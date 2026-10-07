@@ -1,6 +1,6 @@
 # Catalog contract
 
-Schema version: 1.1.0
+Schema version: 1.2.0
 
 Schema: [catalog.schema.json](../../schemas/catalog.schema.json)
 
@@ -12,7 +12,7 @@ The catalog is the closed set of transitions, effects, text presets, and sound e
 
 | Field | Type | Meaning and rules |
 |---|---|---|
-| `schema_version` | string | Required; exactly `1.1.0`. |
+| `schema_version` | string | Required; exactly `1.2.0`. |
 | `vegas_version` | string | Required source application version label. Vegas behavior remains `UNVERIFIED` unless a VQ entry has recorded evidence. |
 | `plugin_list_hash` | string | Required SHA-256 identity of the enumerated plugin list. |
 | `transitions`, `video_fx`, `audio_fx`, `text_presets`, `sfx` | arrays | Required category groups. Every entry has `key`, `kind`, `tags`, and `params_mode`. Group and `kind` must agree. |
@@ -43,7 +43,7 @@ Choose the category prefix (`tr`, `vfx`, `afx`, `txt`, `sfx`); normalize the dis
 
 ```json
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "entries": [
     {"key": "tr.crossfade-short.a1b2c3", "kind": "transition",
      "tags": ["soft"], "params_mode": "defaults_only", "enabled": true,

@@ -22,6 +22,8 @@ def catalog_summary(catalog: dict[str, Any]) -> dict[str, Any]:
             }
             if "default_duration_frames" in entry:
                 summary_entry["default_duration_frames"] = entry["default_duration_frames"]
+            if entry.get("kind") == "sfx" and "duration" in entry:
+                summary_entry["duration"] = entry["duration"]
             if "supports_color_override" in entry:
                 summary_entry["supports_color_override"] = entry["supports_color_override"]
             entries.append(summary_entry)

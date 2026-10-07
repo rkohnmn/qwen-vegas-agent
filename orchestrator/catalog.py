@@ -12,7 +12,7 @@ from typing import Any
 
 from orchestrator.contracts import catalog_summary, check_catalog, validate
 
-CATALOG_VERSION = "1.1.0"
+CATALOG_VERSION = "1.2.0"
 TAG_FILE_VERSION = "1.0.0"
 _GROUPS: tuple[tuple[str, str, str], ...] = (
     ("transition", "transitions", "tr"),

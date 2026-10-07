@@ -1067,6 +1067,38 @@ def task_catalog_build(args: argparse.Namespace) -> int:
         return 1
     try:
         catalog, warnings = build_catalog_from_dump(plugin_dump, vegas_version=args.vegas_version)
+        if args.sfx_index:
+            sfx_document = json.loads(Path(args.sfx_index).read_text(encoding="utf-8-sig"))
+            if (
+                not isinstance(sfx_document, dict)
+                or sfx_document.get("schema_version") != "1.0.0"
+                or not isinstance(sfx_document.get("entries"), list)
+            ):
+                raise CatalogBuildError("SFX index has an unsupported shape")
+            for source_entry in sfx_document["entries"]:
+                if not isinstance(source_entry, dict):
+                    raise CatalogBuildError("SFX index contains an invalid entry")
+                catalog["sfx"].append(
+                    {
+                        field: source_entry[field]
+                        for field in (
+                            "key",
+                            "kind",
+                            "tags",
+                            "params_mode",
+                            "enabled",
+                            "path",
+                            "duration",
+                            "loudness_lufs",
+                            "license",
+                            "source",
+                            "sample_rate",
+                            "peak_dbfs",
+                            "fingerprint",
+                        )
+                        if field in source_entry
+                    }
+                )
         if tag_path.exists():
             tag_file = json.loads(tag_path.read_text(encoding="utf-8-sig"))
             if not isinstance(tag_file, dict):
@@ -1075,7 +1107,7 @@ def task_catalog_build(args: argparse.Namespace) -> int:
             tag_file = generate_tag_file(catalog)
         catalog = merge_tag_file(catalog, tag_file)
         summary = model_catalog_summary(catalog)
-    except (CatalogBuildError, json.JSONDecodeError, TypeError, ValueError):
+    except (CatalogBuildError, json.JSONDecodeError, OSError, KeyError, TypeError, ValueError):
         print("catalog build failed contract or tag validation", file=sys.stderr)
         return 1
     if not tag_path.exists():
@@ -1092,6 +1124,38 @@ def task_catalog_build(args: argparse.Namespace) -> int:
         for group in ("transitions", "video_fx", "audio_fx", "text_presets", "sfx")
     )
     print(f"catalog entries: {len(summary['entries'])} enabled of {total} total")
+    return 0
+
+
+def task_sfx_index(args: argparse.Namespace) -> int:
+    from orchestrator.sfx import SfxIndexError, index_sfx_directory
+
+    library_dir = Path(args.library)
+    output_dir = Path(args.output_dir)
+    if not output_dir.is_absolute():
+        output_dir = ROOT / output_dir
+    resolved_output = output_dir.resolve()
+    runs_root = (ROOT / "runs").resolve()
+    if not resolved_output.is_relative_to(runs_root) or resolved_output == runs_root:
+        print("SFX index output must be a child of runs", file=sys.stderr)
+        return 1
+    index_path = resolved_output / "sfx_index.json"
+    if index_path.exists() and not args.overwrite:
+        print("SFX index already exists; pass --overwrite to replace it", file=sys.stderr)
+        return 1
+    try:
+        index, warnings = index_sfx_directory(library_dir)
+    except (SfxIndexError, OSError, ValueError):
+        print(
+            "SFX indexing failed; check the local audio tools and library metadata", file=sys.stderr
+        )
+        return 1
+    resolved_output.mkdir(parents=True, exist_ok=True)
+    index_path.write_text(json.dumps(index, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    enabled = sum(entry["enabled"] is True for entry in index["entries"])
+    print(f"SFX entries: {len(index['entries'])}; licensed: {enabled}; warnings: {len(warnings)}")
+    for warning in warnings:
+        print(f"warning: {warning}")
     return 0
 
 
@@ -1135,6 +1199,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "dry-run",
         "eval",
         "catalog-build",
+        "sfx-index",
         "truth-template",
         "preflight",
         "transcribe",
@@ -1169,6 +1234,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             subparser.add_argument("dump", help="read-only CatalogDump JSON")
             subparser.add_argument("--output-dir", default="runs/catalog")
             subparser.add_argument("--vegas-version", default="unknown")
+            subparser.add_argument("--sfx-index", default=None, help="local sfx-index JSON")
+            subparser.add_argument("--overwrite", action="store_true")
+        if name == "sfx-index":
+            subparser.add_argument("library", help="local SFX library folder")
+            subparser.add_argument("--output-dir", default="runs/sfx-index")
             subparser.add_argument("--overwrite", action="store_true")
         if name in {"preflight", "transcribe"}:
             subparser.add_argument("--video", required=True)
@@ -1256,6 +1326,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "schemas",
             "eval",
             "catalog-build",
+            "sfx-index",
             "dry-run",
             "truth-template",
             "preflight",
@@ -1297,6 +1368,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return task_eval()
     if args.task == "catalog-build":
         return task_catalog_build(args)
+    if args.task == "sfx-index":
+        return task_sfx_index(args)
     if args.task == "truth-template":
         return task_truth_template(args)
     if args.task == "preflight":

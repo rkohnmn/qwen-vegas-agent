@@ -18,13 +18,13 @@ Missing, blank, unknown, or unlicensed metadata disables the entry and reports a
 
 ## Index and measurement
 
-Goal 07 Phase B adds the index command for common audio formats supported by local FFmpeg tools. The implementation uses ffprobe for format, duration, and sample rate, and FFmpeg ebur128 for integrated loudness and peak. The index stores a SHA-256 fingerprint and a deterministic key derived from the normalized filename and relative asset identity. It does not expose paths to the planner.
+The index command supports WAV, MP3, FLAC, OGG, M4A, AAC, AIFF, and AIF inputs when the local FFmpeg tools can decode them. The implementation uses ffprobe for format, duration, and sample rate, and FFmpeg ebur128 for integrated loudness and peak. The index writes runs/sfx-index/sfx_index.json by default. It stores a SHA-256 fingerprint and a deterministic key derived from the normalized filename, relative asset identity, and content fingerprint. Catalog build can merge the index with --sfx-index; generated catalog tags keep those entries disabled until human opt-in. It does not expose paths to the planner.
 
 ~~~powershell
 python tasks.py sfx-index <approved_sfx_dir>
 ~~~
 
-If FFmpeg or ffprobe is unavailable, indexing fails with a safe typed error. Do not install or download tools for this goal. Synthetic tests use an injected measurement adapter and do not count as real FFmpeg evidence.
+If FFmpeg or ffprobe is unavailable, indexing fails with a safe typed error. Do not install or download tools for this goal. Synthetic tests generate a PCM tone and use an injected measurement adapter to test indexing; a parser fixture tests FFmpeg ebur128 output. Neither counts as a real FFmpeg measurement. At this workstation ffmpeg and ffprobe were not found, so real loudness evidence is pending under RV-010.
 
 ## Placement policy
 

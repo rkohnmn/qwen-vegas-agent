@@ -2,7 +2,7 @@
 
 ## Closed vocabulary and safety
 
-The internal catalog combines a VEGAS plug-in dump with the local SFX index. It may contain plug-in IDs, parameter metadata, license metadata, and local SFX paths. Keep it under the ignored runs directory. The planner receives only the allowlisted summary: enabled keys, kinds, safe tags, parameter mode, and default transition frames. It never receives plug-in IDs, paths, or arbitrary parameter values.
+The internal catalog combines a VEGAS plug-in dump with the local SFX index. It may contain plug-in IDs, parameter metadata, license metadata, and local SFX paths. Keep it under the ignored runs directory. The planner receives only the allowlisted summary: enabled keys, kinds, safe tags, parameter mode, default transition frames, and SFX duration. It never receives plug-in IDs, paths, or arbitrary parameter values.
 
 The Python builder uses category, normalized display name, and the first eight SHA-256 hex characters of a stable identity. Duplicate display names therefore remain distinct. The full plug-in list hash is stable when input rows are reordered. Catalog validation rejects duplicate keys.
 
@@ -45,3 +45,8 @@ Keys and tag values are identifiers, not free text. Tags and contexts use lowerc
 Only enabled catalog keys are eligible. A human must add a transition to the tag file and choose its contexts. Continuous-speech cuts default to no visual transition unless a safe tag and style configuration allow one. Minimum clip length, default duration, and per-minute limits are compiler policy, not planner-supplied numbers.
 
 No Vegas transition operation is enabled until the M7 disposable-project checks provide E0 evidence for VQ-04, VQ-05, and VQ-06. OFX parameters remain disabled until VQ-17 is resolved. See REVISIT.md RV-009 and docs/HUMAN_TESTS_M7.md.
+
+
+## Add a local SFX index
+
+Run python tasks.py sfx-index <approved_sfx_dir> to create an ignored local index. Review license sidecars, then pass the resulting JSON to the builder with --sfx-index runs/sfx-index/sfx_index.json. The first generated tag file still disables every entry. Internal paths, measured peak/loudness, fingerprint, and license stay out of the model-facing summary.
