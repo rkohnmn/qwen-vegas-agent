@@ -1,0 +1,6 @@
+{
+  "schema_version": "1.0.0",
+  "executor_id": "test-only",
+  "supported_operations": ["execute_script"],
+  "verified_questions": []
+}

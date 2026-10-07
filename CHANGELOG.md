@@ -5,6 +5,10 @@ All notable project changes are recorded here. Contract version entries are chec
 ## [Unreleased] — Milestone 1
 
 - Bumped catalog=1.2.0 with measured SFX sample rate, peak, and content fingerprint fields; added the local SFX index command.
+- Added capabilities=1.0.0 as an empty-by-default, VQ-gated allowlist; bumped compile_report=2.1.0 to record catalog-item outcomes and gain adjustments.
+- Bumped edl=2.0.0 for optional catalog-key effect selections and compiler-owned SFX gain; the EDL contains no gain values, plugin IDs, or parameters.
+- Bumped run_manifest=1.2.0 to list each used SFX catalog key and its license identifier without an asset path.
+- Updated Architecture to 1.2.6 to distinguish offline M7 compiler policies from unavailable runtime verification.
 
 ### Added
 - Bumped catalog=1.1.0 with optional enabled/context policy fields; added a deterministic internal catalog builder and opt-in tag-file support. Newly built plugin entries default disabled, and disabled entries are filtered from the planner summary.

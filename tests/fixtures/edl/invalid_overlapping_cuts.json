@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.2.0",
+  "schema_version": "2.0.0",
   "words_hash": "sha256:c8f7100eef3734b431ed3bccb908a94cf49806006e6c362b937f59a9765122a9",
   "summary": "Remove one filler and mark the clean join.",
   "cuts": [
@@ -38,7 +38,6 @@
       "at_word": "w21",
       "offset_hint": "before",
       "key": "sfx.whoosh-01.deaf01",
-      "gain_db": -12,
       "reason": "quiet topic transition"
     }
   ],

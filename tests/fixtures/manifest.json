@@ -252,6 +252,32 @@
       "file": "edl/invalid_unknown_gap_action.json",
       "expected": "E_REF_GAP",
       "check": "edl"
+    },
+    {
+      "contract": "capabilities",
+      "file": "capabilities/valid_minimal.json",
+      "expected": "valid"
+    },
+    {
+      "contract": "capabilities",
+      "file": "capabilities/invalid_unknown_operation.json",
+      "expected": "E_SCHEMA"
+    },
+    {
+      "contract": "capabilities",
+      "file": "capabilities/valid_minimal.json",
+      "expected": "valid"
+    },
+    {
+      "contract": "capabilities",
+      "file": "capabilities/invalid_unknown_operation.json",
+      "expected": "E_SCHEMA"
+    },
+    {
+      "contract": "run_manifest",
+      "file": "run_manifest/valid_sfx_used.json",
+      "expected": "valid",
+      "check": "run_manifest"
     }
   ]
 }

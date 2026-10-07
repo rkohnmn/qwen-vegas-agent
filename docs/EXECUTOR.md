@@ -16,6 +16,7 @@ The orchestrator owns endpoint credentials. The Vegas process receives only a va
 | Review sidecars (markers CSV, cutlist EDL, review report) | Implemented offline; no Vegas markers are written |
 | Per-cut approval and exact subset recompilation | Implemented and unit-tested offline |
 | Runtime executor and Vegas project mutation | Not implemented; blocked on human probes, see RV-001 |
+| M7 optional operations | Capability contract and compiler gates are implemented; default capability set is empty, and no executor advertises support |
 | Undo, linked-event handling, stop-file behavior inside Vegas | Unverified; see VQ-07, VQ-08, VQ-11, and VQ-16 |
 | Vegas preview/final rendering | Not implemented; manual render remains a human step |
 

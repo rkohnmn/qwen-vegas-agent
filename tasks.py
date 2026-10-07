@@ -852,6 +852,9 @@ def task_plan(args: argparse.Namespace) -> int:
             args.words,
             output_root=args.output_dir,
             recorded_edl=args.recorded_edl,
+            catalog_path=args.catalog,
+            enable_catalog_suggestions=args.catalog_suggestions,
+            sfx_trigger_tags=tuple(args.sfx_trigger_tag or []),
         )
     except (DryRunError, OSError, ValueError) as error:
         print(f"plan blocked or failed: {error}", file=sys.stderr)
@@ -873,6 +876,8 @@ def task_compile(args: argparse.Namespace) -> int:
             output_root=args.output_dir,
             audio_path=args.audio,
             speakers_path=args.speakers,
+            catalog_path=args.catalog,
+            capabilities_path=args.capabilities,
         )
     except (AudioExtractionError, DryRunError, OSError, ValueError) as error:
         print(f"compile blocked or failed: {error}", file=sys.stderr)
@@ -1255,6 +1260,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         if name == "plan":
             subparser.add_argument("--words", required=True)
             subparser.add_argument("--recorded-edl", default=None)
+            subparser.add_argument("--catalog", default=None)
+            subparser.add_argument("--catalog-suggestions", action="store_true")
+            subparser.add_argument("--sfx-trigger-tag", action="append", default=[])
             subparser.add_argument("--output-dir", default=None)
         if name == "burn-captions":
             subparser.add_argument("--job-dir", required=True)
@@ -1267,6 +1275,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             subparser.add_argument("--edl", required=True)
             subparser.add_argument("--audio", default=None)
             subparser.add_argument("--speakers", default=None)
+            subparser.add_argument("--catalog", default=None)
+            subparser.add_argument("--capabilities", default=None)
             subparser.add_argument("--output-dir", default=None)
         if name == "watch-render":
             subparser.add_argument("--job-dir", required=True)

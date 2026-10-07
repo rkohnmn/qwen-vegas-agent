@@ -28,6 +28,6 @@ If FFmpeg or ffprobe is unavailable, indexing fails with a safe typed error. Do 
 
 ## Placement policy
 
-The planner selects an enabled key and an aligned word ID. The compiler chooses frame placement, gain, and any safe adjustment. It applies the configured gain ceiling, rate limit, and speech-peak avoidance. Each proposed item receives an applied, adjusted, or rejected report row. Unlicensed or disabled entries cannot become operations.
+When explicitly enabled, the deterministic baseline planner can suggest an enabled key at a configured long-gap trigger with low confidence. The planner selects an enabled key and an aligned word ID. The compiler chooses frame placement, gain, and any safe adjustment. It applies the configured gain ceiling, rate limit, and speech-peak avoidance. Each proposed item receives an applied, adjusted, or rejected report row. Unlicensed or disabled entries cannot become operations.
 
-No SFX operation is enabled in VEGAS until the local index and disposable-project placement/gain checks record VQ-18 E0 evidence. See REVISIT.md RV-010 and docs/HUMAN_TESTS_M7.md.
+No SFX operation is enabled in VEGAS: the executor is absent and the default capability set is empty. No operation can be emitted until the local index, disposable-project placement/gain checks, and VQ-18 E0 evidence exist. See REVISIT.md RV-010 and docs/HUMAN_TESTS_M7.md.

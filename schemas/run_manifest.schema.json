@@ -17,7 +17,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.1.0"
+      "const": "1.2.0"
     },
     "job_id": {
       "type": "string",
@@ -260,6 +260,29 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 500
+        }
+      }
+    },
+    "sfx_used": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "license"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^sfx\\.[a-z0-9-]+\\.[a-f0-9]{6,12}$"
+          },
+          "license": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
         }
       }
     }

@@ -11,7 +11,7 @@
     "timeline": "1.0.0",
     "words": "1.0.0",
     "edl": "1.1.0",
-    "ops": "1.0.0"
+    "ops": "1.1.0"
   },
   "tools": {
     "python": "3.12.10",
@@ -35,12 +35,26 @@
   },
   "source_integrity": {
     "sha256_before": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    "sha256_after": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-    "unchanged": true
+    "sha256_after": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "unchanged": true,
+    "files": [
+      {
+        "unchanged": true,
+        "sha256_after": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "sha256_before": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "id": "project"
+      }
+    ]
   },
   "outcome": {
     "status": "complete",
     "code": null,
     "message": "synthetic fixture completed"
-  }
+  },
+  "sfx_used": [
+    {
+      "key": "sfx.whoosh.abcdef12",
+      "license": "CC0-1.0"
+    }
+  ]
 }

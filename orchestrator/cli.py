@@ -123,10 +123,10 @@ def _status_manifest(
     align_model: str = "not-run",
 ) -> dict[str, Any]:
     return {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "job_id": job_id,
         "inputs": [{"id": "source_0", "sha256": source_hash_before.removeprefix("sha256:")}],
-        "schemas": {"timeline": "1.0.0", "words": "2.1.0", "edl": "1.2.0", "ops": "1.1.0"},
+        "schemas": {"timeline": "1.0.0", "words": "2.1.0", "edl": "2.0.0", "ops": "1.1.0"},
         "tools": {
             "python": sys.version.split()[0],
             "ffmpeg": _tool_version("ffmpeg"),
@@ -153,6 +153,7 @@ def _status_manifest(
             "sha256_after": source_hash_after,
             "unchanged": source_hash_before == source_hash_after,
         },
+        "sfx_used": [],
         "outcome": {"status": status, "code": code, "message": message},
     }
 

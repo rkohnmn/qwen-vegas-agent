@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from orchestrator.artifacts import write_json
+from orchestrator.capabilities import empty_capabilities
 from orchestrator.caption_renderers import SidecarOnlyRenderer, write_caption_review
 from orchestrator.captions import CaptionConfig, build_captions
 from orchestrator.cli import DryRunError, _load_settings, _workspace_path
@@ -330,6 +331,9 @@ def run_plan(
     *,
     output_root: str | Path | None = None,
     recorded_edl: str | Path | None = None,
+    catalog_path: str | Path | None = None,
+    enable_catalog_suggestions: bool = False,
+    sfx_trigger_tags: tuple[str, ...] = (),
 ) -> Path:
     """Validate transcript input and write a baseline or recorded EDL."""
     try:
@@ -350,7 +354,22 @@ def run_plan(
         "text_presets": [],
         "sfx": [],
     }
-    planner = RecordedPlanner.from_file(recorded_edl) if recorded_edl else BaselinePlanner()
+    if catalog_path is not None:
+        try:
+            catalog_value = json.loads(Path(catalog_path).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            raise DryRunError("catalog could not be read") from None
+        if not isinstance(catalog_value, dict) or validate("catalog", catalog_value):
+            raise DryRunError("catalog failed contract validation")
+        catalog = catalog_value
+    planner = (
+        RecordedPlanner.from_file(recorded_edl)
+        if recorded_edl
+        else BaselinePlanner(
+            enable_catalog_suggestions=enable_catalog_suggestions,
+            sfx_trigger_tags=sfx_trigger_tags,
+        )
+    )
     edl = planner.plan(pack.text, words, catalog)
     speakers_path = Path(words_path).with_name("speakers.json")
     speakers_doc: dict[str, Any] = {"speakers": {}}
@@ -376,6 +395,8 @@ def run_compile(
     output_root: str | Path | None = None,
     audio_path: str | Path | None = None,
     speakers_path: str | Path | None = None,
+    catalog_path: str | Path | None = None,
+    capabilities_path: str | Path | None = None,
 ) -> Path:
     """Validate inputs and write frame-resolved ops and caption sidecars."""
     try:
@@ -415,6 +436,23 @@ def run_compile(
         "text_presets": [],
         "sfx": [],
     }
+    if catalog_path is not None:
+        try:
+            catalog_value = json.loads(Path(catalog_path).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            raise DryRunError("catalog could not be read") from None
+        if not isinstance(catalog_value, dict) or validate("catalog", catalog_value):
+            raise DryRunError("catalog failed contract validation")
+        catalog = catalog_value
+    capabilities = empty_capabilities()
+    if capabilities_path is not None:
+        try:
+            capabilities_value = json.loads(Path(capabilities_path).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            raise DryRunError("capabilities could not be read") from None
+        if not isinstance(capabilities_value, dict):
+            raise DryRunError("capabilities failed contract validation")
+        capabilities = capabilities_value
     if validate("edl", edl) or check_edl_against(edl, words, speakers_doc, catalog, timeline):
         raise DryRunError("EDL input failed schema or referential validation")
     output = _new_output(output_root, "compile")
@@ -444,6 +482,9 @@ def run_compile(
         config=config,
         audio_samples=audio_samples,
         sample_rate=sample_rate,
+        catalog=catalog,
+        capabilities=capabilities,
+        working_root=output,
     )
     caption_document, caption_report = build_captions(
         words,

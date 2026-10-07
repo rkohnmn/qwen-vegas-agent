@@ -15,6 +15,7 @@ _SCHEMA_NAMES = {
     "words",
     "speakers",
     "catalog",
+    "capabilities",
     "edl",
     "ops",
     "config",

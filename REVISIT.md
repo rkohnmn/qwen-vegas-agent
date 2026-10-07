@@ -13,7 +13,8 @@ This register tracks behavior implemented or described without live resources. C
 7. Complete the style interview, choose and document an asset-license decision, and provide an approved SFX library before enabling those features.
 8. Complete the Goal 06 style/probe gate and evaluate the local ASS burn-in path before enabling caption rendering or Vegas operations.
 9. Complete the Goal 07 catalog/transition and SFX license/runtime checks (RV-009, RV-010) before enabling any corresponding executor capability.
-10. Run human acceptance tests and release checks on a clean checkout after all offline checks pass.
+10. Restore the runtime EDL prompt and add the optional effect/at-gap rules before enabling planner-authored catalog edits (RV-011).
+11. Run human acceptance tests and release checks on a clean checkout after all offline checks pass.
 
 ## 2. Items
 
@@ -64,7 +65,7 @@ This register tracks behavior implemented or described without live resources. C
 ## 4. Pending pushes and blockers
 
 - Goal 04 commits `2788809`, `720b174`, `83e892a`, and `f7e88d0` were pushed successfully to `origin/main` after the privacy gate. Future goal commits require their own privacy-gated push.
-- No push blocker is open. Goal 07 has two open resource/runtime revisit items, RV-009 and RV-010; offline work continues.
+- No push blocker is open. Goal 07 has three open gates: Vegas/runtime evidence (RV-009), local SFX tools/library (RV-010), and the absent runtime EDL prompt (RV-011); offline work continues.
 
 ## 5. Provisional decisions to confirm
 
@@ -73,7 +74,7 @@ This register tracks behavior implemented or described without live resources. C
 - Subtitle path: burned-in captions plus a sidecar as the default when that goal is reached.
 - Audio joins: short fixed crossfades pending human listening and click measurements.
 - Goal 07 catalog: deterministic closed keys and disabled-by-default entries; no Vegas mutation capability until RV-009 probes provide E0 evidence.
-- Goal 07 SFX: local-only, license-required assets; no default sample and no planner exposure until RV-010 is cleared.
+- Goal 07 SFX: local-only, license-required assets; no default sample and no planner exposure until RV-010 is cleared. Planner suggestions remain opt-in.
 - Rendering: manual render plus watched output as the fallback until Vegas render scripting is proven.
 
 ## 6. Human-only actions
@@ -168,4 +169,17 @@ This register tracks behavior implemented or described without live resources. C
 - **Who:** Human supplies the approved library/licenses and runs Vegas checks; agent may run the local indexer when those tools/assets exist.
 - **Severity:** high for SFX selection and real placement; no blocker for synthetic index/compiler tests.
 - **Related VQ IDs:** VQ-18 UNVERIFIED; depends on VQ-06 for audio joins where applicable.
+- **Status:** open.
+
+
+### RV-011 — Missing runtime EDL prompt for the Goal 07 contract additions
+
+- **Feature or claim:** Planner-authored effect selections and transitions anchored to long gaps.
+- **Why untested:** This checkout contains only skills/README.md, which says the runtime EDL prompt arrives in a later milestone. Goal 07 marks runtime prompt writing out of scope, while AGENTS.md Section 8 requires updating skills/EDL_PROMPT.md whenever EDL changes.
+- **Assumption and locations:** Keep EDL effects optional, preserve the ID/key-only shape, and keep baseline catalog suggestions disabled by default. No runtime prompt file was created or edited. See schemas/edl.schema.json, docs/contracts/edl.md, and skills/README.md.
+- **Exact test:** Restore the exact prompt source from the prompt pack or later milestone; add a bounded effects field and cut/gap transition references without parameter values, then run eval before and after as required by AGENTS.md.
+- **Expected result and record:** The prompt emits only event IDs and enabled effect keys, never plugin IDs or parameter values; all examples validate against EDL 2.0.0. Record prompt version and eval metrics.
+- **Who:** Agent after the runtime prompt source is present; no Vegas behavior is required for this prompt update.
+- **Severity:** blocker for planner-authored effects and baseline catalog suggestions; offline compiler policy remains testable.
+- **Related VQ IDs:** none; this is a missing artifact and prompt-contract synchronization gate.
 - **Status:** open.

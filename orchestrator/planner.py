@@ -46,13 +46,14 @@ class Planner(Protocol):
 
 def _empty_edl(words: Mapping[str, Any], summary: str) -> dict[str, Any]:
     return {
-        "schema_version": "1.2.0",
+        "schema_version": "2.0.0",
         "words_hash": hash_words(dict(words)),
         "summary": summary,
         "cuts": [],
         "keeps_reordered": [],
         "transitions": [],
         "sfx": [],
+        "effects": [],
         "subtitles": {"style": None, "emphasis": [], "break_hints": [], "omit_ranges": []},
         "tool_requests": [],
         "questions": [],
@@ -65,13 +66,23 @@ class BaselinePlanner:
 
     FILLERS = {"um", "uh", "erm", "hmm", "mm-hmm"}
 
-    def __init__(self, *, minimum_gap_ms: int = 650) -> None:
+    def __init__(
+        self,
+        *,
+        minimum_gap_ms: int = 650,
+        enable_catalog_suggestions: bool = False,
+        max_catalog_suggestions_per_minute: int = 6,
+        sfx_trigger_tags: Sequence[str] = (),
+    ) -> None:
         self.minimum_gap_ms = minimum_gap_ms
+        self.enable_catalog_suggestions = enable_catalog_suggestions
+        self.max_catalog_suggestions_per_minute = max_catalog_suggestions_per_minute
+        self.sfx_trigger_tags = frozenset(sfx_trigger_tags)
 
     def plan(
         self, pack: str, words: Mapping[str, Any], catalog: Mapping[str, Any]
     ) -> dict[str, Any]:
-        del pack, catalog
+        del pack
         edl = _empty_edl(
             words, "Conservative baseline: remove isolated fillers and long measured pauses."
         )
@@ -116,6 +127,75 @@ class BaselinePlanner:
                 )
         edl["cuts"] = cuts
         edl["gap_actions"] = actions
+        if self.enable_catalog_suggestions:
+            transition_entries = [
+                entry
+                for entry in catalog.get("transitions", [])
+                if isinstance(entry, Mapping)
+                and entry.get("enabled") is True
+                and "topic_boundary" in entry.get("allowed_contexts", [])
+            ]
+            sfx_entries = [
+                entry
+                for entry in catalog.get("sfx", [])
+                if isinstance(entry, Mapping)
+                and entry.get("enabled") is True
+                and self.sfx_trigger_tags.intersection(entry.get("tags", []))
+            ]
+            minute_counts: dict[int, int] = {}
+            for gap in words.get("gaps", []):
+                if not isinstance(gap, Mapping):
+                    continue
+                start, end, gap_id = gap.get("start"), gap.get("end"), gap.get("id")
+                if (
+                    not isinstance(start, int | float)
+                    or not isinstance(end, int | float)
+                    or end - start < self.minimum_gap_ms / 1000
+                    or not isinstance(gap_id, str)
+                ):
+                    continue
+                minute = max(0, int(start // 60))
+                if minute_counts.get(minute, 0) >= self.max_catalog_suggestions_per_minute:
+                    continue
+                minute_counts[minute] = minute_counts.get(minute, 0) + 1
+                if transition_entries:
+                    entry = sorted(transition_entries, key=lambda item: str(item.get("key", "")))[0]
+                    edl["transitions"].append(
+                        {
+                            "at_gap": gap_id,
+                            "offset_hint": "at",
+                            "type": entry["key"],
+                            "reason": "low-confidence baseline suggestion at a long measured gap",
+                            "confidence": 0.35,
+                        }
+                    )
+                if sfx_entries:
+                    next_word = next(
+                        (
+                            row
+                            for row in rows
+                            if isinstance(row, Mapping)
+                            and row.get("alignment_status", "aligned") != "unaligned"
+                            and isinstance(row.get("start"), int | float)
+                            and row["start"] >= end
+                            and isinstance(row.get("id"), str)
+                        ),
+                        None,
+                    )
+                    if next_word is not None:
+                        entry = sorted(sfx_entries, key=lambda item: str(item.get("key", "")))[0]
+                        edl["sfx"].append(
+                            {
+                                "at_word": next_word["id"],
+                                "offset_hint": "at",
+                                "key": entry["key"],
+                                "reason": (
+                                    "low-confidence baseline suggestion at a configured "
+                                    "long-gap trigger"
+                                ),
+                                "confidence": 0.35,
+                            }
+                        )
         return edl
 
 

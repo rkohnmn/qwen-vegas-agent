@@ -323,3 +323,12 @@ def test_repo_examples_have_no_personal_paths_hosts_or_real_keys() -> None:
                 assert host == "<tailnet-host>.ts.net", (
                     f"non-placeholder tailnet host in {path.name}"
                 )
+
+
+def test_run_manifest_records_only_licensed_sfx() -> None:
+    manifest = load_fixture("run_manifest", "valid_sfx_used")
+    assert not validate("run_manifest", manifest)
+    assert not check_run_manifest(manifest)
+
+    manifest["sfx_used"][0]["license"] = "UNLICENSED"
+    assert ErrorCode.E_REPORT_CONSISTENCY in codes(check_run_manifest(manifest))

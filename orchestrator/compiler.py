@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
+from pathlib import Path
 from typing import Any
+
+from orchestrator.catalog_compiler import CatalogPlacementConfig, compile_catalog_items
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,6 +122,10 @@ def compile_edl(
     config: CompileConfig | None = None,
     audio_samples: Sequence[int] | None = None,
     sample_rate: int | None = None,
+    catalog: Mapping[str, Any] | None = None,
+    capabilities: Mapping[str, Any] | None = None,
+    placement_config: CatalogPlacementConfig | None = None,
+    working_root: str | Path | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], list[FrameInterval]]:
     """Resolve planner IDs to frame ranges and marker operations; never mutate media."""
     limits = config or CompileConfig()
@@ -503,6 +510,23 @@ def compile_edl(
             )
         cursor = interval.end
 
+    placement = compile_catalog_items(
+        edl,
+        words,
+        timeline,
+        catalog,
+        capabilities,
+        working_root=Path(working_root)
+        if working_root is not None
+        else Path(working_copy_path).parent,
+        audio_samples=audio_samples,
+        sample_rate=sample_rate,
+        config=placement_config,
+    )
+    operations.extend(placement.operations)
+    item_outcomes.extend(placement.item_outcomes)
+    rejected.extend(placement.rejected_items)
+    warnings.extend(placement.warnings)
     ops = {
         "schema_version": "1.1.0",
         "header": {
@@ -514,7 +538,7 @@ def compile_edl(
         "operations": operations,
     }
     report = {
-        "schema_version": "2.0.0",
+        "schema_version": "2.1.0",
         "source_frames": duration_frames,
         "removed_frames": removed_frames,
         "removed_percent": removed_percent,
@@ -523,6 +547,7 @@ def compile_edl(
         "item_outcomes": item_outcomes,
         "snaps": snaps,
         "fade_decisions": fade_decisions,
+        "sfx_used": placement.sfx_used,
     }
     return ops, report, intervals
 

@@ -390,7 +390,9 @@ def check_edl_against(
     for index, transition in enumerate(edl.get("transitions", [])):
         if not isinstance(transition, Mapping):
             continue
-        if transition.get("at_cut") not in cut_ids:
+        cut_id = transition.get("at_cut")
+        gap_id = transition.get("at_gap")
+        if isinstance(cut_id, str) and cut_id not in cut_ids:
             issues.append(
                 _issue(
                     ErrorCode.E_REF_CUT,
@@ -398,7 +400,33 @@ def check_edl_against(
                     "transition references a missing cut",
                 )
             )
+        if isinstance(gap_id, str) and gap_id not in gap_ids:
+            issues.append(
+                _issue(
+                    ErrorCode.E_REF_GAP,
+                    f"transitions[{index}].at_gap",
+                    "transition references a missing gap",
+                )
+            )
         check_catalog_ref(transition.get("type"), f"transitions[{index}].type")
+
+    for index, effect in enumerate(edl.get("effects", [])):
+        if not isinstance(effect, Mapping):
+            continue
+        target_event = effect.get("at_event")
+        if (
+            isinstance(target_event, str)
+            and event_ids is not None
+            and target_event not in event_ids
+        ):
+            issues.append(
+                _issue(
+                    ErrorCode.E_REF_EVENT,
+                    f"effects[{index}].at_event",
+                    "effect references a missing event",
+                )
+            )
+        check_catalog_ref(effect.get("key"), f"effects[{index}].key")
 
     for index, item in enumerate(edl.get("sfx", [])):
         if isinstance(item, Mapping):
@@ -965,6 +993,36 @@ def check_run_manifest(manifest: Mapping[str, Any]) -> list[ValidationIssue]:
                         "file hash comparison disagrees with unchanged flag",
                     )
                 )
+    seen_sfx: set[str] = set()
+    for index, item in enumerate(manifest.get("sfx_used", [])):
+        if not isinstance(item, Mapping):
+            continue
+        key = item.get("key")
+        license_value = item.get("license")
+        if isinstance(key, str):
+            if key in seen_sfx:
+                issues.append(
+                    _issue(
+                        ErrorCode.E_DUPLICATE_CATALOG_KEY,
+                        f"sfx_used[{index}].key",
+                        "SFX license record is duplicated",
+                    )
+                )
+            seen_sfx.add(key)
+        if isinstance(license_value, str) and license_value.strip().casefold() in {
+            "",
+            "unlicensed",
+            "unknown",
+            "none",
+            "unspecified",
+        }:
+            issues.append(
+                _issue(
+                    ErrorCode.E_REPORT_CONSISTENCY,
+                    f"sfx_used[{index}].license",
+                    "used SFX must have a license identifier",
+                )
+            )
     estimate = manifest.get("token_estimate", {})
     if isinstance(estimate, Mapping):
         characters = estimate.get("pack_characters")

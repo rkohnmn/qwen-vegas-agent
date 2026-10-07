@@ -42,7 +42,7 @@ Keys and tag values are identifiers, not free text. Tags and contexts use lowerc
 
 ## Transition policy
 
-Only enabled catalog keys are eligible. A human must add a transition to the tag file and choose its contexts. Continuous-speech cuts default to no visual transition unless a safe tag and style configuration allow one. Minimum clip length, default duration, and per-minute limits are compiler policy, not planner-supplied numbers.
+Only enabled catalog keys are eligible. A human must add a transition to the tag file and choose its contexts. Continuous-speech cuts default to no visual transition unless a safe tag and style configuration allow one. Default duration and per-minute limits are compiler policy, not planner-supplied numbers. Minimum clip length cannot be verified until the timeline identifies post-cut event pairs; the current compiler rejects eligible transitions with `E_TRANSITION_BOUNDARY_UNRESOLVED` rather than using word duration as a proxy.
 
 No Vegas transition operation is enabled until the M7 disposable-project checks provide E0 evidence for VQ-04, VQ-05, and VQ-06. OFX parameters remain disabled until VQ-17 is resolved. See REVISIT.md RV-009 and docs/HUMAN_TESTS_M7.md.
 

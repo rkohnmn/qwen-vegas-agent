@@ -5,12 +5,12 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 ## Current state
 
 - Current goal: 07 — Catalog, Transitions, Sound Effects, Effects.
-- Current phase: Goal 07 phase B — local SFX indexing, CLI, catalog merge, and measured-metadata schema are implemented; offline checks passed and the phase commit is next.
+- Current phase: Goal 07 phase C — compiler policy, capability gate, EDL 2.0.0, baseline suggestions, and offline tests are implemented; final checks passed and the phase commit is next.
 - Last completed Goal 06 completion commit: b8bab7e; status follow-up 209f95c. Both are pushed; local `main` and `origin/main` matched at 209f95c after push.
 - Goals completed in this run: 04, 05, and 06 — done with assumptions; origin/main includes their completion commits.
 - Goals blocked: 01b–03 — source prompts and prerequisite evidence are missing (RV-003); no claim of completion.
 - Retry counters: Goal 05 had one targeted timeout-test repair, one ruff repair cycle, and one mypy repair cycle; all were fixed and rerun. Goal 06 post-archive docs-check first caught two missing RV/path references; both were fixed and final docs-check/revisit-check passed. Goal 06 unit suite: 141 passed, 1 skipped (FFmpeg test).
-- Next action: commit phase B, then implement phase C pure compiler policy with all runtime Vegas operations capability-gated. Do not read local secret config, download tools/assets, or enable unprobed Vegas operations.
+- Next action: commit phase C, then finish the Goal 07 documentation, human checklist, acceptance map, prompt archive, and final privacy-gated push. Do not read local secret config, download tools/assets, or enable unprobed Vegas operations.
 
 ## Ten-line plan for goal 07
 
@@ -211,3 +211,19 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 - python tasks.py docs-check — passed; links, contracts, changelog, and revisit markers agree.
 - Focused pytest tests/unit/test_sfx_index.py tests/unit/test_catalog_builder.py — passed, except the optional real-FFmpeg test skipped due to missing local tools.
 - No media assets were copied or modified; no download, network endpoint, or Vegas app was used.
+
+
+## Goal 07 phase C record
+
+- Implementation: added capability schema 1.0.0 with an empty default and VQ evidence gates; added pure transition/SFX/effect compiler policy, typed per-item outcomes, optional compile inputs, SFX license records, and manifest propagation. No runtime executor was added.
+- Transition behavior: compiler enforces catalog opt-in, context, dialogue-safe, duration, rate, and minimum adjacent word-clip checks. It rejects with `E_TRANSITION_BOUNDARY_UNRESOLVED` because current timeline data does not identify adjacent post-cut event pairs; no event IDs are guessed.
+- SFX behavior: compiler requires enabled/licensed catalog entries, an in-working-directory asset path, indexed loudness/peak metadata, audio-track metadata, local PCM for peak avoidance, and a VQ-backed capability. Gain is compiler-owned; EDL 2.0.0 rejects a planner-supplied `gain_db`.
+- Effects: only enabled defaults-only catalog entries are eligible; raw parameter values remain forbidden. Runtime operations still require explicit capability and VQ evidence.
+- Baseline planner: optional catalog suggestions are off by default; when enabled, transition/SFX suggestions use keys/IDs and low confidence.
+- Decisions and revisit: D-41 records fail-closed runtime behavior; D-42 removes planner-owned SFX gain. RV-009/RV-010/RV-011 track missing Vegas/FFmpeg evidence, licensed SFX inputs, and the missing runtime EDL prompt.
+- `python tasks.py lint` — passed; Ruff, format check, strict mypy (33 source files).
+- `python tasks.py schemas` — passed; 12 schemas and 50 fixtures.
+- `python tasks.py test` — passed; 173 passed, 2 skipped (local FFmpeg/ffprobe checks).
+- `python tasks.py docs-check` and `python tasks.py revisit-check` — passed; 11 revisit items.
+- `python tasks.py eval` — synthetic only; cut precision/recall 1.0/1.0, applied precision/recall 1.0/0.5, join-level verifier still failed, runtime 154.484 ms / 2.3173 s per synthetic minute, 63 estimated tokens, 0 planner retries.
+- Not run: real FFmpeg tone measurement, C# compile-only check (no compiler found on PATH), VEGAS probes/runtime, live LLM endpoint, and user media. No dependency, asset, or model download.

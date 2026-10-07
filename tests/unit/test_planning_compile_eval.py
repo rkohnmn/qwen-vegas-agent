@@ -539,3 +539,42 @@ def test_child_environment_removes_credentials_and_custom_package_indexes() -> N
         }
     )
     assert cleaned == {"PATH": "tools", "USERNAME": "editor"}
+
+
+def test_catalog_baseline_suggestions_are_opt_in_and_low_confidence() -> None:
+    words, _timeline, _truth = synthetic_case()
+    catalog = {
+        "transitions": [
+            {
+                "key": "tr.crossfade.abcdef12",
+                "kind": "transition",
+                "enabled": True,
+                "tags": ["soft"],
+                "allowed_contexts": ["topic_boundary"],
+                "default_duration_frames": 12,
+            }
+        ],
+        "sfx": [
+            {
+                "key": "sfx.whoosh.abcdef12",
+                "kind": "sfx",
+                "enabled": True,
+                "tags": ["topic_change"],
+            }
+        ],
+    }
+    pack = build_pack(words)
+
+    default_edl = BaselinePlanner().plan(pack.text, words, catalog)
+    suggested_edl = BaselinePlanner(
+        enable_catalog_suggestions=True,
+        sfx_trigger_tags=("topic_change",),
+    ).plan(pack.text, words, catalog)
+
+    assert default_edl["transitions"] == []
+    assert default_edl["sfx"] == []
+    assert suggested_edl["transitions"]
+    assert suggested_edl["sfx"]
+    assert all(item["confidence"] == 0.35 for item in suggested_edl["transitions"])
+    assert all(item["confidence"] == 0.35 for item in suggested_edl["sfx"])
+    assert not validate("edl", suggested_edl)

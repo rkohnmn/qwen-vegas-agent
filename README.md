@@ -110,7 +110,7 @@ These checks remain before treating the prototype as editing-quality validated o
 - Review the 16 English joins and investigate the 12 level-step and four pacing failures using human-reviewed evidence. Keep verifier thresholds unchanged until a representative sample supports calibration.
 - Label the ignored English truth template with word boundaries, then measure timing and cut accuracy. There is no real-media ground truth yet.
 - Complete the click-by-click checks in [the M1 VEGAS human checklist](docs/HUMAN_TESTS_M1.md) on a disposable project. Current VEGAS evidence is metadata and compile-time only.
-- Continue with Goal 07 and later transition/SFX, vision, LLM planning, automation, performance, security, and packaging prompts after the Goal 06 human caption checks; see [the roadmap](ROADMAP.md).
+- Continue with Goal 07 and later transition/SFX, vision, LLM planning, automation, performance, security, and packaging prompts while the Goal 06 human caption checks remain tracked; see [the roadmap](ROADMAP.md).
 
 The contract schemas and prose specifications are in [schemas/](schemas/) and [docs/contracts/](docs/contracts/). Remaining work and acceptance evidence are listed in [ROADMAP.md](ROADMAP.md) and [docs/EVALS.md](docs/EVALS.md).
 

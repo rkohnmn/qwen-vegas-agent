@@ -63,4 +63,4 @@ Record VEGAS build, local tool versions, aggregate plugin counts, enabled/disabl
 
 ## Current status
 
-The repository has no runtime executor for transition/effect/SFX operations. VQ-04 is compile-time-only; VQ-05, VQ-06, VQ-17, and VQ-18 remain unverified. Do not run mutation checks until the relevant probe evidence and capability support exist. Track these gates in REVISIT.md RV-009 and RV-010.
+The repository has no runtime executor for transition/effect/SFX operations. VQ-04 is compile-time-only; VQ-05, VQ-06, VQ-17, and VQ-18 remain unverified. Do not run mutation checks until the relevant probe evidence and capability support exist. The runtime EDL prompt is absent and must be restored for the EDL 2.0.0 catalog-intent changes before planner-authored items are enabled (RV-011). Track all gates in REVISIT.md RV-009, RV-010, and RV-011.

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qwen-vegas-agent.local/schemas/capabilities.schema.json",
+  "title": "Executor Capability Contract",
+  "description": "Executor-reported allowlist for optional M7 mutation operations.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "executor_id", "supported_operations", "verified_questions"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "executor_id": {"type": "string", "minLength": 1, "maxLength": 80},
+    "supported_operations": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 4,
+      "items": {"enum": ["add_transition", "add_audio_event", "set_gain", "apply_fx"]}
+    },
+    "verified_questions": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 32,
+      "items": {"type": "string", "pattern": "^VQ-[0-9]{2}$"}
+    }
+  }
+}

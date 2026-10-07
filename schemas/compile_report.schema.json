@@ -16,7 +16,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "2.0.0"
+      "const": "2.1.0"
     },
     "source_frames": {
       "type": "integer",
@@ -89,27 +89,164 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["item_id", "item_type", "status"],
+        "required": [
+          "item_id",
+          "item_type",
+          "status"
+        ],
         "properties": {
-          "item_id": {"type": "string", "minLength": 1, "maxLength": 80},
-          "item_type": {"enum": ["cut", "gap_action"]},
-          "status": {"enum": ["applied", "adjusted", "rejected"]},
-          "code": {"type": "string", "pattern": "^E_[A-Z0-9_]+$"},
-          "reason": {"type": "string", "minLength": 1, "maxLength": 300},
-          "delta_frames": {"type": "integer", "minimum": 1}
+          "item_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "item_type": {
+            "enum": [
+              "cut",
+              "gap_action",
+              "transition",
+              "sfx",
+              "effect"
+            ]
+          },
+          "status": {
+            "enum": [
+              "applied",
+              "adjusted",
+              "rejected"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^E_[A-Z0-9_]+$"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "delta_frames": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "adjustment_db": {
+            "type": "number",
+            "not": {
+              "const": 0
+            }
+          },
+          "catalog_key": {
+            "type": "string",
+            "pattern": "^(tr|vfx|afx|txt|sfx)\\.[a-z0-9-]+\\.[a-f0-9]{6,12}$"
+          },
+          "target_event_id": {
+            "type": "string",
+            "pattern": "^e[0-9]+$"
+          },
+          "start_frame": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "duration_frames": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "gain_db": {
+            "type": "number",
+            "minimum": -60,
+            "maximum": 6
+          }
         },
         "allOf": [
           {
-            "if": {"properties": {"status": {"const": "adjusted"}}},
-            "then": {"required": ["reason", "delta_frames"], "not": {"required": ["code"]}}
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "adjusted"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "reason"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "delta_frames"
+                  ]
+                },
+                {
+                  "required": [
+                    "adjustment_db"
+                  ]
+                }
+              ],
+              "not": {
+                "required": [
+                  "code"
+                ]
+              }
+            }
           },
           {
-            "if": {"properties": {"status": {"const": "rejected"}}},
-            "then": {"required": ["code", "reason"], "not": {"required": ["delta_frames"]}}
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "rejected"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "code",
+                "reason"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "delta_frames"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "adjustment_db"
+                    ]
+                  }
+                ]
+              }
+            }
           },
           {
-            "if": {"properties": {"status": {"const": "applied"}}},
-            "then": {"not": {"anyOf": [{"required": ["code"]}, {"required": ["delta_frames"]}]}}
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "applied"
+                }
+              }
+            },
+            "then": {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "code"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "delta_frames"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "adjustment_db"
+                    ]
+                  }
+                ]
+              }
+            }
           }
         ]
       }
@@ -185,6 +322,29 @@
             "minimum": 0
           },
           "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        }
+      }
+    },
+    "sfx_used": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "license"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^sfx\\.[a-z0-9-]+\\.[a-f0-9]{6,12}$"
+          },
+          "license": {
             "type": "string",
             "minLength": 1,
             "maxLength": 160

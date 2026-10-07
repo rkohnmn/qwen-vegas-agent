@@ -518,9 +518,9 @@ def run_synthetic_eval() -> dict[str, Any]:
         "prompt_version": "baseline-1",
         "schema_versions": {
             "words": "2.1.0",
-            "edl": "1.2.0",
+            "edl": "2.0.0",
             "ops": "1.1.0",
-            "compile_report": "2.0.0",
+            "compile_report": "2.1.0",
         },
         "cut_precision": round(precision, 4),
         "cut_recall": round(recall, 4),

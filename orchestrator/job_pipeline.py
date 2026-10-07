@@ -237,6 +237,7 @@ def _manifest(
     final_status: str,
     message: str,
     code: str | None = None,
+    sfx_used: Sequence[dict[str, str]] = (),
 ) -> dict[str, Any]:
     stage_rows: list[dict[str, Any]] = []
     for name, record in state.get("stages", {}).items():
@@ -256,10 +257,10 @@ def _manifest(
         stage_rows.append({"name": "created", "wall_clock_ms": 0, "outcome": "partial"})
     project = source_records[0]
     return {
-        "schema_version": "1.1.0",
+        "schema_version": "1.2.0",
         "job_id": job_id,
         "inputs": [{"id": key, "sha256": value} for key, value in input_hashes.items()],
-        "schemas": {"timeline": "1.0.0", "words": "2.1.0", "edl": "1.2.0", "ops": "1.1.0"},
+        "schemas": {"timeline": "1.0.0", "words": "2.1.0", "edl": "2.0.0", "ops": "1.1.0"},
         "tools": {
             "python": sys.version.split()[0],
             "ffmpeg": "used by renderer adapter or not-run",
@@ -280,6 +281,7 @@ def _manifest(
             "unchanged": project["unchanged"],
             "files": list(source_records),
         },
+        "sfx_used": list(sfx_used),
         "outcome": {"status": final_status, "code": code, "message": message},
     }
 
@@ -637,6 +639,7 @@ def run_job(
             if not unchanged
             else (message or final_message),
             code="E_SOURCE_CHANGED" if not unchanged else code,
+            sfx_used=compile_report.get("sfx_used", []),
         )
         issues = [*validate("run_manifest", manifest), *check_run_manifest(manifest)]
         if issues:

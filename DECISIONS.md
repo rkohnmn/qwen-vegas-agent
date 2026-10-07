@@ -580,3 +580,11 @@ The checked-in speaker mode stays at single; auto remains an explicit configurat
 ### D-40 — Keep the Goal 07 catalog closed and disabled by default
 
 The G4 transition allowlist and licensed SFX starter folder are absent. Do not read local secret configuration, infer licenses, or fetch assets. Build deterministic catalog keys and a human tag file, but leave newly discovered entries disabled unless the human explicitly enables them. The model receives enabled keys and safe tags only; plugin IDs and local paths remain internal. Keep the executor capability set empty for transition, effect, and SFX operations until the associated disposable-project probes record E0 evidence (RV-009, RV-010). No dependency was added.
+
+### D-41 — Keep catalog operations fail-closed until evidence and event pairing exist
+
+Goal 07 has no G4 transition allowlist, licensed starter library, runtime executor, or E0 evidence for transition/SFX/effect operations. Keep capabilities empty by default. The current timeline contract names source events at frame zero but does not identify adjacent post-cut event pairs, so the transition compiler reports a typed unresolved-boundary result instead of guessing event IDs or inferring clip lengths from word durations. SFX operations require an in-working-directory asset, measured loudness/peak, a license ID, local audio samples for speech-peak avoidance, and an advertised capability. Effects can select only defaults-only entries and never accept planner parameters. Baseline catalog suggestions remain off unless explicitly enabled. The EDL runtime prompt is absent and must be restored before planner-authored effects are enabled (RV-009, RV-010, RV-011).
+
+### D-42 — Keep sound-effect gain out of planner intent
+
+Goal 07 assigns gain selection to deterministic compiler policy using indexed loudness/peak metadata and configured ceilings. The prior EDL allowed a planner-supplied `gain_db`, which conflicted with that boundary. EDL 2.0.0 removes the field; the compiler now derives gain solely from catalog measurements and policy. This breaking contract change is covered by a schema rejection test and the missing runtime prompt remains tracked under RV-011.

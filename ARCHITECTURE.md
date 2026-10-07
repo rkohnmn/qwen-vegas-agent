@@ -1,7 +1,7 @@
 # ARCHITECTURE.md
 
 **Project (working title):** Local AI Video Editing Agent for VEGAS Pro 17
-**Document version:** 1.2.5
+**Document version:** 1.2.6
 **Status:** M1 offline rough-cut and caption-sidecar implementation is complete for now as a prototype. The 120-second English smoke run reached verification using an approved 30 fps CFR working copy, produced timing anchors for 210/210 transcript rows, and applied eight baseline silence-gap actions. Verification reported 12 level-step and four pacing failures, so the run does not support an editing-quality claim. M1 does not execute Vegas. The offline job runner consumes supplied timeline, word, and speaker artifacts and exercises fakes; runtime assumptions remain open under RV-001, RV-007, and RV-008. Vegas-specific behaviors tagged `[UNVERIFIED]` must be confirmed on a throwaway Vegas Pro 17 project before code depends on them.
 
 ---
@@ -403,7 +403,7 @@ The single structured artifact the LLM emits. Illustrative shape:
     {"at_cut": "c1", "offset_hint": "at", "type": "tr.crossfade-short.a1b2c3", "reason": "smooth audio join"}
   ],
   "sfx": [
-    {"at_word": "w300", "offset_hint": "before", "key": "sfx.whoosh-01.deaf01", "gain_db": -12, "reason": "topic change"}
+    {"at_word": "w300", "offset_hint": "before", "key": "sfx.whoosh-01.deaf01", "reason": "topic change"}
   ],
   "subtitles": {
     "style": "txt.default.a1b2c3",
@@ -622,14 +622,14 @@ Compile and approved-review stages write `captions.json`, `.srt`, `.ass`, and `c
 ## 14. Transitions, Sound Effects, and Assets
 
 ### 14.1 Transitions
-- Chosen only from `catalog.transitions`. Each entry carries tags (for example `soft`, `dialogue-safe`, `hard`, `stylized`) and a default duration.
-- The compiler enforces placement rules: no stylized transition inside continuous dialogue unless the style guide permits it, minimum clip length, maximum transitions per minute.
-- Dialogue cuts default to audio crossfade plus no visual transition unless the planner justifies one.
+- The catalog builder assigns stable keys and leaves discovered entries disabled until a human opts in. Allowed contexts, dialogue-safe tags, default duration, and per-minute limits are checked by deterministic policy. Minimum post-cut clip length is still gated on event-pair mapping.
+- The current timeline does not identify adjacent post-cut event pairs. The compiler reports `E_TRANSITION_BOUNDARY_UNRESOLVED` instead of guessing IDs; no transition operation is emitted. Runtime transition support remains gated by VQ-05/VQ-06 evidence and a capability report (RV-009).
+- Dialogue cuts default to the existing audio crossfade policy and no visual transition. See [the catalog guide](docs/CATALOG.md).
 
 ### 14.2 Sound effects
-- Local, tagged library indexed with metadata (and optional embeddings for semantic search by the planner's tool round).
-- The planner picks by key. The compiler resolves position from `at_word` plus `offset_hint`, applies gain relative to local loudness, and snaps to frames.
-- SFX placement avoids covering speech peaks by default.
+- A local-only index records license metadata, measured loudness/peak, duration, sample rate, fingerprint, and stable key. Search is tag/keyword based; semantic embeddings are not part of the current implementation.
+- The EDL supplies an enabled catalog key and word ID plus offset. Compiler policy determines the frame placement and gain from measured metadata, applies a ceiling, avoids speech peaks, limits density, and records any adjustment. The EDL cannot supply a gain value.
+- SFX operations require an in-working-directory asset and an advertised, VQ-18-backed capability. The default capability set is empty and no runtime executor currently advertises support (RV-010).
 
 ### 14.3 Online and external assets
 | Source class | Policy |
@@ -659,8 +659,8 @@ After execution, the verifier renders a low-resolution preview and checks:
 | Pacing | Measure inter-word gaps across joins | Gap below minimum or above maximum |
 | Subtitle sync | Compare caption times to re-aligned audio | Error above tolerance (ms) |
 | Subtitle color/speaker | Verify caption speaker equals word speaker | Mismatch |
-| Transition suitability | Sample frames at transitions, optional vision-model review | Frame glitch or flagged by reviewer |
-| Loudness | Check final loudness against target and SFX headroom | Out of range |
+| Transition suitability | Sample frames at transitions, optional vision-model review | Frame glitch or flagged by reviewer; this runtime check is not implemented while M7 operations are gated |
+| Loudness | Check final loudness against target and SFX headroom | Out of range; current M7 checks are compile-time only and do not inspect a Vegas render |
 | Duration sanity | Compare removed percentage to guard | Exceeds threshold |
 
 Failures produce targeted fix instructions. The fix loop is bounded (default 2 iterations). Items it cannot fix are listed in the final report and, in `auto` mode, set the job status to `needs_review`.

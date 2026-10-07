@@ -8,7 +8,7 @@ Command: `.venv\Scripts\python.exe tasks.py eval`
 Date: 2026-10-06
 Dataset: `synthetic-tone-silence-v1`, one generated case using fixture word boundaries and a known filler plus silence gap.
 Planner: `baseline-1`
-Contracts: words=2.0.0, edl=1.2.0, ops=1.1.0, compile_report=2.0.0.
+Contracts: words=2.0.0, edl=1.3.0, ops=1.1.0, compile_report=2.1.0.
 Runtime: Python 3.12 on Windows; no external service or user media.
 
 | Metric | Result |
@@ -176,3 +176,31 @@ Command: python tasks.py eval. The fixture uses fake vectors, synthetic word/tur
 | Model / device | Fixture vectors; no checkpoint / CPU |
 
 These are plumbing checks on a tiny synthetic fixture, not real-speech accuracy or a model/hardware benchmark. Runtime and memory are not representative of a media run. Real enrollment, mixed-speaker attribution, overlap accuracy, and the 4 GB laptop benchmark remain open under RV-005 and RV-006.
+
+
+## Goal 07 synthetic smoke check
+
+- Command: `python tasks.py eval`
+- Date: 2026-10-07
+- Dataset: `synthetic-tone-silence-v1`, one generated case; no user media or external services.
+- Planner: `baseline-1`
+- Contracts: words=2.1.0, edl=2.0.0, ops=1.1.0, compile_report=2.1.0.
+
+| Metric | Result |
+|---|---:|
+| Cut precision / recall | 1.0000 / 1.0000 |
+| Applied precision / recall | 1.0000 / 0.5000 |
+| Proposed cuts rejected or adjusted | 1 / 2 (50.0000%) |
+| Cut offset error (mean / median / max) | 0 / 0 / 0 ms |
+| Clipped-word rate / click rate | 0.0000 / 0.0000 |
+| Subtitle sync error | Not measured; no rendered captions were available |
+| Multitrack / diarized speaker accuracy | 2/2 (1.0000) / 1/1 (1.0000), synthetic vectors |
+| Speaker attribution runtime / traced memory | 0.213 ms; 0.001278 s per synthetic minute; 2,032 bytes |
+| Caption color correctness | Speaker colors resolved from fixture map; rendered-pixel correctness not measured |
+| Caption sidecars | 300 captions; SRT/ASS round trip passed; 28.674 ms layout, 8.368 ms export |
+| Audio verifier | Failed `join_1_level`, `join_2_level`; click checks passed |
+| Removed duration | 19.166667% |
+| Wall time | 154.484 ms; 2.3173 s per synthetic minute |
+| Estimated tokens / planner retries | 63 / 0 |
+
+Scope note: synthetic smoke only. It does not establish real speech accuracy, SFX loudness measurement, VEGAS transition quality, rendered sync/color, or executor performance. The failed join-level checks remain visible; thresholds were not changed.
