@@ -61,7 +61,7 @@ The truth template was generated under the ignored run directory with `python ta
 
 ## Corrected English real-media ASR and dry-run evaluation
 
-Run: `20261007T001144Z_5475d354`. Command: `python tasks.py dry-run --video runs/20261006T235023Z_english_cfr/source_cfr.mp4 --max-seconds 120 --planner baseline`, with the already-present ffmpeg tools supplied to that process through a temporary PATH. The original 327.169-second source was not modified; the run manifest's before/after SHA-256 values for the CFR working copy match. No inference endpoint or VEGAS process was used.
+Run: `20261007T001144Z_5475d354`. Command: `python tasks.py dry-run --video runs/20261006T235023Z_english_cfr/source_cfr.mp4 --max-seconds 120 --planner baseline`, with the already-present ffmpeg tools supplied to that process through a temporary PATH. The selected 327.169-second source is identified by SHA-256 prefix `57ce0b0d905fa8a9`; its filename and path are omitted. The original was not modified; the run manifest's before/after SHA-256 values for the CFR working copy match. No inference endpoint or VEGAS process was used.
 
 The source CFR copy is H.264 1280x720 with AAC stereo audio at 44,100 Hz and exactly 30/1 fps. Its bounded preflight had no warnings, and the full 9,815-frame scan found no cadence interval outside tolerance. The original source's one 9 ms cadence outlier and the CFR-copy procedure are documented above and in D-35.
 
