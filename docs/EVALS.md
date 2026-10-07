@@ -63,11 +63,13 @@ The truth template was generated under the ignored run directory with `python ta
 
 Run: `20261007T001144Z_5475d354`. Command: `python tasks.py dry-run --video runs/20261006T235023Z_english_cfr/source_cfr.mp4 --max-seconds 120 --planner baseline`, with the already-present ffmpeg tools supplied to that process through a temporary PATH. The selected 327.169-second source is identified by SHA-256 prefix `57ce0b0d905fa8a9`; its filename and path are omitted. The original was not modified; the run manifest's before/after SHA-256 values for the CFR working copy match. No inference endpoint or VEGAS process was used.
 
-The source CFR copy is H.264 1280x720 with AAC stereo audio at 44,100 Hz and exactly 30/1 fps. Its bounded preflight had no warnings, and the full 9,815-frame scan found no cadence interval outside tolerance. The original source's one 9 ms cadence outlier and the CFR-copy procedure are documented above and in D-35.
+The original is in the MP4 family, with H.264 1280x720 video and AAC stereo audio at 44,100 Hz. It is classified VFR (`W_VFR`): average frame rate `14722500/490727` differs from real `30/1`, and the full 9,815-frame scan found one of 9,814 intervals 9 ms from the median, exceeding the 1 ms tolerance. The user-approved H.264 CFR copy preserved the AAC stream and duration, uses exactly `30/1` fps, has no preflight warning codes, and had no interval outside tolerance in its full scan.
 
 | ASR and pipeline field | Result |
 |---|---:|
 | Processed media / source duration | 120.000 / 327.169 seconds |
+| Container / video / audio | MP4 family / H.264 1280x720 / AAC stereo, 44,100 Hz |
+| Original and CFR-copy frame rates / warning codes | Original average `14722500/490727`, real `30/1`, `W_VFR`; copy `30/1`, no warnings |
 | Detected language / confidence | English (`en`) / 0.9766 |
 | Requested ASR / alignment model | `small` / `WAV2VEC2_ASR_BASE_960H` |
 | Device / compute type / peak VRAM | CUDA / `int8_float16` / 0.578 GB |
