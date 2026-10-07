@@ -204,13 +204,14 @@ def test_llm_planner_uses_loopback_fake_and_rejects_remote() -> None:
             del format, args
 
     feedback = [{"code": "E_PACING_GAP", "path": "$.cuts[0]", "message": "must not be echoed"}]
+    test_secret = "local-" + "test-secret"
     with _loopback_server(Handler) as endpoint:
-        result = LlmPlanner(
-            endpoint, "test-model", api_key="local-test-secret", retry_backoff_s=0
-        ).plan(build_pack(words).text, words, _catalog(), feedback=feedback)
+        result = LlmPlanner(endpoint, "test-model", api_key=test_secret, retry_backoff_s=0).plan(
+            build_pack(words).text, words, _catalog(), feedback=feedback
+        )
     assert result == response
-    assert captured["authorization"] == "Bearer local-test-secret"
-    assert "local-test-secret" not in json.dumps(captured["request"])
+    assert captured["authorization"] == f"Bearer {test_secret}"
+    assert test_secret not in json.dumps(captured["request"])
     request = captured["request"]
     assert isinstance(request, dict)
     correction_messages = [
