@@ -569,3 +569,9 @@ The ASR setup added the complete non-development dependency closure below. The s
 | yarl | 1.25.1 | 0.31 MiB installed | Apache-2.0 | Yet another URL library |
 
 Inventory contains 101 ASR/PyTorch-closure distributions in the project venv. Package installation alone fetched no model weights. The later approved run downloaded the two checkpoints listed in D-32; no VAD or diarization weights and no tokens were fetched.
+
+### D-39 — Keep speaker inference local and the example mode conservative
+
+The speaker goal's G2 gate is absent: no HF read token, model-terms acceptance record, or approved voice sample is available. No diarization model card or weight was fetched, and no new dependency was added. The deterministic core uses injected local model interfaces; the CLI refuses enrollment or mixed-track attribution until an accepted local backend exists (RV-005).
+
+The checked-in speaker mode stays at single; auto remains an explicit configuration choice because the master prompt prohibits changing defaults to auto. Likely and ambiguous bleed ratios (0.20 and 0.55), overlap confidence multiplier (0.5), report threshold (0.65), enrollment duration (3 seconds), SNR (10 dB), segment consistency (0.82), and cosine threshold (existing 0.65) are fixture-only assumptions, not calibrated values (RV-005, RV-006). Changing any threshold requires real labeled recordings and a new decision.

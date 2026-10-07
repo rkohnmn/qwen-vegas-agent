@@ -54,6 +54,7 @@ class StreamInfo:
     channel_layout: str | None
     width: int | None
     height: int | None
+    title: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,6 +134,7 @@ def _stream(row: dict[str, Any]) -> StreamInfo | None:
     kind = row.get("codec_type")
     if index is None or kind not in ("audio", "video"):
         return None
+    tags = _dict(row.get("tags"))
     return StreamInfo(
         index=index,
         kind=kind,
@@ -148,6 +150,7 @@ def _stream(row: dict[str, Any]) -> StreamInfo | None:
         else None,
         width=_optional_int(row.get("width")),
         height=_optional_int(row.get("height")),
+        title=tags.get("title") if isinstance(tags.get("title"), str) else None,
     )
 
 

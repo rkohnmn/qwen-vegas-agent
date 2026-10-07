@@ -4,13 +4,25 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 
 ## Current state
 
-- Current goal: 04 — Closed-Loop Cut Pipeline Through Vegas.
-- Current phase: goal 04 phase G completion commit; code/schema `2788809`, docs `720b174`, and privacy fix `83e892a` are committed. Standard checks pass. Completion commit and push remain. Vegas runtime and real-speech acceptance remain open human gates.
-- Last commit: `83e892a` (`security: avoid literal fake bearer value`).
-- Goals completed in this run: goal 04 is done with assumptions for its available offline scope; completion commit and push are pending.
-- Goals blocked: none yet; missing prerequisites are being handled under the supplied offline-assumption rules.
-- Retry counters: final check cycles 0; push attempts 0.
-- Next action: stage the sanitized archived prompt 04 and goal status updates, create the completion commit, repeat the privacy gate, push, then start prompt 05.
+- Current goal: 05 — Speaker Attribution and Profiles.
+- Current phase: phase A is ready for its contracts/core commit; integration, final docs, archive, privacy gate, and push follow.
+- Last commit: f7e88d0 (goal 04 completion); origin/main was updated by the prior authorized push.
+- Goals completed in this run: 04 — done with assumptions; completion commit f7e88d0, pushed to origin/main. Goal 05 acceptance is mapped below and still needs its phase/archive commits.
+- Goals blocked: 01b–03 — source prompts and prerequisite evidence are missing (RV-003); no claim of completion.
+- Retry counters: Goal 05 had one targeted timeout-test repair, one ruff repair cycle, and one mypy repair cycle; all were fixed and rerun. Final unit suite: 125 passed. Push attempts for goal 05: 0.
+- Next action: commit phase A contracts and deterministic core, then proceed through phases B–G with an updated progress record in each phase commit.
+## Ten-line plan for goal 05
+
+1. Re-read the full goal and inspect architecture, word/speaker contracts, security, setup, evaluation, config, ASR, and CLI boundaries.
+2. Record the missing predecessor and G2 model/token/sample gates in `REVISIT.md` before implementation; do not read local secret config or download model files.
+3. Add automatic mode selection for mapped, mixed, partial, and single audio tracks with explicit overrides.
+4. Add multitrack word labeling and conservative cross-track energy comparison so likely bleed stays visible at reduced confidence.
+5. Add a pluggable diarization-turn matcher with overlap marking, confidence reduction, and no implicit reassignment.
+6. Add local-only profile quality checks, cosine matching, unknown IDs, and a CLI enrollment entry point that fails safely when its encoder is unavailable.
+7. Add typed `ask_user` question creation, confirmed speaker-map updates, timeout handling, and low-confidence reporting.
+8. Update contracts only where needed, with schemas, fixtures, consumers, changelog, decisions, architecture, setup, security, and speaker docs in sync.
+9. Run setup, lint, unit, schemas, docs-check, revisit-check, and eval; record exact results and unavailable real-model evidence.
+10. Self-audit against T3, archive the sanitized goal prompt, privacy-gate, commit, push when origin is an ancestor, and continue to goal 06.
 
 
 ## Goal 04 acceptance mapping
@@ -26,7 +38,7 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 | Resume across stages | Met with fake adapters | Parameterized pause/resume test covers all eleven stage boundaries; a fake executor edit survives resume only when the checkpoint hash matches. |
 | Human M4 acceptance | ASSUMED | Checklist and results template exist; live Vegas/render/listening observations remain open under RV-001 and RV-002. |
 | Privacy and contract consistency | Met after final gate | No new dependencies; run_manifest 1.1.0 schema/spec/fixtures/consumer updated together. Repeat privacy scan after prompt archival. |
-| Phase and completion commits | In progress | Code/schema 2788809, docs 720b174, and privacy fix 83e892a are done; prompt footer exists; archive staging, completion commit, repeat privacy gate, and push remain. |
+| Phase and completion commits | Met | Implementation 2788809, docs 720b174, privacy fix 83e892a, and completion/push commit f7e88d0 are recorded; origin/main was an ancestor and push succeeded. |
 
 ## Goal 04 self-audit (self-audit, not independent)
 
@@ -43,9 +55,51 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 | Human steps | Pass | M4 checklist contains setup, review, approval, working-copy, stop/resume, render, metrics, and results sections. |
 | Top risks | Pass | (1) Vegas mutation/undo/stop remain unverified (RV-001); (2) real-speech quality and synthetic eval failure remain open (RV-002); (3) missing predecessors remain unavailable (RV-003); default FFmpeg renderer not run (RV-004). |
 
+## Goal 05 acceptance mapping
+
+| Criterion | Status | Evidence or revisit |
+|---|---|---|
+| Standard checks | Met | setup, lint, unit (125 passed), schemas (10 schemas / 44 fixtures), docs-check, revisit-check, eval; see command record below. |
+| Token privacy | Met in the current offline path | Synthetic HF-token-shaped value stays out of enrollment CLI output; child environment filters HF_TOKEN; redaction helper and artifact-shape checks pass. Final independent privacy scan remains part of the push gate. |
+| Multitrack attribution and bleed | Met for synthetic fixtures | Track map and unmapped Unknown N tests; bleed fixture keeps both words and downranks the weaker candidate. |
+| Diarized assignment and overlap | Met for a deterministic fixture | Turn-overlap fixture selects the dominant turn, sets overlap, halves confidence, and surfaces the range. |
+| Enrollment quality and embedding-only storage | Met with fake encoder | Too-short and inconsistent samples are rejected; saved profile contains embedding metadata and no WAV. Real encoder availability remains RV-005. |
+| Unknown question, confirmed answer, and timeout | Met for CLI/core flow | Question shape, confirmed map diff, confidence preservation, 24-hour timeout warning, Unknown N retention, and planning gate have unit coverage. |
+| Low-confidence report | Met | Synthetic bleed and overlap cases appear as ID/time ranges with reason, without transcript text. |
+| Real-model benchmark | ASSUMED (RV-005, RV-006) | G2 token/model terms/approved samples are absent; no model card was fetched or checkpoint downloaded. Exact human test is docs/HUMAN_TESTS_M5.md. |
+| No tracked secrets, private paths, or voice data | Met after final gate | Root speakers.json and voices/ are ignored; prompt will be sanitized and independent scan repeated before push. |
+| Contract and phase commits | Met for contract consistency; phase commits pending | words=2.1.0 and speakers=1.1.0 schemas, prose specs, fixtures, consumers, and changelog agree; commits are the remaining goal work. |
+
+## Goal 05 self-audit (self-audit, not independent)
+
+| T3 check | Result | Evidence |
+|---|---|---|
+| Reproduce claims | Pass | setup, lint, 125 unit tests, schemas, docs-check, revisit-check, eval, and enroll/answer-speaker help were run. |
+| Acceptance criteria | Pass or ASSUMED | Mapping above; only real-model/hardware claims remain under RV-005 and RV-006. |
+| Hard rules | Pass | No Vegas, LLM endpoint, model download, or user media run; dry-run default remains; auto speaker selection stays opt-in. |
+| Contract consistency | Pass | words=2.1.0 and speakers=1.1.0 schemas, specs, examples, fixtures, producers, consumers, and changelog agree. |
+| Vegas claims | Pass | No Vegas-facing code changed and no VQ is marked VERIFIED. |
+| Diff review | Pass with repair | Found and repaired an invalid run_compile insertion and strict typing/test issues; final lint, tests, and docs checks pass. |
+| Privacy scan | Pass; repeat before push | docs-check passed; HF token runtime sentinel and child-environment checks pass. Sanitize Prompt 05 and run independent tracked/staged scan before push. |
+| Documentation honesty | Pass | Speaker guide, setup/security, known limits, eval, architecture, roadmap, changelog, and README identify synthetic-only evidence and open model gates. |
+| Human steps | Pass | docs/HUMAN_TESTS_M5.md specifies G2, one multitrack clip, one mixed clip, and aggregate metrics. |
+| Top risks | Pass | (1) no accepted local model/backend (RV-005); (2) bleed, similarity, overlap, and enrollment thresholds are not calibrated (RV-006); (3) timeout is checked on the next CLI plan/compile invocation rather than a background scheduler. |
+
+## Goal 05 command record
+
+- python tasks.py setup — passed; all pinned development packages were already installed.
+- python tasks.py lint — passed; ruff, formatting, and strict mypy clean.
+- python tasks.py test — passed; 125 unit tests.
+- python tasks.py schemas — passed; 10 schemas and 44 fixtures.
+- python tasks.py docs-check — passed; links, paths, versions, changelog, privacy scan, and revisit marker check.
+- python tasks.py revisit-check — passed; all six registered items resolve.
+- python tasks.py eval — passed as an offline synthetic run; speaker fixture scores are 2/2 multitrack, 1/1 diarized, 1/1 overlap, 1/1 bleed flag, and 1/1 unknown detection. This is not a model benchmark.
+- CLI help for dry-run, enroll, and answer-speaker — passed.
+- Not run: real-model benchmark, labeled real-speech review, Vegas, and endpoint integration; see RV-001, RV-002, RV-005, and RV-006.
+
 ## Prompt inventory
 
-- Available in the repository: goals 04–13, T2, and T3.
+- Available in the repository: goals 05–13, T2, and T3; goal 04 is under `completed prompts/`.
 - Missing from the checkout: goals 01b–03, prompt-pack README, T1, HUMAN_GATES.md, STYLE_INTERVIEW.md, HUMAN_TESTS_M3.md, `docs/VEGAS_DECISIONS.md` (added provisionally for goal 04).
 - No `completed prompts/` folder or prior `PROGRESS.md` / `REVISIT.md` existed at the start. The project README is not a prompt-order README.
 - Continue with available goals in numeric order. Record assumptions for unavailable predecessor artifacts; do not invent their contents or claim their gates passed.

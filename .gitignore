@@ -12,6 +12,7 @@ config.local.json
 credentials.json
 
 # User data and generated work
+speakers.json
 voices/
 cache/
 runs/

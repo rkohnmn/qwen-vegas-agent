@@ -60,7 +60,7 @@ This register tracks behavior implemented or described without live resources. C
 
 ## 4. Pending pushes and blockers
 
-- Goal 04 commits `2788809`, `720b174`, and `83e892a` are not pushed yet. Push only after the prompt archival/completion commit and its privacy gate; then record the exact result.
+- Goal 04 commits `2788809`, `720b174`, `83e892a`, and `f7e88d0` were pushed successfully to `origin/main` after the privacy gate. Future goal commits require their own privacy-gated push.
 - No implementation blocker has been confirmed yet.
 
 ## 5. Provisional decisions to confirm
@@ -90,4 +90,28 @@ This register tracks behavior implemented or described without live resources. C
 - **Who:** Agent after local FFmpeg is available; no downloads during this run.
 - **Severity:** medium.
 - **Related VQ IDs:** none; this is a local media-tool prerequisite.
+- **Status:** open.
+
+### RV-005 — Goal 05 Hugging Face gate and voice enrollment samples
+
+- **Feature or claim:** Real diarization and voice-embedding inference from an accepted gated checkpoint; measured similarity threshold; multi-speaker enrollment rejection; matching against the user's speakers.
+- **Why untested:** This task has no verified HF read token, record of accepted model terms, or approved voice samples. No model card was fetched and no model weights were downloaded.
+- **Assumption and locations:** Implement deterministic speaker logic behind model/encoder interfaces and use synthetic vectors/audio fixtures. Keep real inference disabled until the human provides approved local model files and samples. Any fixture-only similarity threshold is provisional, not validated for people.
+- **Exact test:** After the human records G2 in their gate checklist, read the current model card terms for each selected checkpoint, verify the accepted model IDs, set the token only in a gitignored config or the documented environment variable, run `python tasks.py enroll --name <speaker> --audio <approved.wav>` on a local sample, then benchmark diarization and matching without uploading audio. Never store the token in artifacts or outputs.
+- **Expected result and record:** Accepted model IDs and terms are recorded without the token; enrollment stores only embedding metadata and vectors under ignored `voices/`; sample duration, quality checks, matching threshold, CPU/device, runtime, and peak memory are recorded in `docs/EVALS.md`. Do not record raw audio or private paths.
+- **Who:** Human supplies and accepts the gated model terms and samples; agent can run the documented local benchmark after those inputs exist.
+- **Severity:** blocker for real-world diarization, enrollment, and attribution accuracy claims; offline deterministic orchestration remains available.
+- **Related VQ IDs:** none.
+- **Status:** open.
+
+### RV-006 — Goal 05 real-speech attribution quality and hardware benchmark
+
+- **Feature or claim:** Speaker attribution accuracy, overlap detection accuracy, unknown detection rate, enrollment quality rejection, wall time per minute, and peak memory on the 4 GB laptop.
+- **Why untested:** No approved labeled multitrack or mixed real-speech clip and no accepted diarization/embedding model are available in this task. Synthetic data only proves deterministic logic and fixture handling.
+- **Assumption and locations:** Keep reports explicit about synthetic-only evidence; use no default threshold as calibrated until reviewed against the user's enrollment samples. See `docs/SPEAKERS.md` and `docs/EVALS.md`.
+- **Exact test:** Once RV-005 is complete, run one labeled multitrack recording with a bleed region and one labeled mixed recording with two enrolled speakers and an overlap span. Record per-mode attribution precision/recall, overlap accuracy, unknown detection rate, time per media minute, and peak memory; have a human inspect all low-confidence ranges.
+- **Expected result and record:** Metrics and device/model details are recorded in `docs/EVALS.md`, with sample identities and paths omitted from tracked files. Threshold changes require a decision entry and new regression fixtures.
+- **Who:** Human supplies and reviews the clips; agent calculates metrics from approved redacted results.
+- **Severity:** high for real speaker-attribution quality claims; no impact to synthetic unit checks.
+- **Related VQ IDs:** none.
 - **Status:** open.

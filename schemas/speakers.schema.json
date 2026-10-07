@@ -2,12 +2,12 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://qwen-vegas-agent.local/schemas/speakers.schema.json",
   "title": "Speakers Contract",
-  "description": "User-maintained speaker labels, local voice references, and subtitle palette.",
+  "description": "User-maintained speaker labels, track rules, local voice references, and subtitle palette.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "speakers", "unknown_palette"],
   "properties": {
-    "schema_version": {"const": "1.0.0"},
+    "schema_version": {"const": "1.1.0"},
     "speakers": {
       "type": "object",
       "minProperties": 1,
@@ -21,7 +21,20 @@
           "display": {"type": "string", "minLength": 1, "maxLength": 80},
           "color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
           "track": {"type": "string", "minLength": 1, "maxLength": 120},
-          "voice_profile": {"type": "string", "minLength": 1, "maxLength": 260}
+          "track_mode": {"enum": ["single_speaker", "mixed"]},
+          "voice_profile": {"type": "string", "minLength": 1, "maxLength": 260},
+          "voice_profile_metadata": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["model", "embedding_dim", "sample_rate_hz", "sample_duration_s", "quality_status"],
+            "properties": {
+              "model": {"type": "string", "minLength": 1, "maxLength": 160},
+              "embedding_dim": {"type": "integer", "minimum": 1, "maximum": 65536},
+              "sample_rate_hz": {"const": 16000},
+              "sample_duration_s": {"type": "number", "exclusiveMinimum": 0, "maximum": 600},
+              "quality_status": {"enum": ["passed", "assumed"]}
+            }
+          }
         }
       }
     },

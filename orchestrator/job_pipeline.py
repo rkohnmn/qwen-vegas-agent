@@ -256,7 +256,7 @@ def _manifest(
         "schema_version": "1.1.0",
         "job_id": job_id,
         "inputs": [{"id": key, "sha256": value} for key, value in input_hashes.items()],
-        "schemas": {"timeline": "1.0.0", "words": "2.0.0", "edl": "1.2.0", "ops": "1.1.0"},
+        "schemas": {"timeline": "1.0.0", "words": "2.1.0", "edl": "1.2.0", "ops": "1.1.0"},
         "tools": {
             "python": sys.version.split()[0],
             "ffmpeg": "used by renderer adapter or not-run",

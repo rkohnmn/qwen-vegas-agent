@@ -239,7 +239,7 @@ def test_edl_rejects_unaligned_word_reference() -> None:
     from orchestrator.contracts.hashing import hash_words
 
     words = {
-        "schema_version": "2.0.0",
+        "schema_version": "2.1.0",
         "source_hash": "sha256:" + "b" * 64,
         "fps": "30000/1001",
         "asr": {

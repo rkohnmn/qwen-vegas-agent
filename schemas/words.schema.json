@@ -18,7 +18,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "2.0.0"
+      "const": "2.1.0"
     },
     "source_hash": {
       "type": "string",
@@ -94,6 +94,7 @@
       "enum": [
         "multitrack",
         "diarized",
+        "hybrid",
         "single"
       ]
     },
@@ -159,6 +160,10 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 120
+          },
+          "overlap": {
+            "type": "boolean",
+            "description": "True when another speaker overlaps this word."
           },
           "alignment_status": {
             "enum": [

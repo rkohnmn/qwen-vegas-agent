@@ -1,6 +1,6 @@
 {
   "schema_version": "1.2.0",
-  "words_hash": "sha256:8aad34c52dbd4b143b3ac2f2c228b16b5bcd27a7b96c4c20756998d71b2d67eb",
+  "words_hash": "sha256:60d470e960551973407f1f919f8dbb6be3e02b5059df5ed1888671699684c5bf",
   "summary": "Remove one filler and mark the clean join.",
   "cuts": [
     {

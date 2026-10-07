@@ -50,7 +50,7 @@ def build_words_document(
     gap_rows.sort(key=lambda gap: gap.start)
     gaps = [gap.as_dict(f"g{index + 1}") for index, gap in enumerate(gap_rows)]
     return {
-        "schema_version": "2.0.0",
+        "schema_version": "2.1.0",
         "source_hash": source_hash,
         "fps": fps,
         "asr": {

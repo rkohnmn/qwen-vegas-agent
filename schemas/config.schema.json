@@ -133,6 +133,7 @@
             "auto",
             "multitrack",
             "diarized",
+            "hybrid",
             "single"
           ]
         },
