@@ -6,6 +6,8 @@ All notable project changes are recorded here. Contract version entries are chec
 
 ### Changed
 
+- Updated AGENTS.md to 1.1.1 and Architecture to 1.2.2 to mark M1 implementation complete for now as an offline prototype, with real-speech review and Vegas runtime validation still open; corrected the stale Architecture preflight status.
+- Updated README and Roadmap with the remaining M1 validation work and M2–M5 project status.
 - Run strict mypy over both `orchestrator/` and `perception/`, matching the repository lint contract.
 - Corrected the current `ops` schema version recorded in preflight-blocked and completed run manifests, with a regression test for the blocked-manifest path.
 - Bumped Architecture to 1.2.1 to replace the stale missing-FFmpeg status; D-29 recorded the initial W_VFR stop and D-30 supersedes it with corrected CFR evidence.

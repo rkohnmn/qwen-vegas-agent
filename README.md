@@ -1,6 +1,6 @@
 # Local AI Video Editing Agent for VEGAS Pro 17
 
-**Status:** The Milestone 1 pipeline reached verification on a 120-second English real-media window using an approved CFR working copy under ignored `runs/`. The corrected adapter mapped all 210 transcript rows to timing anchors. The baseline planner emitted eight gap actions and no lexical cuts; verification failed on 12 level-step and four pacing checks. No edit-quality claim is supported. No code launches or edits VEGAS.
+**Status:** Milestone 1 implementation is complete for now as an offline prototype. The pipeline reached verification on a 120-second English real-media window using an approved CFR working copy under ignored `runs/`. The corrected adapter mapped all 210 transcript rows to timing anchors. The baseline planner emitted eight gap actions and no lexical cuts; verification failed on 12 level-step and four pacing checks. The project as a whole is not complete, and no edit-quality claim is supported. No code launches or edits VEGAS.
 
 This privacy-first project targets 4–15 minute talking-content videos. Local perception produces a word-level transcript; an ID-only edit plan is validated and compiled deterministically to frame-based operations. The M1 pipeline includes media preflight, WhisperX integration, a conservative baseline planner, review artifacts, reference audio rendering, and verification. The planner's LLM adapter is restricted to loopback and is disabled in the dry-run CLI.
 
@@ -50,6 +50,15 @@ The stages can also be run separately with `python tasks.py preflight --video <p
 - The synthetic baseline eval is a one-case plumbing check, not a quality estimate for real speech.
 - `--planner llm` is disabled in the CLI. The isolated client is tested only against loopback fakes; M1 makes no LLM network requests.
 - Vegas-specific runtime behavior remains unverified. No Vegas application or probe was run.
+
+## Remaining work
+
+These checks remain before treating the prototype as editing-quality validated or starting Vegas execution:
+
+- Review the 16 English joins and investigate the 12 level-step and four pacing failures using human-reviewed evidence. Keep verifier thresholds unchanged until a representative sample supports calibration.
+- Label the ignored English truth template with word boundaries, then measure timing and cut accuracy. There is no real-media ground truth yet.
+- Complete the click-by-click checks in [the M1 VEGAS human checklist](docs/HUMAN_TESTS_M1.md) on a disposable project. Current VEGAS evidence is metadata and compile-time only.
+- Keep the M2 executor and later subtitles, transitions, sound effects, live LLM planning, and automation out of the delivered M1 scope; see [the roadmap](ROADMAP.md).
 
 The contract schemas and prose specifications are in [schemas/](schemas/) and [docs/contracts/](docs/contracts/). Remaining work and acceptance evidence are listed in [ROADMAP.md](ROADMAP.md) and [docs/EVALS.md](docs/EVALS.md).
 

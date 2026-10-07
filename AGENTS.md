@@ -4,8 +4,8 @@ Instructions for AI coding agents (Codex or similar) working **on this repositor
 
 This file is about *developing* the project. It is not the runtime prompt for the video-editing model. Runtime prompts live in `skills/` and are a separate concern (see Section 3).
 
-**Version:** 1.1.0
-**Project phase:** Milestone 1 implementation is in progress. Documentation remains the source of truth until code exists for each component.
+**Version:** 1.1.1
+**Project phase:** Milestone 1 implementation is complete for now as an offline prototype. Real-speech review, annotated timing ground truth, and Vegas runtime checks remain open. Documentation remains the source of truth where behavior lacks evidence.
 
 ---
 
@@ -348,4 +348,4 @@ Keep this root file focused. If it grows past roughly 25 KB, move detail into `d
 
 ---
 
-*End of AGENTS.md v1.0.0*
+*End of AGENTS.md v1.1.1*

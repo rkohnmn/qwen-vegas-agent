@@ -396,6 +396,17 @@ A guarded rerun (`20261007T004015Z_5366051d`) produced matching parsed words, ED
 
 Status: Accepted for English alignment. Human review of the joins and an annotated timing evaluation remain open.
 
+### D-37 — Mark M1 implementation complete for now, with validation open
+Date: 2026-10-06
+
+Decision: Describe M1 as complete for now only as an offline prototype. State explicitly that the overall project is not complete and keep the remaining real-speech and Vegas checks visible in the README and roadmap.
+
+Rationale: The M1 pipeline, synthetic checks, English real-media artifacts, and source-safety evidence are recorded. The English verifier still reports 12 level-step and four pacing failures, the clip has no annotated word-boundary truth, and Vegas behavior has only metadata/compile-time evidence. These limits prevent a project-wide completion or editing-quality claim.
+
+Alternatives: Keep the implementation labeled in progress despite all scoped M1 components being delivered, or call the project complete; rejected because the first obscures delivered scope and the second overstates validation and future milestones.
+
+Status: Accepted; M1 implementation is complete for now, while validation tasks and M2–M5 remain open.
+
 
 ## Reference: browser agent patterns
 
