@@ -74,11 +74,12 @@ The source CFR copy is H.264 1280x720 with AAC stereo audio at 44,100 Hz and exa
 | ASR wall time / real-time factor | 30.747 seconds / 0.2562 |
 | Pipeline wall time / per media minute | 35.044 seconds / 17.522 seconds |
 | Word rows / timing anchors | 210 / 210 (100%); no human boundary labels |
+| Word-duration sanity | 8/210 under 20 ms (3.81%); 2/210 over 2 s (0.95%); min 20 ms, max 5,129 ms |
 | Baseline EDL | 0 lexical cuts; 8 gap actions |
 | Compile result | 8/8 gap actions applied; 16 `delete_range` operations; 8.3611% removed |
 | Verifier result | Failed `E_VERIFY`: 12/16 level-step and 4/16 pacing checks failed; 16/16 click checks passed, maximum discontinuity 0.033783 against 0.12 |
 
-The corrected mapper consumes WhisperX's sentence-sized results in transcript order and retains timings only after normalized text matches. All 210 rows received timing anchors, but no word-level ground truth was available; cut precision/recall and timing accuracy remain unmeasured. The first English run's 55/210 result is a diagnosed mapping defect, not an ASR quality baseline. The truth template from the first run remains under its ignored run directory. The aligner checkpoint provenance is recorded in D-35; the mapping correction and latest run evidence are in D-36. Verifier thresholds remain `max_click_delta=0.12` and `max_level_step_db=8.0` dB.
+The corrected mapper consumes WhisperX's sentence-sized results in transcript order and retains timings only after normalized text matches. All 210 rows received timing anchors, but no word-level ground truth was available; cut precision/recall and timing accuracy remain unmeasured. The first English run's 55/210 result is a diagnosed mapping defect, not an ASR quality baseline. The latest run's `truth_template.json` is an unlabeled editing skeleton under ignored `runs/`. The aligner checkpoint provenance is recorded in D-35; the mapping correction and latest run evidence are in D-36. Verifier thresholds remain `max_click_delta=0.12` and `max_level_step_db=8.0` dB.
 
 ## Metric definitions
 
