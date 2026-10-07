@@ -5,12 +5,12 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 ## Current state
 
 - Current goal: 05 — Speaker Attribution and Profiles.
-- Current phase: phases A–E are committed; phase F documentation is ready to commit. Final verification, sanitized prompt archival, privacy gate, and push are phase G.
-- Last commit: 60ec7a0 (goal 05 phase E confirmation persistence and timeout coverage); origin/main was updated through goal 04.
-- Goals completed in this run: 04 — done with assumptions; completion commit f7e88d0, pushed to origin/main. Goal 05 implementation phases A–E are committed; final documentation, archival, privacy gate, and push remain.
+- Current phase: phases A–F are committed. Final verification, sanitized prompt archival, privacy gate, completion commit, and push are phase G.
+- Last implementation and documentation commit: 529996a (goal 05 docs, human checklist, and acceptance record); origin/main was updated through goal 04.
+- Goals completed in this run: 04 — done with assumptions; completion commit f7e88d0, pushed to origin/main. Goal 05 phases A–F are committed; prompt archival, privacy gate, completion commit, and push remain.
 - Goals blocked: 01b–03 — source prompts and prerequisite evidence are missing (RV-003); no claim of completion.
 - Retry counters: Goal 05 had one targeted timeout-test repair, one ruff repair cycle, and one mypy repair cycle; all were fixed and rerun. Final unit suite: 126 passed. Push attempts for goal 05: 0.
-- Next action: commit the speaker docs and self-audit record, rerun checks, archive the sanitized Prompt 05, then run the final privacy gate and push.
+- Next action: archive sanitized Prompt 05 with its implementation commit hash, run final checks and privacy scans, create the completion commit, push, then read and begin Prompt 06.
 ## Ten-line plan for goal 05
 
 1. Re-read the full goal and inspect architecture, word/speaker contracts, security, setup, evaluation, config, ASR, and CLI boundaries.
@@ -68,7 +68,7 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 | Low-confidence report | Met | Synthetic bleed and overlap cases appear as ID/time ranges with reason, without transcript text. |
 | Real-model benchmark | ASSUMED (RV-005, RV-006) | G2 token/model terms/approved samples are absent; no model card was fetched or checkpoint downloaded. Exact human test is docs/HUMAN_TESTS_M5.md. |
 | No tracked secrets, private paths, or voice data | Met after final gate | Root speakers.json and voices/ are ignored; prompt will be sanitized and independent scan repeated before push. |
-| Contract and phase commits | Met for contract consistency; phase commits pending | words=2.1.0 and speakers=1.1.0 schemas, prose specs, fixtures, consumers, and changelog agree; commits are the remaining goal work. |
+| Contract and phase commits | Met | words=2.1.0 and speakers=1.1.0 schemas, prose specs, fixtures, consumers, and changelog agree; implementation phases A–E and documentation phase F are committed. |
 
 ## Goal 05 self-audit (self-audit, not independent)
 
