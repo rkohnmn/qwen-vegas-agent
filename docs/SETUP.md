@@ -1,8 +1,8 @@
 # Setup
 
-**Document version:** 1.1.4
+**Document version:** 1.1.5
 
-This guide covers the local Milestone 1 rough-cut pipeline on Windows. It never starts VEGAS or contacts an inference endpoint.
+This guide covers the local offline rough-cut and caption-sidecar pipeline on Windows. It never starts VEGAS or contacts an inference endpoint.
 
 ## Prerequisites
 
@@ -33,6 +33,18 @@ The setup task creates `.venv` and installs the pinned development dependencies 
 ```
 
 `python tasks.py eval` runs synthetic fixtures and requires no media, model weights, GPU, or network. A real `python tasks.py dry-run --video <path> --max-seconds 120 --planner baseline` requires local `ffmpeg`, `ffprobe`, WhisperX, and approved ASR/alignment weights. The latest English real-media run reached verification using a 30 fps CFR working copy under ignored `runs/`; the original source hash remained unchanged. ASR produced timing anchors for 210/210 transcript rows, and the planner generated eight gap actions. Verification failed on 12 level-step and four pacing checks. See [the English and Japanese run records](EVALS.md); neither run contacted an LLM endpoint or launched VEGAS.
+
+## Caption sidecars and optional burn-in
+
+`python tasks.py compile --words <words.json> --timeline <timeline.json> --edl <edl.json>` requires a valid `speakers.json` beside the words file; use `--speakers <speakers.json>` when it lives elsewhere. The compile output includes frame-resolved `captions.json`, plain `captions.srt`, colored `captions.ass`, a text-free caption report, and review warnings. The ASS style uses the configured font name; the renderer does not install or download fonts.
+
+After a manual final render is saved inside that job's `runs/` directory, the optional local FFmpeg adapter can burn the ASS file into a new output without overwriting the source:
+
+```powershell
+python tasks.py burn-captions --job-dir runs/<job_id> --video final_render.mp4 --ass captions.ass --output final_captioned.mp4
+```
+
+FFmpeg and ffprobe are not bundled. If FFmpeg is missing, sidecars remain available. The ASS burn-in has not been run end to end on this machine; see [RV-008](../REVISIT.md#rv-008--goal-06-ass-burn-in-runtime-availability). Vegas text-event and preset paths require human probes first; see [the M6 checklist](HUMAN_TESTS_M6.md) and [RV-007](../REVISIT.md#rv-007--goal-06-caption-style-and-vegas-text-probes).
 
 ## Measured on dev laptop
 

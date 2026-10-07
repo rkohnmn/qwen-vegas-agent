@@ -61,13 +61,15 @@ After a manual VEGAS render, `watch-render` waits for a confined output file to 
 | 01b–03 | Blocked; prompt sources absent from this checkout | — | — | RV-003 |
 | 04 — Closed-loop cut pipeline | Done with assumptions; offline scope complete | 2026-10-07 | `f7e88d0` completion (pushed) | RV-001, RV-002, RV-003, RV-004 |
 | 05 — Speaker attribution | Done with assumptions; offline core complete | 2026-10-07 | `529996a` implementation and docs | RV-005, RV-006 |
-| 06–13 | Not started | — | — | To be assigned as each prompt is run |
+| 06 — Subtitles with Speaker Colors | Done with assumptions; offline sidecars complete | 2026-10-07 | pending final Goal 06 commit | RV-007, RV-008 |
+| 07–13 | Not started | — | — | To be assigned as each prompt is run |
 
 ### What works today (tested)
 
 - Offline stage runner validates supplied timeline and word artifacts, writes review sidecars, resumes hash-checked stages, and records source integrity. Tests use injected fake renderers; the CLI default renderer needs local FFmpeg (RV-004). Vegas execution is disabled. See [the pipeline](docs/PIPELINE.md).
 - Per-cut approvals recompile the exact approved subset; fake executor and renderer fixtures cover review and repair behavior.
 - `watch-render` detects a stable file confined to a run directory and records its hash.
+- Caption compilation maps word timing through removed ranges, checks speaker color and confidence flags, and writes JSON/SRT/ASS sidecars. The local ASS burn-in command is available but awaits FFmpeg verification (RV-008); VEGAS text paths await VQ-09/VQ-10 and a human style choice (RV-007). See [the subtitle guide](docs/SUBTITLES.md).
 - `python tasks.py lint`, `test`, `schemas`, `docs-check`, and `eval` are the available verification commands. Eval is synthetic and reports two level-step failures.
 
 - Speaker-mode mapping, multitrack attribution, synthetic bleed downranking, overlap confidence, enrollment quality checks with fake encoders, low-confidence reports, question confirmation, timeout handling, and secret filtering are covered by 14 unit tests. This is fixture evidence only.
@@ -80,6 +82,7 @@ After a manual VEGAS render, `watch-render` waits for a confined output file to 
 - Default reference rendering needs local FFmpeg: [RV-004](REVISIT.md#rv-004--goal-04-default-reference-renderer-availability).
 
 - Real diarization, enrollment, speaker matching, bleed calibration, and laptop model benchmarks are not available without the accepted local model and labeled recordings: [RV-005](REVISIT.md#rv-005--goal-05-hugging-face-gate-and-voice-enrollment-samples) and [RV-006](REVISIT.md#rv-006--goal-05-real-speech-attribution-quality-and-hardware-benchmark).
+- Real speech caption sync, visual color checks, phone-size readability, 300-event Vegas performance, and style/probe sign-off remain open: [RV-007](REVISIT.md#rv-007--goal-06-caption-style-and-vegas-text-probes) and [RV-008](REVISIT.md#rv-008--goal-06-ass-burn-in-runtime-availability).
 ### Quick start for the offline runner
 
 Use Python 3.12 and provide a read-only `.veg`, its source media, validated timeline and words files, and normalized mono PCM16 WAV. The command writes to ignored `runs/`; it does not launch Vegas or ASR. See [the M4 checklist](docs/HUMAN_TESTS_M4.md).
@@ -106,7 +109,7 @@ These checks remain before treating the prototype as editing-quality validated o
 - Review the 16 English joins and investigate the 12 level-step and four pacing failures using human-reviewed evidence. Keep verifier thresholds unchanged until a representative sample supports calibration.
 - Label the ignored English truth template with word boundaries, then measure timing and cut accuracy. There is no real-media ground truth yet.
 - Complete the click-by-click checks in [the M1 VEGAS human checklist](docs/HUMAN_TESTS_M1.md) on a disposable project. Current VEGAS evidence is metadata and compile-time only.
-- Keep the M2 executor and later subtitles, transitions, sound effects, live LLM planning, and automation out of the delivered M1 scope; see [the roadmap](ROADMAP.md).
+- Continue with Goal 07 and later transition/SFX, vision, LLM planning, automation, performance, security, and packaging prompts after the Goal 06 human caption checks; see [the roadmap](ROADMAP.md).
 
 The contract schemas and prose specifications are in [schemas/](schemas/) and [docs/contracts/](docs/contracts/). Remaining work and acceptance evidence are listed in [ROADMAP.md](ROADMAP.md) and [docs/EVALS.md](docs/EVALS.md).
 

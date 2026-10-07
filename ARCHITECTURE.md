@@ -1,8 +1,8 @@
 # ARCHITECTURE.md
 
 **Project (working title):** Local AI Video Editing Agent for VEGAS Pro 17
-**Document version:** 1.2.4
-**Status:** M1 offline rough-cut implementation is complete for now as a prototype. The 120-second English smoke run reached verification using an approved 30 fps CFR working copy, produced timing anchors for 210/210 transcript rows, and applied eight baseline silence-gap actions. Verification reported 12 level-step and four pacing failures, so the run does not support an editing-quality claim. M1 does not execute Vegas. The offline job runner consumes supplied timeline/word artifacts and exercises fakes; its runtime assumptions remain open under RV-001. Vegas-specific behaviors tagged `[UNVERIFIED]` must be confirmed on a throwaway Vegas Pro 17 project before code depends on them.
+**Document version:** 1.2.5
+**Status:** M1 offline rough-cut and caption-sidecar implementation is complete for now as a prototype. The 120-second English smoke run reached verification using an approved 30 fps CFR working copy, produced timing anchors for 210/210 transcript rows, and applied eight baseline silence-gap actions. Verification reported 12 level-step and four pacing failures, so the run does not support an editing-quality claim. M1 does not execute Vegas. The offline job runner consumes supplied timeline, word, and speaker artifacts and exercises fakes; runtime assumptions remain open under RV-001, RV-007, and RV-008. Vegas-specific behaviors tagged `[UNVERIFIED]` must be confirmed on a throwaway Vegas Pro 17 project before code depends on them.
 
 ---
 
@@ -596,30 +596,26 @@ Linked audio/video groups, variable-frame-rate footage, ripple settings across t
 Subtitle **text and timing** come from `words.json` (code). The model contributes only style intent: emphasis, optional break hints, and omissions.
 
 ### 13.2 Line building (deterministic, configurable)
-- Split at speaker changes. A line never contains two speakers.
-- Respect maximum characters per line and maximum lines per caption.
-- Respect reading-speed ceiling (characters per second) and a minimum display duration.
-- Prefer breaks at punctuation and clause boundaries, honor `break_hints`.
-- Each caption starts at its first word start and ends at its last word end (plus a small hold), clamped to avoid overlap with the next caption.
-- Subtitle times are recomputed **after** cuts, using the compiled timeline mapping, so captions stay in sync with the edited video.
+- Split at speaker changes, explicit EDL break hints, and removed source gaps. A caption contains one speaker only.
+- Respect configured characters per line, maximum lines, reading-speed ceiling (characters per second), minimum display duration, and hold time.
+- Prefer punctuation and clause boundaries. Do not split a Unicode grapheme cluster.
+- Convert word bounds to integer frames with rational arithmetic, then map retained words through the compiler's kept ranges. Words intersecting removed ranges are omitted and reported.
+- Keep same-speaker caption ranges non-overlapping. Different speakers may overlap when their speech overlaps.
+- Apply filler and profanity display rules from local configuration; apply emphasis only to EDL word IDs.
 
 ### 13.3 Color assignment
-- `speakers.json` maps speaker key to hex color. The compiler attaches the color to each caption op. The model never sees or sets colors.
-- Unidentified speakers use the `unknown_palette`.
-- A contrast check against the configured text background or outline settings warns on low contrast.
-- Low-confidence speaker attribution can be rendered in the speaker color with a flag in the report (never silently reassigned).
+- `speakers.json` is the only source of known speaker colors. The model and captions contract cannot supply colors.
+- Keys under `unknown_palette` color unidentified or unmapped speakers.
+- ASS styles use the selected speaker color and configured outline. A contrast check reports low ratios.
+- Low-confidence attribution remains visible with a report flag; it is never silently reassigned.
 
-### 13.4 Vegas rendering path `[UNVERIFIED on 17]`
-Per-event text color via script is the open question. Strategies, in order:
-1. Set the color directly through the text plugin's parameters if accessible (OFX parameter model).
-2. One saved Titles and Text preset per speaker color, applied by key.
-3. Burn-in outside Vegas as a post-render ffmpeg step using generated ASS subtitles, keeping Vegas as the cutter only.
-4. Export SRT/ASS for platform captions, with color carried in ASS.
+### 13.4 Rendering path `[ASS burn-in selected; Vegas paths UNVERIFIED]`
+The provisional decision in `docs/VEGAS_DECISIONS.md` selects ASS burn-in after a manual final render, with SRT and ASS sidecars always available. `python tasks.py compile` writes the JSON, SRT, ASS, and a transcript-free review summary. After a final video is rendered inside the run directory, `python tasks.py burn-captions` invokes the local FFmpeg adapter. The adapter is disabled by missing-tool, failed-render, and path-confinement errors; it never overwrites an output.
 
-SRT import by itself cannot carry color. Existing community scripts can import SRT as regions or text events in Vegas, and are used as references, not dependencies, unless license and quality are confirmed.
+Direct-color Vegas text events depend on VQ-09, and preset-based text events depend on VQ-10. Neither path is implemented or enabled. VQ-09 has compile-time-only evidence; VQ-10 remains UNVERIFIED. Do not add Vegas text operations until a human probe provides E0 evidence.
 
 ### 13.5 Exports
-Always also write sidecar `.srt` and `.ass` files (ASS preserves speaker colors) alongside the final render.
+Compile and approved-review stages write `captions.json`, `.srt`, `.ass`, and `captions_report.json` beside the review artifacts. SRT is plain text; ASS carries speaker colors and emphasis overrides. Burn-in is a separate post-render command. See [the subtitle guide](docs/SUBTITLES.md).
 
 ---
 
@@ -669,7 +665,7 @@ After execution, the verifier renders a low-resolution preview and checks:
 
 Failures produce targeted fix instructions. The fix loop is bounded (default 2 iterations). Items it cannot fix are listed in the final report and, in `auto` mode, set the job status to `needs_review`.
 
-M1 verifies each reference-rendered audio join for sample discontinuity and level step, checks whether cut boundaries fall inside aligned word spans, measures post-cut inter-word gaps against the configured `compile.min_gap_after_cut_ms` and `compile.max_gap_after_cut_ms` thresholds, and checks removed-percent sanity. This M1 verifier is offline and does not render a VEGAS preview; Vegas and subtitle checks remain future work.
+M1 verifies each reference-rendered audio join for sample discontinuity and level step, checks whether cut boundaries fall inside aligned word spans, measures post-cut inter-word gaps against the configured `compile.min_gap_after_cut_ms` and `compile.max_gap_after_cut_ms` thresholds, and checks removed-percent sanity. Caption generation validates the captions contract, source-word references, same-speaker overlap, ASS/SRT round trips, configured contrast, and low-confidence ranges offline. It does not re-align a rendered video or sample rendered caption pixels; rendered sync, color, readability, and 300-event VEGAS performance remain human checks under RV-007 and RV-008.
 
 Optionally, a vision pass reviews sampled frames for visual issues. It is budgeted and off by default for pure-dialogue edits.
 

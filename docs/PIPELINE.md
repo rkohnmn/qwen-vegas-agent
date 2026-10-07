@@ -8,10 +8,10 @@
 flowchart LR
   A[Project and source hashes] --> B[Copy project into run directory]
   B --> C[Load validated timeline]
-  C --> D[Load aligned words]
+  C --> D[Load aligned words and speakers]
   D --> E[Pack] --> F[Baseline or recorded planner]
-  F --> G[Compile frame operations]
-  G --> H[Markers CSV, EDL, review]
+  F --> G[Compile frame operations and captions]
+  G --> H[Markers, EDL, review, SRT, ASS]
   H --> I{Review mode?}
   I -->|No| J[Reference WAV]
   I -->|Yes| K[Per-cut decisions] --> L[Recompile approved cuts] --> M[Executor interface]
@@ -30,10 +30,10 @@ Each stage stores its input key, output paths relative to the run directory, and
 | Stage | Main artifacts | Failure codes |
 |---|---|---|
 | Project copy | working_copy/project.veg | E_PROJECT_INPUT, E_COPY_MISMATCH, E_RUN_EXISTS |
-| Ingest / perceive | timeline.json, words.json | E_TIMELINE_INVALID, E_MEDIA_HASH_MISMATCH, E_WORDS_INVALID, E_WORDS_TIMELINE_MISMATCH |
+| Ingest / perceive | timeline.json, words.json, speakers.json | E_TIMELINE_INVALID, E_MEDIA_HASH_MISMATCH, E_WORDS_INVALID, E_WORDS_TIMELINE_MISMATCH |
 | Pack / plan | pack.txt, edl.json | E_PLAN_FAILED, E_EDL_INVALID |
-| Compile / dry run | ops.json, compile_report.json, markers.csv, cutlist_preview.edl, review.md | E_COMPILE_INVALID, E_STAGE_OUTPUT |
-| Approval | approved_cuts.template.json or approved_cuts.json, approved EDL/ops, pre-execution project checkpoint, refreshed markers and review | E_APPROVAL_SHAPE, E_APPROVAL_INVALID, E_APPROVAL_COVERAGE |
+| Compile / dry run | ops.json, compile_report.json, captions.json, captions.srt, captions.ass, captions_report.json, markers.csv, cutlist_preview.edl, review.md | E_COMPILE_INVALID, E_STAGE_OUTPUT |
+| Approval | approved_cuts.template.json or approved_cuts.json, approved EDL/ops/captions, pre-execution project checkpoint, refreshed markers and review | E_APPROVAL_SHAPE, E_APPROVAL_INVALID, E_APPROVAL_COVERAGE |
 | Execute | execution_result.json | E_EXECUTOR_DISABLED, E_EXECUTOR_INPUT_INVALID, E_EXECUTOR_RESULT |
 | Preview / verify | preview.wav, verify_report.json, fixes.json | E_PREVIEW_VERIFY |
 | Final render | final_render_status.json, optional manual_render_result.json | Vegas rendering remains manual and unverified |
@@ -53,7 +53,7 @@ Errors are recorded by stage in job_state.json and in the run manifest. Messages
 
 ## Approval and repairs
 
-Review decisions must include exactly one approve or reject for every EDL cut and gap action. Missing decisions write a template and pause. Approved items alone are recompiled; markers.csv and review.md are regenerated from that approved set and include the decision audit.
+Review decisions must include exactly one approve or reject for every EDL cut and gap action. Missing decisions write a template and pause. Approved items alone are recompiled; markers.csv, review.md, and `approved_captions/` sidecars are regenerated from that approved set and include the decision audit. The candidate caption sidecars remain available at the run root.
 
 The default repair cap is two iterations. Only failed click or level-step checks can request a wider configured crossfade. The verifier thresholds remain unchanged. Every repair records the triggering check IDs and old/new duration in fixes.json. In review mode the runner restores the pre-execution checkpoint and re-executes the adjusted operations before rendering again; fake adapters test this path. The fixed-width behavior is ASSUMED (RV-001) until a real Vegas render and listening review establish that the same repair improves the result.
 
@@ -67,4 +67,4 @@ The default repair cap is two iterations. Only failed click or level-step checks
 | Vegas-rendered | Not measured (ASSUMED; RV-001) |
 | Real-speech accuracy | Not measured in this run (RV-002) |
 
-See the [human checklist](HUMAN_TESTS_M4.md), [provisional Vegas decisions](VEGAS_DECISIONS.md), and [REVISIT.md](../REVISIT.md) before enabling any runtime path.
+See the [human checklist](HUMAN_TESTS_M4.md), [caption checklist](HUMAN_TESTS_M6.md), [subtitle guide](SUBTITLES.md), [provisional Vegas decisions](VEGAS_DECISIONS.md), and [REVISIT.md](../REVISIT.md) before enabling any runtime path.

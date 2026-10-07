@@ -5,12 +5,12 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 ## Current state
 
 - Current goal: 06 — Subtitles with Speaker Colors.
-- Current phase: Goal 06 phase E — synthetic caption evaluation. Phases A–D: 59ce2ba, ca2ce47, 03c29cb, and 46cb96b.
-- Last completed Goal 05 implementation/documentation commit: 529996a; completion/archive commit c799ecc. Goal 06 phases A–D are committed as 59ce2ba, ca2ce47, 03c29cb, and 46cb96b.
+- Current phase: Goal 06 phase F — architecture, setup, README, limits, and human docs. Phases A–E: 59ce2ba, ca2ce47, 03c29cb, 46cb96b, and 23e9c5e.
+- Last completed Goal 05 implementation/documentation commit: 529996a; completion/archive commit c799ecc. Goal 06 phases A–E are committed as 59ce2ba, ca2ce47, 03c29cb, 46cb96b, and 23e9c5e.
 - Goals completed in this run: 04 and 05 — done with assumptions; origin/main includes both completion commits.
 - Goals blocked: 01b–03 — source prompts and prerequisite evidence are missing (RV-003); no claim of completion.
 - Retry counters: Goal 05 had one targeted timeout-test repair, one ruff repair cycle, and one mypy repair cycle; all were fixed and rerun. Final unit suite: 126 passed. Goal 05 push succeeded.
-- Next action: record the 300-caption synthetic layout/export measurement, then finish documentation and the final verification gate. Keep all Vegas text operations disabled until E0 probes.
+- Next action: finish the docs cross-check, then perform phase G acceptance audit, prompt archival, privacy scan, authorized push, and continue to Goal 07. Keep Vegas text operations disabled until E0 probes.
 
 ## Ten-line plan for goal 06
 

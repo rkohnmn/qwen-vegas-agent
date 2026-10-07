@@ -8,6 +8,10 @@ The repository has no runtime executor. The offline runner writes review sidecar
 
 The job runner consumes precomputed timeline and word artifacts. It does not run ASR. Its default reference audio renderer requires local FFmpeg, and the fake renderer tests use synthetic signals. Neither establishes real-speech edit quality or Vegas-rendered results. FFmpeg was not available during the goal 04 run, so the CLI's default reference renderer was not run end to end (RV-004). The offline eval still reports level-step failures. See [RV-002](../REVISIT.md#rv-002--goal-04-real-clip-timing-sync-and-listening-quality) and [RV-004](../REVISIT.md#rv-004--goal-04-default-reference-renderer-availability).
 
+## Captions and subtitle rendering
+
+The offline compile stage maps captions to edited integer frames and writes JSON, SRT, and ASS sidecars. Unit fixtures verify frame mapping through cuts, SRT/ASS round trips, speaker-map color use, contrast warnings, and low-confidence flags. No rendered-caption re-alignment, pixel sampling, or real-speech readability review has been completed. The ASS burn-in adapter needs a local FFmpeg build; the generated-clip end-to-end check is skipped when FFmpeg/ffprobe are absent (RV-008). Direct Vegas text and preset renderers remain disabled pending VQ-09/VQ-10 human results and the M6 style gate (RV-007).
+
 ## Missing predecessor evidence
 
 Goals 01b–03 and their human-gate artifacts were absent when this prompt run started. Their completion is not claimed. Restore the exact source prompts and reconcile acceptance evidence before treating those prerequisites as complete. See [RV-003](../REVISIT.md#rv-003--missing-predecessor-and-reusable-prompt-artifacts).
