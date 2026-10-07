@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import struct
 import tempfile
+import time
 import wave
 from collections.abc import Sequence
 from pathlib import Path
@@ -34,7 +35,8 @@ from perception.speakers import (
     select_speaker_mode,
     word_track_energies,
 )
-from tasks import task_enroll
+import tasks
+from tasks import task_answer_speaker, task_enroll
 
 
 def _fixture(contract: str, name: str) -> dict[str, object]:
@@ -297,3 +299,64 @@ def test_hf_token_shaped_value_is_redacted_from_speaker_artifacts() -> None:
     assert secret not in json.dumps(safe)
     artifact = {"speaker_report": build_speaker_report([]), "ask_user": {"questions": []}}
     assert secret not in json.dumps(artifact)
+
+
+def test_answer_speaker_cli_persists_only_after_confirmed_diff(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from argparse import Namespace
+
+    root = tmp_path
+    job_dir = root / "runs" / "speaker-job"
+    job_dir.mkdir(parents=True)
+    speakers = _speakers()
+    ensure_unknown_speaker(speakers, "unknown_1")
+    words = _fixture("words", "valid_minimal")
+    words["speaker_mode"] = "single"
+    words["words"][0]["speaker"] = "unknown_1"
+    words["words"][0]["speaker_conf"] = 0.2
+    words["words"][0]["track"] = "audio_0"
+    (job_dir / "speakers.json").write_text(json.dumps(speakers), encoding="utf-8")
+    (job_dir / "words.json").write_text(json.dumps(words), encoding="utf-8")
+    (job_dir / "ask_user.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "status": "awaiting_user",
+                "created_at_epoch": time.time(),
+                "timeout_s": 86400,
+                "questions": [
+                    {
+                        "id": "identify_speaker_1",
+                        "type": "identify_speaker",
+                        "speaker_key": "unknown_1",
+                        "snippet_path": "ask_user/unknown_1.wav",
+                        "candidate_names": ["Host"],
+                        "free_text_allowed": True,
+                        "status": "pending",
+                    }
+                ],
+                "warnings": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(tasks, "ROOT", root)
+    monkeypatch.setattr("builtins.input", lambda _prompt: "y")
+
+    assert (
+        task_answer_speaker(
+            Namespace(job_dir="runs/speaker-job", speaker_key="unknown_1", name="Host")
+        )
+        == 0
+    )
+    capsys.readouterr()
+    updated_words = json.loads((job_dir / "words.json").read_text(encoding="utf-8"))
+    updated_speakers = json.loads((job_dir / "speakers.json").read_text(encoding="utf-8"))
+    updated_question = json.loads((job_dir / "ask_user.json").read_text(encoding="utf-8"))
+    persisted_speakers = json.loads((root / "speakers.json").read_text(encoding="utf-8"))
+    assert updated_words["words"][0]["speaker"] == "host"
+    assert updated_words["words"][0]["speaker_conf"] == 0.2
+    assert "unknown_1" not in updated_speakers["speakers"]
+    assert updated_question["status"] == "answered"
+    assert persisted_speakers == updated_speakers

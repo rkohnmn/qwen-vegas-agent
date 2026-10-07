@@ -5,12 +5,12 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 ## Current state
 
 - Current goal: 05 — Speaker Attribution and Profiles.
-- Current phase: phases A–C are committed; phase D enrollment CLI and profile safeguards are ready for commit. Phases E–G follow.
-- Last commit: bf22a17 (goal 05 phase C overlap/reporting and synthetic evaluation); origin/main was updated through goal 04.
+- Current phase: phases A–D are committed; phase E confirmed-answer, persistence, and timeout behavior has integration coverage and is ready for commit. Phases F–G follow.
+- Last commit: dbf9d78 (goal 05 phase D enrollment and speaker CLI); origin/main was updated through goal 04.
 - Goals completed in this run: 04 — done with assumptions; completion commit f7e88d0, pushed to origin/main. Goal 05 acceptance is mapped below and still needs its phase/archive commits.
 - Goals blocked: 01b–03 — source prompts and prerequisite evidence are missing (RV-003); no claim of completion.
 - Retry counters: Goal 05 had one targeted timeout-test repair, one ruff repair cycle, and one mypy repair cycle; all were fixed and rerun. Final unit suite: 125 passed. Push attempts for goal 05: 0.
-- Next action: commit phase D enrollment, then finish confirmed answer/timeout integration coverage, documentation, and final archive/privacy/push phases.
+- Next action: commit phase E confirmation-flow coverage, then finish documentation, final checks, prompt archive, privacy gate, and push.
 ## Ten-line plan for goal 05
 
 1. Re-read the full goal and inspect architecture, word/speaker contracts, security, setup, evaluation, config, ASR, and CLI boundaries.
