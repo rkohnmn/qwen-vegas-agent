@@ -11,7 +11,8 @@ This register tracks behavior implemented or described without live resources. C
 5. Turn on the self-hosted inference server only when ready, then run the recorded/live integration checks explicitly documented by their goal. No endpoint was contacted in this run.
 6. Supply an HF token only if a future approved model download requires it. Never store it in the repository or pass it to child processes.
 7. Complete the style interview, choose and document an asset-license decision, and provide an approved SFX library before enabling those features.
-8. Run human acceptance tests and release checks on a clean checkout after all offline checks pass.
+8. Complete the Goal 06 style/probe gate and evaluate the local ASS burn-in path before enabling caption rendering or Vegas operations.
+9. Run human acceptance tests and release checks on a clean checkout after all offline checks pass.
 
 ## 2. Items
 
@@ -114,4 +115,28 @@ This register tracks behavior implemented or described without live resources. C
 - **Who:** Human supplies and reviews the clips; agent calculates metrics from approved redacted results.
 - **Severity:** high for real speaker-attribution quality claims; no impact to synthetic unit checks.
 - **Related VQ IDs:** none.
+- **Status:** open.
+
+### RV-007 — Goal 06 caption style and Vegas text probes
+
+- **Feature or claim:** The selected subtitle style and any Vegas text-event or preset renderer, including two-speaker color correctness and 300-caption performance.
+- **Why untested:** `STYLE_INTERVIEW.md`, T1, and HUMAN_GATES.md are absent. VQ-09 has compile-time-only evidence; VQ-10 remains UNVERIFIED. The subtitle path in `docs/VEGAS_DECISIONS.md` is provisional ASS burn-in plus sidecars, not Vegas text events.
+- **Assumption and locations:** Implement only deterministic offline caption generation and sidecars from the existing architecture defaults. Keep direct-color, preset, and executor text operations disabled until human probe evidence is recorded. See `docs/VEGAS_NOTES.md`, `docs/VEGAS_DECISIONS.md`, and `docs/HUMAN_TESTS_M6.md`.
+- **Exact test:** A human completes the M6 checklist on a disposable synthetic VEGAS project, runs the VQ-09 and VQ-10 steps, decides caption style, compares two speaker colors and special text, and times 300 events. Record E0 observations in VEGAS_NOTES.md and style choices in the restored interview artifact.
+- **Expected result and record:** A chosen style is explicit; any enabled Vegas mechanism passes text, per-speaker color, special-character, and 300-event checks. Until then, Vegas caption operations remain unimplemented or disabled and no Vegas claim is made.
+- **Who:** Human with VEGAS Pro 17; agent can review redacted results afterward.
+- **Severity:** blocker for Vegas caption rendering; no blocker for offline captions or sidecars.
+- **Related VQ IDs:** VQ-09 PARTIAL (compile-time only), VQ-10 UNVERIFIED.
+- **Status:** open.
+
+### RV-008 — Goal 06 ASS burn-in runtime availability
+
+- **Feature or claim:** End-to-end FFmpeg ASS burn-in after a final render, as selected provisionally in the subtitle decision memo.
+- **Why untested:** FFmpeg/ffprobe are absent on this machine (RV-004), and Goal 06 permits no downloads. SRT/ASS generation can be verified offline, but the render integration cannot.
+- **Assumption and locations:** Keep the ASS renderer behind an adapter with explicit binary discovery and typed missing-tool errors; never change the default render pipeline or install binaries. See `docs/SUBTITLES.md` and `docs/VEGAS_DECISIONS.md`.
+- **Exact test:** After an approved local FFmpeg build is available, generate a synthetic 2-second video and ASS file, burn it with the configured renderer, parse the output with ffprobe, and sample caption frames for expected text/color. Record command versions and results without user media.
+- **Expected result and record:** A generated output video contains the two styled caption events at the expected frames; no user media is used. Record runtime and frame inspection in docs/EVALS.md.
+- **Who:** Agent when local FFmpeg is available; no download during this run.
+- **Severity:** blocker for end-to-end burn-in; sidecar export remains available.
+- **Related VQ IDs:** none; dependency RV-004.
 - **Status:** open.
