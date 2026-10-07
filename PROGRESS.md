@@ -5,12 +5,12 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 ## Current state
 
 - Current goal: 06 — Subtitles with Speaker Colors.
-- Current phase: Goal 06 phase F — architecture, setup, README, limits, and human docs. Phases A–E: 59ce2ba, ca2ce47, 03c29cb, 46cb96b, and 23e9c5e.
-- Last completed Goal 05 implementation/documentation commit: 529996a; completion/archive commit c799ecc. Goal 06 phases A–E are committed as 59ce2ba, ca2ce47, 03c29cb, 46cb96b, and 23e9c5e.
+- Current phase: Goal 06 phase G — acceptance audit, prompt archival, privacy gate, completion commit, and authorized push. Goal 06 phases A–F: 59ce2ba, ca2ce47, 03c29cb, 46cb96b, 23e9c5e, and 44b9221.
+- Last completed Goal 05 implementation/documentation commit: 529996a; completion/archive commit c799ecc. Goal 06 phases A–F are committed; the phase G completion commit and push remain.
 - Goals completed in this run: 04 and 05 — done with assumptions; origin/main includes both completion commits.
 - Goals blocked: 01b–03 — source prompts and prerequisite evidence are missing (RV-003); no claim of completion.
 - Retry counters: Goal 05 had one targeted timeout-test repair, one ruff repair cycle, and one mypy repair cycle; all were fixed and rerun. Final unit suite: 126 passed. Goal 05 push succeeded.
-- Next action: finish the docs cross-check, then perform phase G acceptance audit, prompt archival, privacy scan, authorized push, and continue to Goal 07. Keep Vegas text operations disabled until E0 probes.
+- Next action: run final documentation and privacy checks, commit Goal 06 completion and prompt archival, push to origin/main when safe, then immediately start Goal 07. Keep Vegas text operations disabled until E0 probes.
 
 ## Ten-line plan for goal 06
 
@@ -130,3 +130,46 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 8. Add regression tests, pipeline documentation, and the M4 human-test checklist.
 9. Run available standard checks, eval, and a self-audit; document unavailable live checks honestly.
 10. Sanitize and archive the completed prompt, commit the goal, run the privacy gate, and attempt the authorized push.
+
+## Goal 06 acceptance mapping
+
+| Criterion | Status | Evidence or revisit |
+|---|---|---|
+| 1. Standard checks and Vegas behavior boundary | Met for available offline checks | `python tasks.py lint`, `test` (141 passed, 1 skipped), `schemas` (11 schemas / 45 fixtures), `docs-check`, `revisit-check`, and synthetic `eval` passed. Vegas behavior remains unverified and no Vegas was run. |
+| 2. Frame-valid, single-speaker, non-overlapping captions | Met for deterministic synthetic fixtures | Caption contract and seeded layout tests cover integer frames, positive bounds, speaker grouping, and same-speaker overlap rejection. |
+| 3. Cut remapping within one frame | Met for synthetic compile mappings | Tests map words through removed intervals with exact rational frame boundaries and check the first retained word alignment. |
+| 4. SRT/ASS round-trip and escaping | Met | Serializer parse-back tests preserve text/timing and exercise braces, backslashes, and line breaks. |
+| 5. Speaker-only colors and EDL color rejection | Met | `speakers.json` resolves colors; validator rejects unknown EDL properties, including color-like fields. |
+| 6. Low contrast and low confidence reporting | Met | Unit tests cover warnings and review output. |
+| 7. C# 5 executor text ops | ASSUMED / deferred under RV-007 | No Vegas text operations were added because VQ-09/VQ-10 do not provide probe evidence. This preserves the documented safety gate; a disposable-project probe and style decision are required before implementation. |
+| 8. Renderer and FFmpeg generated-clip burn-in | Sidecar renderers met; burn-in ASSUMED under RV-008 | Renderer interface and sidecar-only path are implemented. Generated-clip FFmpeg test was skipped because local `ffmpeg`/`ffprobe` are unavailable. |
+| 9. Human checklist | Met as a document; human execution ASSUMED under RV-007/RV-008 | `docs/HUMAN_TESTS_M6.md` includes expected outcomes and a results template; no human clip review was available. |
+| 10. Contract, documentation, privacy, and phase commits | Met after final privacy gate | captions=1.0.0 schema/spec/fixture and consumers agree; phase commits A–F are recorded. Prompt archival and completion commit are this phase. |
+
+## Goal 06 self-audit (self-audit, not independent)
+
+| T3 check | Result | Evidence |
+|---|---|---|
+| Reproduce claims | Pass for available commands; setup not run | `lint`, `test`, `schemas`, `docs-check`, `revisit-check`, `eval`, and CLI help ran. `setup` was skipped because the pinned setup may install packages and the goal forbids downloads. |
+| Acceptance criteria | Pass or ASSUMED; see RV-007/RV-008 | See the 10-row mapping above. |
+| Hard rules | Pass | No Vegas, endpoint, download, user media, credentials, or local secret config touched; dry-run default is unchanged. |
+| Contract consistency | Pass | captions 1.0.0 schema, prose, fixtures, producer, validators, and docs agree. |
+| Vegas claims | Pass | VQ-09 is compile-only/partial and VQ-10 remains unverified; text operations are deferred under RV-007. |
+| Diff review | Pass | No new dependency, network path, prompt instruction, loosened threshold, or validation bypass. |
+| Privacy scan | Pass | `docs-check` and an independent pattern scan of 155 tracked/staged files passed after prompt archival; no private paths, token patterns, or media filenames were found. The archived prompt contains no transcript content. |
+| Docs honesty | Pass | README, subtitle guide, evals, limits, revisit entries, and human checklist distinguish synthetic evidence from unrun runtime checks. |
+| Human steps | Pass | `docs/HUMAN_TESTS_M6.md` documents two-speaker timing/color/readability review and performance check; not run. |
+| Top risks | Pass | (1) Vegas style/text behavior unknown (RV-007); (2) FFmpeg burn-in untested locally (RV-008); (3) real-speech sync/readability/performance has no human evidence (RV-007). |
+
+## Goal 06 command record
+
+- `python tasks.py lint` — passed; ruff, format, and strict mypy.
+- `python tasks.py test` — passed; 141 passed, 1 skipped (FFmpeg/ffprobe burn-in; RV-008).
+- `python tasks.py schemas` — passed; 11 schemas and 45 fixtures.
+- `python tasks.py docs-check` — passed after prompt archival; links, paths, contract versions, changelog, privacy scan, and revisit markers agree.
+- `python tasks.py revisit-check` — passed; eight registered revisit items.
+- `python tasks.py eval` — passed synthetic caption plumbing; 300 generated and round-tripped caption events; layout 41.107 ms and sidecar export 10.017 ms in that run. These are not Vegas or real-speech measurements.
+- `python tasks.py compile --help`, `run-job --help`, and `burn-captions --help` — passed.
+- `python tasks.py setup` — not run; setup may install packages and Goal 06 forbids downloads.
+- Independent privacy scan — passed for 155 tracked/staged files; no target patterns or media filenames found.
+- Not run: Vegas, real speech/listening, style-interview gate, FFmpeg end-to-end burn-in, and live endpoint; see RV-003, RV-007, and RV-008.
