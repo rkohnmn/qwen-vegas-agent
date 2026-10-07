@@ -132,6 +132,12 @@ def test_new_timeline_and_report_semantics_are_checked() -> None:
     assert ErrorCode.E_MANIFEST_INTEGRITY in codes(check_run_manifest(manifest))
 
 
+def test_run_manifest_file_hash_mismatch_is_detected() -> None:
+    manifest = load_fixture("run_manifest", "valid_minimal")
+    manifest["source_integrity"]["files"][0]["unchanged"] = False
+    assert ErrorCode.E_MANIFEST_INTEGRITY in codes(check_run_manifest(manifest))
+
+
 def test_edl_gap_actions_require_unique_cut_and_gap_ids() -> None:
     words, speakers, catalog = references()
     edl = load_fixture("edl", "valid_realistic")

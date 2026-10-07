@@ -33,6 +33,14 @@ VERSIONED_CONTRACTS = (
 )
 DOC_PATH_PATTERN = re.compile(r"(?<![A-Za-z0-9_])((?:docs|schemas)/[A-Za-z0-9_./*-]+)")
 MARKDOWN_LINK_PATTERN = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+REVISIT_ID_PATTERN = re.compile(r"\bRV-[0-9]{3}\b")
+PROMPT_SOURCE_NAMES = {
+    "T1.md",
+    "T2_DEBUG_FAILING_RUN.md",
+    "T3_VERIFY_AND_SIGN_OFF.md",
+    "HUMAN_GATES.md",
+    "STYLE_INTERVIEW.md",
+}
 
 
 def task_python() -> Path:
@@ -209,7 +217,7 @@ def task_lint() -> int:
 def task_test() -> int:
     """Run unit tests with a project-local temp directory that is removed afterward."""
     with tempfile.TemporaryDirectory(prefix=".pytest-temp-", dir=ROOT) as temp_root:
-        return run_command(
+        status = run_command(
             [
                 str(task_python()),
                 "-m",
@@ -219,6 +227,7 @@ def task_test() -> int:
                 temp_root,
             ]
         )
+    return status if status != 0 else task_revisit_check()
 
 
 def load_json(path: Path) -> Any:
@@ -353,6 +362,77 @@ def _target_path(target: str) -> str:
     return cleaned.split("#", maxsplit=1)[0].split("?", maxsplit=1)[0]
 
 
+def _is_prompt_input_document(path: Path) -> bool:
+    """Prompt sources are task inputs, not project docs with link obligations."""
+    relative = path.relative_to(ROOT)
+    if relative.parts and relative.parts[0] == "completed prompts":
+        return True
+    if len(relative.parts) != 1:
+        return False
+    return path.name in PROMPT_SOURCE_NAMES or path.name.endswith("_GOAL.md")
+
+
+def task_revisit_check() -> int:
+    """Require every ASSUMED marker and revisit reference to resolve."""
+    try:
+        listed = subprocess.run(
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+            shell=False,
+            env=safe_child_environment(),
+        )
+    except (OSError, subprocess.CalledProcessError):
+        print("revisit-check could not list repository files", file=sys.stderr)
+        return 1
+
+    revisit_path = ROOT / "REVISIT.md"
+    if not revisit_path.is_file():
+        print("REVISIT.md is missing", file=sys.stderr)
+        return 1
+    revisit_text = revisit_path.read_text(encoding="utf-8")
+    defined = set(REVISIT_ID_PATTERN.findall(revisit_text))
+    failures: list[str] = []
+    for relative_name in listed.stdout.splitlines():
+        path = ROOT / relative_name
+        if _is_prompt_input_document(path) or not path.is_file():
+            continue
+        if path.suffix.lower() not in {".md", ".py", ".cs", ".json", ".toml"}:
+            continue
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeError):
+            continue
+        relative = path.relative_to(ROOT).as_posix()
+        for line_number, line in enumerate(lines, start=1):
+            ids = set(REVISIT_ID_PATTERN.findall(line))
+            unknown = ids - defined
+            if unknown:
+                failures.append(
+                    f"{relative}:{line_number}: unknown revisit ID {sorted(unknown)[0]}"
+                )
+            checker_rule = relative == "tasks.py" and (
+                '"ASSUMED" in line' in line
+                or '"@pytest.mark.revisit" in line' in line
+                or "Require every ASSUMED marker" in line
+                or "ASSUMED marker has no RV-### reference" in line
+                or "revisit test marker has no RV-### reference" in line
+            )
+            if "ASSUMED" in line and not ids and not checker_rule:
+                failures.append(f"{relative}:{line_number}: ASSUMED marker has no RV-### reference")
+            if "@pytest.mark.revisit" in line and not ids and not checker_rule:
+                failures.append(
+                    f"{relative}:{line_number}: revisit test marker has no RV-### reference"
+                )
+    if failures:
+        print("\n".join(failures), file=sys.stderr)
+        return 1
+    print(f"Revisit markers resolve to {len(defined)} registered items.")
+    return 0
+
+
 def _privacy_scan() -> list[str]:
     """Scan tracked and unignored working files without echoing sensitive matches."""
     try:
@@ -467,6 +547,8 @@ def task_docs_check() -> int:
     )
     failures: list[str] = []
     for markdown_path in markdown_files:
+        if _is_prompt_input_document(markdown_path):
+            continue
         relative_md = markdown_path.relative_to(ROOT)
         for target in _markdown_targets(markdown_path):
             path_text = _target_path(target)
@@ -489,6 +571,8 @@ def task_docs_check() -> int:
             failures.append(f"CHANGELOG.md: missing {contract} version {version}")
 
     for markdown_path in markdown_files:
+        if _is_prompt_input_document(markdown_path):
+            continue
         content = markdown_path.read_text(encoding="utf-8")
         for match in DOC_PATH_PATTERN.finditer(content):
             mentioned = match.group(1).rstrip(".,;:!?)]}")
@@ -509,7 +593,7 @@ def task_docs_check() -> int:
         print("\n".join(failures), file=sys.stderr)
         return 1
     print("Documentation links, referenced paths, contract versions, and changelog entries agree.")
-    return 0
+    return task_revisit_check()
 
 
 def task_dry_run(args: argparse.Namespace) -> int:
@@ -660,6 +744,107 @@ def task_integration() -> int:
     return 0
 
 
+def task_watch_render(args: argparse.Namespace) -> int:
+    """Wait for a manually rendered file inside one ignored run directory."""
+    import hashlib
+
+    from orchestrator.job_pipeline import JobStageFailure, wait_for_manual_render
+
+    runs_root = (ROOT / "runs").resolve()
+    job_dir = Path(args.job_dir).resolve()
+    if not job_dir.is_relative_to(runs_root) or not job_dir.is_dir():
+        print("watch-render job directory must be an existing folder under runs/", file=sys.stderr)
+        return 2
+    output = Path(args.output)
+    if output.is_absolute():
+        candidate = output.resolve()
+    else:
+        candidate = (job_dir / output).resolve()
+    try:
+        ready = wait_for_manual_render(
+            candidate,
+            working_dir=job_dir,
+            stop_file=job_dir / "STOP",
+            timeout_s=args.timeout_s,
+        )
+    except JobStageFailure as error:
+        print(
+            f"watch-render blocked at {error.stage} [{error.code}]: {error.message}",
+            file=sys.stderr,
+        )
+        return 1
+    digest_state = hashlib.sha256()
+    with ready.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest_state.update(chunk)
+    digest = digest_state.hexdigest()
+    result = {
+        "status": "stable_file_detected",
+        "filename": ready.name,
+        "sha256": f"sha256:{digest}",
+        "size_bytes": ready.stat().st_size,
+    }
+    result_path = job_dir / "manual_render_result.json"
+    result_path.write_text(json.dumps(result, indent=2) + chr(10), encoding="utf-8")
+    print(f"stable manual render detected: {result_path.relative_to(ROOT)}")
+    return 0
+
+
+def task_run_job(args: argparse.Namespace) -> int:
+    """Run the resumable pipeline from a Vegas copy plus validated artifacts."""
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    from orchestrator.job_pipeline import JobOptions, JobStageFailure, run_job
+    from orchestrator.planner import PlannerError, RecordedPlanner
+
+    if args.resume and not args.output_dir:
+        print("run-job resume requires --output-dir", file=sys.stderr)
+        return 2
+    if args.planner == "recorded" and not args.recorded_edl:
+        print("run-job recorded planner requires --recorded-edl", file=sys.stderr)
+        return 2
+    output_dir = (
+        Path(args.output_dir).resolve()
+        if args.output_dir
+        else ROOT / "runs" / f"job_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}_{uuid4().hex[:8]}"
+    )
+    if not output_dir.is_relative_to((ROOT / "runs").resolve()):
+        print("run-job output must stay under runs/", file=sys.stderr)
+        return 2
+    planner = RecordedPlanner.from_file(args.recorded_edl) if args.planner == "recorded" else None
+    options = JobOptions(
+        mode=args.mode,
+        max_fix_iterations=args.max_fix_iterations,
+        stop_after_stage=args.stop_after_stage,
+    )
+    try:
+        result = run_job(
+            project_path=args.project,
+            source_media_paths=args.media,
+            timeline_path=args.timeline,
+            words_path=args.words,
+            audio_path=args.audio,
+            run_dir=output_dir,
+            options=options,
+            planner=planner,
+            recorded_edl_path=args.recorded_edl,
+            decisions_path=args.decisions,
+            resume=args.resume,
+        )
+    except JobStageFailure as error:
+        print(
+            f"run-job blocked at {error.stage} [{error.code}]: {error.message}",
+            file=sys.stderr,
+        )
+        return 1
+    except (PlannerError, OSError, ValueError) as error:
+        print(f"run-job blocked or failed: {error}", file=sys.stderr)
+        return 1
+    print(f"run-job artifacts written under {result.relative_to(ROOT)}")
+    return 0
+
+
 def task_eval() -> int:
     from orchestrator.evaluation import run_synthetic_eval
 
@@ -712,6 +897,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         "plan",
         "compile",
         "integration",
+        "run-job",
+        "watch-render",
+        "revisit-check",
     ):
         subparser = subparsers.add_parser(name)
         if name == "setup":
@@ -745,6 +933,53 @@ def main(argv: Sequence[str] | None = None) -> int:
             subparser.add_argument("--edl", required=True)
             subparser.add_argument("--audio", default=None)
             subparser.add_argument("--output-dir", default=None)
+        if name == "watch-render":
+            subparser.add_argument("--job-dir", required=True)
+            subparser.add_argument("--output", required=True)
+            subparser.add_argument("--timeout-s", type=int, default=3600)
+        if name == "run-job":
+            subparser.add_argument(
+                "--project", required=True, help="source .veg project, read-only"
+            )
+            subparser.add_argument(
+                "--media",
+                action="append",
+                required=True,
+                help="declared source media; repeat per source file",
+            )
+            subparser.add_argument("--timeline", required=True, help="validated timeline dump")
+            subparser.add_argument(
+                "--words", required=True, help="validated aligned words artifact"
+            )
+            subparser.add_argument(
+                "--audio", required=True, help="normalized mono PCM16 preview source"
+            )
+            subparser.add_argument("--mode", choices=("dry-run", "review"), default="dry-run")
+            subparser.add_argument(
+                "--planner", choices=("baseline", "recorded"), default="baseline"
+            )
+            subparser.add_argument("--recorded-edl", default=None)
+            subparser.add_argument("--decisions", default=None)
+            subparser.add_argument("--output-dir", default=None)
+            subparser.add_argument("--resume", action="store_true")
+            subparser.add_argument("--max-fix-iterations", type=int, choices=(0, 1, 2), default=2)
+            subparser.add_argument(
+                "--stop-after-stage",
+                choices=(
+                    "project_copy",
+                    "ingest",
+                    "perceive",
+                    "pack",
+                    "plan",
+                    "compile",
+                    "dry_run",
+                    "approve",
+                    "execute",
+                    "verify_fix_loop",
+                    "render_final",
+                ),
+                default=None,
+            )
     args = parser.parse_args(argv)
     project_python = task_python()
     if (
@@ -758,6 +993,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             "transcribe",
             "plan",
             "compile",
+            "run-job",
+            "watch-render",
+            "revisit-check",
         }
         and Path(sys.executable).resolve() != project_python.resolve()
     ):
@@ -777,6 +1015,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return task_schemas()
     if args.task == "docs-check":
         return task_docs_check()
+    if args.task == "watch-render":
+        return task_watch_render(args)
+    if args.task == "revisit-check":
+        return task_revisit_check()
     if args.task == "dry-run":
         return task_dry_run(args)
     if args.task == "eval":
@@ -793,6 +1035,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return task_compile(args)
     if args.task == "integration":
         return task_integration()
+    if args.task == "run-job":
+        return task_run_job(args)
     raise AssertionError("unknown task")
 
 

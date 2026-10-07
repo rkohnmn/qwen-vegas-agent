@@ -123,7 +123,7 @@ def _status_manifest(
     align_model: str = "not-run",
 ) -> dict[str, Any]:
     return {
-        "schema_version": "1.0.0",
+        "schema_version": "1.1.0",
         "job_id": job_id,
         "inputs": [{"id": "source_0", "sha256": source_hash_before.removeprefix("sha256:")}],
         "schemas": {"timeline": "1.0.0", "words": "2.0.0", "edl": "1.2.0", "ops": "1.1.0"},

@@ -14,4 +14,7 @@ files = ["orchestrator", "perception"]
 [tool.pytest.ini_options]
 testpaths = ["tests/unit"]
 addopts = "-ra"
-markers = ["integration: requires explicit permission to contact a real LLM endpoint"]
+markers = [
+    "integration: requires explicit permission to contact a real LLM endpoint",
+    "revisit(item_id): test coverage for an assumption recorded in REVISIT.md",
+]

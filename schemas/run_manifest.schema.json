@@ -17,7 +17,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.0.0"
+      "const": "1.1.0"
     },
     "job_id": {
       "type": "string",
@@ -197,6 +197,38 @@
         },
         "unchanged": {
           "type": "boolean"
+        },
+        "files": {
+          "maxItems": 100,
+          "type": "array",
+          "items": {
+            "required": [
+              "id",
+              "sha256_before",
+              "sha256_after",
+              "unchanged"
+            ],
+            "type": "object",
+            "properties": {
+              "unchanged": {
+                "type": "boolean"
+              },
+              "sha256_after": {
+                "pattern": "^sha256:[a-f0-9]{64}$",
+                "type": "string"
+              },
+              "sha256_before": {
+                "pattern": "^sha256:[a-f0-9]{64}$",
+                "type": "string"
+              },
+              "id": {
+                "minLength": 1,
+                "type": "string",
+                "maxLength": 80
+              }
+            },
+            "additionalProperties": false
+          }
         }
       }
     },

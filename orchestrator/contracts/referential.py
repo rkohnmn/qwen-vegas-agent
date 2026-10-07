@@ -827,6 +827,39 @@ def check_run_manifest(manifest: Mapping[str, Any]) -> list[ValidationIssue]:
                         "hash comparison disagrees with unchanged flag",
                     )
                 )
+    files = integrity.get("files", []) if isinstance(integrity, Mapping) else []
+    seen_files: set[str] = set()
+    if isinstance(files, list):
+        for index, item in enumerate(files):
+            if not isinstance(item, Mapping):
+                continue
+            file_id = item.get("id")
+            if isinstance(file_id, str):
+                if file_id in seen_files:
+                    issues.append(
+                        _issue(
+                            ErrorCode.E_DUPLICATE_ID,
+                            f"source_integrity.files[{index}].id",
+                            "source integrity file ID is duplicated",
+                        )
+                    )
+                seen_files.add(file_id)
+            file_before = item.get("sha256_before")
+            file_after = item.get("sha256_after")
+            file_unchanged = item.get("unchanged")
+            if (
+                isinstance(file_before, str)
+                and isinstance(file_after, str)
+                and isinstance(file_unchanged, bool)
+                and file_unchanged != (file_before == file_after)
+            ):
+                issues.append(
+                    _issue(
+                        ErrorCode.E_MANIFEST_INTEGRITY,
+                        f"source_integrity.files[{index}]",
+                        "file hash comparison disagrees with unchanged flag",
+                    )
+                )
     estimate = manifest.get("token_estimate", {})
     if isinstance(estimate, Mapping):
         characters = estimate.get("pack_characters")
