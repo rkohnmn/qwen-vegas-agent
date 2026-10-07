@@ -63,6 +63,63 @@ def test_alignment_mismatch_marks_segment_unaligned_without_times() -> None:
     assert all(not word.aligned and word.start is None and word.end is None for word in words)
 
 
+def test_sentence_split_alignment_maps_back_to_raw_segment_indices() -> None:
+    words = _words_from_segments(
+        [
+            {"text": "hello world. next time"},
+            {"text": "good bye"},
+        ],
+        [
+            {
+                "text": "hello world.",
+                "words": [
+                    {"word": "hello", "start": 0.0, "end": 0.2},
+                    {"word": "world.", "start": 0.2, "end": 0.4},
+                ],
+            },
+            {
+                "text": "next time",
+                "words": [
+                    {"word": "next", "start": 0.5, "end": 0.7},
+                    {"word": "time", "start": 0.7, "end": 0.9},
+                ],
+            },
+            {"text": "good bye", "words": []},
+        ],
+    )
+
+    assert [word.text for word in words] == [
+        "hello",
+        "world.",
+        "next",
+        "time",
+        "good",
+        "bye",
+    ]
+    assert [word.segment_index for word in words] == [0, 0, 0, 0, 1, 1]
+    assert [word.aligned for word in words] == [True, True, True, True, False, False]
+    assert words[2].start == 0.5
+    assert words[-1].start is None and words[-1].end is None
+
+
+def test_sentence_alignment_text_mismatch_falls_back_to_unaligned_raw_words() -> None:
+    words = _words_from_segments(
+        [{"text": "hello there"}],
+        [
+            {
+                "text": "unrelated words",
+                "words": [
+                    {"word": "unrelated", "start": 0.0, "end": 0.2},
+                    {"word": "words", "start": 0.2, "end": 0.4},
+                ],
+            }
+        ],
+    )
+
+    assert [word.text for word in words] == ["hello", "there"]
+    assert all(not word.aligned and word.start is None for word in words)
+
+
 def test_finer_japanese_subword_alignment_is_not_promoted_to_word_timing() -> None:
     words = _words_from_segments(
         [{"text": "こんにちは世界"}],

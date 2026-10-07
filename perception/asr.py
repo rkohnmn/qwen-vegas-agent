@@ -128,6 +128,12 @@ def _words_from_segments(
     aligned_segments: Sequence[object] | None,
 ) -> tuple[AsrWord, ...]:
     aligned_by_segment = list(aligned_segments or [])
+    if any(
+        isinstance(value, Mapping) and isinstance(value.get("text"), str)
+        for value in aligned_by_segment
+    ):
+        return _words_from_split_aligned_segments(raw_segments, aligned_by_segment)
+
     output: list[AsrWord] = []
     for segment_index, raw_value in enumerate(raw_segments):
         raw = raw_value if isinstance(raw_value, Mapping) else {}
@@ -182,6 +188,88 @@ def _words_from_segments(
                 )
             )
     return tuple(output)
+
+
+def _words_from_split_aligned_segments(
+    raw_segments: Sequence[object],
+    aligned_segments: Sequence[object],
+) -> tuple[AsrWord, ...]:
+    """Map WhisperX sentence splits back to raw ASR words in transcript order."""
+    raw_tokens: list[tuple[str, int]] = []
+    for segment_index, raw_value in enumerate(raw_segments):
+        raw = raw_value if isinstance(raw_value, Mapping) else {}
+        text_value = raw.get("text", "")
+        text = text_value if isinstance(text_value, str) else ""
+        raw_tokens.extend((token, segment_index) for token in _WORD_SPLIT.findall(text.strip()))
+
+    output: list[AsrWord] = []
+    cursor = 0
+    for aligned_value in aligned_segments:
+        if not isinstance(aligned_value, Mapping):
+            return tuple(_unaligned_words_for_raw(raw_segments))
+        aligned_text = aligned_value.get("text", "")
+        if not isinstance(aligned_text, str):
+            return tuple(_unaligned_words_for_raw(raw_segments))
+        aligned_tokens = _WORD_SPLIT.findall(aligned_text.strip())
+        if not aligned_tokens:
+            continue
+        token_end = cursor + len(aligned_tokens)
+        expected = raw_tokens[cursor:token_end]
+        if len(expected) != len(aligned_tokens) or any(
+            _normal_word(raw_token) != _normal_word(aligned_token)
+            for (raw_token, _), aligned_token in zip(expected, aligned_tokens, strict=True)
+        ):
+            return tuple(_unaligned_words_for_raw(raw_segments))
+
+        word_rows_value = aligned_value.get("words", [])
+        candidate_rows = word_rows_value if isinstance(word_rows_value, list) else []
+        word_rows = [row for row in candidate_rows if isinstance(row, Mapping)]
+        aligned_word_texts = [
+            row.get("word", "").strip() for row in word_rows if isinstance(row.get("word", ""), str)
+        ]
+        raw_span = [token for token, _ in expected]
+        if len(aligned_word_texts) != len(raw_span) or any(
+            _normal_word(raw_token) != _normal_word(aligned_token)
+            for raw_token, aligned_token in zip(raw_span, aligned_word_texts, strict=False)
+        ):
+            output.extend(
+                AsrWord(token, None, None, 0.0, False, segment_index)
+                for token, segment_index in expected
+            )
+            cursor = token_end
+            continue
+
+        for (raw_token, segment_index), row in zip(expected, word_rows, strict=True):
+            start = _valid_time(row.get("start"))
+            end = _valid_time(row.get("end"))
+            is_aligned = start is not None and end is not None and end >= start
+            output.append(
+                AsrWord(
+                    text=raw_token,
+                    start=start if is_aligned else None,
+                    end=end if is_aligned else None,
+                    confidence=_score(row.get("score")),
+                    aligned=is_aligned,
+                    segment_index=segment_index,
+                )
+            )
+        cursor = token_end
+
+    output.extend(
+        AsrWord(token, None, None, 0.0, False, segment_index)
+        for token, segment_index in raw_tokens[cursor:]
+    )
+    return tuple(output)
+
+
+def _unaligned_words_for_raw(raw_segments: Sequence[object]) -> list[AsrWord]:
+    output: list[AsrWord] = []
+    for segment_index, raw_value in enumerate(raw_segments):
+        raw = raw_value if isinstance(raw_value, Mapping) else {}
+        text_value = raw.get("text", "")
+        text = text_value if isinstance(text_value, str) else ""
+        output.extend(_unaligned_words(text, segment_index))
+    return output
 
 
 class FakeAsrEngine:

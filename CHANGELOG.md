@@ -11,6 +11,8 @@ All notable project changes are recorded here. Contract version entries are chec
 - Bumped Architecture to 1.2.1 to replace the stale missing-FFmpeg status; D-29 recorded the initial W_VFR stop and D-30 supersedes it with corrected CFR evidence.
 - Set the supported Windows development target to Python 3.12 based on the installed runtime and current WhisperX/PyTorch compatibility metadata.
 - Recorded the venv CUDA 12.8 install and local FFmpeg 9.0.1 discovery. The corrected bounded VFR scan classifies the selected source as CFR and the real-media smoke completed.
+- Recorded the corrected English real-media smoke: 210 of 210 transcript rows received timing anchors, eight gap actions emitted 16 joins, and the verifier surfaced 12 level-step and four pacing failures without changing thresholds.
+- Recorded the user-approved 30 fps CFR working copy and the PyTorch-hosted English alignment checkpoint with its byte size, checksum, source, and stated MIT license.
 - Added timeline=1.0.0, verify_report=1.0.0, and run_manifest=1.0.0; bumped compile_report=2.0.0 for required per-cut/gap outcomes and ops=1.1.0 for optional source item IDs on final delete operations. Existing versions: edl=1.2.0, words=2.0.0, speakers=1.0.0, catalog=1.0.0.
 - Updated Architecture to 1.2.0 for the M1 synthetic timeline, ID-only gap intent, and report contracts.
 
@@ -19,6 +21,7 @@ All notable project changes are recorded here. Contract version entries are chec
 - Fixed bounded ffprobe VFR sampling by looking ahead 16 packets while classifying only the requested timestamp window; regression tests cover tail artifacts and in-window cadence changes.
 - Completed the approved real-media dry run with unchanged source hash and protected-directory listings; recorded ASR checkpoint revisions, sizes, benchmark, and license metadata limitation.
 - Changed ASR real-time factor reporting to elapsed ASR time divided by media duration.
+- Fixed WhisperX sentence-split alignment mapping with regression coverage for split segments and safe fallback on text mismatch.
 - Added regression coverage proving Japanese subword timing is not relabeled as word timing when segmentation does not match the word-level contract.
 
 - Added read-only ffprobe preflight, cached 16 kHz audio extraction, a lazy WhisperX adapter with CPU fallback, and fixture-backed ASR/gap-refinement coverage.
