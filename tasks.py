@@ -10,6 +10,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import time
 import venv
 from collections.abc import Sequence
 from pathlib import Path
@@ -627,6 +628,27 @@ def task_dry_run(args: argparse.Namespace) -> int:
         print(f"dry-run blocked or failed: {error}", file=sys.stderr)
         return 1
     print(f"dry-run artifacts written under {output.relative_to(ROOT)}")
+    ask_user_path = output / "ask_user.json"
+    if ask_user_path.is_file():
+        try:
+            ask_user = json.loads(ask_user_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            ask_user = {}
+        if ask_user.get("status") == "awaiting_user":
+            pending = next(
+                (row for row in ask_user.get("questions", []) if row.get("status") == "pending"),
+                None,
+            )
+            if pending is not None:
+                print("speaker identification is pending; answer it before planning:")
+                command = (
+                    "python tasks.py answer-speaker --job-dir "
+                    + str(output.relative_to(ROOT))
+                    + " --speaker-key "
+                    + pending["speaker_key"]
+                )
+                print(command)
+                print("continue with planning from this job's saved words.json")
     return 0
 
 
@@ -674,6 +696,107 @@ def task_preflight(args: argparse.Namespace) -> int:
     return 0
 
 
+def task_enroll(args: argparse.Namespace) -> int:
+    """Validate an enrollment input, then require an accepted local encoder."""
+    from perception.speakers import EnrollmentError, read_pcm16_wav
+
+    try:
+        samples, sample_rate = read_pcm16_wav(args.audio)
+        if len(samples) / sample_rate < 3.0:
+            raise EnrollmentError("enrollment sample is too short")
+        raise EnrollmentError(
+            "no accepted local speaker embedding engine is configured; complete G2 and RV-005 first"
+        )
+    except OSError:
+        print("enroll blocked: audio file could not be read", file=sys.stderr)
+        return 1
+    except (EnrollmentError, ValueError) as error:
+        print(f"enroll blocked: {error}", file=sys.stderr)
+        return 1
+
+
+def task_answer_speaker(args: argparse.Namespace) -> int:
+    """Show the speaker-map diff and persist it only after CLI confirmation."""
+    from orchestrator.artifacts import write_json
+    from orchestrator.contracts import validate
+    from perception.speakers import (
+        SpeakerError,
+        apply_identification_answer,
+        expire_pending_questions,
+    )
+
+    job_dir = Path(args.job_dir)
+    job_root = (ROOT / job_dir).resolve() if not job_dir.is_absolute() else job_dir.resolve()
+    if not job_root.is_relative_to(ROOT.resolve()):
+        print(
+            "answer-speaker blocked: job directory must stay inside the workspace", file=sys.stderr
+        )
+        return 1
+    try:
+        ask_path = job_root / "ask_user.json"
+        words_path = job_root / "words.json"
+        speakers_path = job_root / "speakers.json"
+        questions_doc = json.loads(ask_path.read_text(encoding="utf-8"))
+        words_doc = json.loads(words_path.read_text(encoding="utf-8"))
+        speakers_doc = json.loads(speakers_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        print("answer-speaker blocked: job artifacts could not be read", file=sys.stderr)
+        return 1
+    warnings = expire_pending_questions(
+        questions_doc,
+        now_epoch=time.time(),
+        timeout_s=int(questions_doc.get("timeout_s", 86400)),
+    )
+    if warnings:
+        write_json(ask_path, questions_doc)
+        print(warnings[0]["warning"], file=sys.stderr)
+        return 1
+    question = next(
+        (
+            row
+            for row in questions_doc.get("questions", [])
+            if row.get("speaker_key") == args.speaker_key
+        ),
+        None,
+    )
+    if (
+        questions_doc.get("status") != "awaiting_user"
+        or not isinstance(question, dict)
+        or question.get("status", "pending") != "pending"
+    ):
+        print(
+            "answer-speaker blocked: no pending question exists for that speaker", file=sys.stderr
+        )
+        return 1
+    display_name = args.name or input("Speaker name: ").strip()
+    try:
+        diff = apply_identification_answer(speakers_doc, words_doc, args.speaker_key, display_name)
+    except (SpeakerError, ValueError) as error:
+        print(f"answer-speaker blocked: {error}", file=sys.stderr)
+        return 1
+    print("Proposed speakers.json change:")
+    print(json.dumps(diff, indent=2, ensure_ascii=False))
+    if input("Apply this confirmed diff? [y/N] ").strip().casefold() != "y":
+        print("speaker update cancelled; no files were changed")
+        return 1
+    if validate("speakers", speakers_doc) or validate("words", words_doc):
+        print(
+            "answer-speaker blocked: updated artifacts failed contract validation", file=sys.stderr
+        )
+        return 1
+    question["status"] = "answered"
+    question["answer_display"] = display_name.strip()[:80]
+    if all(row.get("status") == "answered" for row in questions_doc.get("questions", [])):
+        questions_doc["status"] = "answered"
+    write_json(speakers_path, speakers_doc)
+    write_json(words_path, words_doc)
+    write_json(ask_path, questions_doc)
+    persistent_speakers = ROOT / "speakers.json"
+    write_json(persistent_speakers, speakers_doc)
+    print("speaker update saved to the run and local speakers.json")
+    return 0
+
+
 def task_transcribe(args: argparse.Namespace) -> int:
     from orchestrator.cli import DryRunError
     from orchestrator.stages import run_transcribe
@@ -696,6 +819,23 @@ def task_transcribe(args: argparse.Namespace) -> int:
         print(f"transcribe blocked or failed: {error}", file=sys.stderr)
         return 1
     print(f"transcript artifacts written under {output.relative_to(ROOT)}")
+    ask_user_path = output / "ask_user.json"
+    if ask_user_path.is_file():
+        try:
+            ask_user = json.loads(ask_user_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            ask_user = {}
+        if ask_user.get("status") == "awaiting_user":
+            print("speaker identification is pending; answer the listed questions before planning")
+            for question in ask_user.get("questions", []):
+                if question.get("status") == "pending":
+                    command = (
+                        "python tasks.py answer-speaker --job-dir "
+                        + str(output.relative_to(ROOT))
+                        + " --speaker-key "
+                        + question["speaker_key"]
+                    )
+                    print(command)
     return 0
 
 
@@ -894,6 +1034,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "truth-template",
         "preflight",
         "transcribe",
+        "enroll",
+        "answer-speaker",
         "plan",
         "compile",
         "integration",
@@ -923,6 +1065,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         if name == "transcribe":
             subparser.add_argument("--max-seconds", type=int, default=120)
             subparser.add_argument("--output-dir", default=None)
+        if name == "enroll":
+            subparser.add_argument("--name", required=True)
+            subparser.add_argument("--audio", required=True)
+        if name == "answer-speaker":
+            subparser.add_argument("--job-dir", required=True)
+            subparser.add_argument("--speaker-key", required=True)
+            subparser.add_argument("--name", default=None)
         if name == "plan":
             subparser.add_argument("--words", required=True)
             subparser.add_argument("--recorded-edl", default=None)
@@ -991,6 +1140,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             "truth-template",
             "preflight",
             "transcribe",
+            "enroll",
+            "answer-speaker",
             "plan",
             "compile",
             "run-job",
@@ -1029,6 +1180,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return task_preflight(args)
     if args.task == "transcribe":
         return task_transcribe(args)
+    if args.task == "enroll":
+        return task_enroll(args)
+    if args.task == "answer-speaker":
+        return task_answer_speaker(args)
     if args.task == "plan":
         return task_plan(args)
     if args.task == "compile":
