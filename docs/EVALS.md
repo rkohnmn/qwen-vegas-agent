@@ -140,3 +140,21 @@ This is a synthetic plumbing result only. It is not a Vegas-rendered measurement
 | Token estimate and retries | Estimated planner tokens and compile/schema retries per run. |
 
 Future real evaluations must include dataset/clip IDs, prompt and schema versions, hardware, per-stage time, accuracy metrics, retries, and the tolerance decision. The eval harness supports editable truth templates through `python tasks.py truth-template --words <words.json> --output <path-under-repo>`.
+
+## 2026-10-07 Goal 05 synthetic speaker attribution
+
+Command: python tasks.py eval. The fixture uses fake vectors, synthetic word/turn intervals, and synthetic RMS values. No diarization or embedding checkpoint loaded; device reported as CPU.
+
+| Metric | Result |
+|---|---:|
+| Multitrack attribution | 2/2 correct (1.00) |
+| Diarized fixture assignment | 1/1 correct (1.00) |
+| Overlap fixture flag | 1/1 correct (1.00) |
+| Synthetic bleed candidates flagged | 1/1 |
+| Unknown cluster detection | 1/1 |
+| Synthetic helper wall time | 0.241 ms |
+| Reported time per synthetic media minute | 0.001445 s |
+| Peak traced Python memory | 2,032 bytes |
+| Model / device | Fixture vectors; no checkpoint / CPU |
+
+These are plumbing checks on a tiny synthetic fixture, not real-speech accuracy or a model/hardware benchmark. Runtime and memory are not representative of a media run. Real enrollment, mixed-speaker attribution, overlap accuracy, and the 4 GB laptop benchmark remain open under RV-005 and RV-006.

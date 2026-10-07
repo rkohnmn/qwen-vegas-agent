@@ -59,8 +59,9 @@ After a manual VEGAS render, `watch-render` waits for a confined output file to 
 | Goal | Status | Date | Commit | Revisit items |
 |---|---|---|---|---|
 | 01b–03 | Blocked; prompt sources absent from this checkout | — | — | RV-003 |
-| 04 — Closed-loop cut pipeline | Done with assumptions; offline scope complete | 2026-10-07 | `2788809` implementation, `720b174` docs, `83e892a` privacy fix | RV-001, RV-002, RV-003, RV-004 |
-| 05–13 | Not started | — | — | To be assigned as each prompt is run |
+| 04 — Closed-loop cut pipeline | Done with assumptions; offline scope complete | 2026-10-07 | `f7e88d0` completion (pushed) | RV-001, RV-002, RV-003, RV-004 |
+| 05 — Speaker attribution | Done with assumptions; offline core complete | 2026-10-07 | pending goal 05 completion commit | RV-005, RV-006 |
+| 06–13 | Not started | — | — | To be assigned as each prompt is run |
 
 ### What works today (tested)
 
@@ -69,6 +70,8 @@ After a manual VEGAS render, `watch-render` waits for a confined output file to 
 - `watch-render` detects a stable file confined to a run directory and records its hash.
 - `python tasks.py lint`, `test`, `schemas`, `docs-check`, and `eval` are the available verification commands. Eval is synthetic and reports two level-step failures.
 
+- Speaker-mode mapping, multitrack attribution, synthetic bleed downranking, overlap confidence, enrollment quality checks with fake encoders, low-confidence reports, question confirmation, timeout handling, and secret filtering are covered by 14 unit tests. This is fixture evidence only.
+
 ### What is assumed (not yet tested)
 
 - VEGAS marker, edit, undo, stop, and render behavior: [RV-001](REVISIT.md#rv-001--goal-04-vegas-runtime-and-project-mutation-behavior).
@@ -76,6 +79,7 @@ After a manual VEGAS render, `watch-render` waits for a confined output file to 
 - Missing predecessor prompts and human gates: [RV-003](REVISIT.md#rv-003--missing-predecessor-and-reusable-prompt-artifacts).
 - Default reference rendering needs local FFmpeg: [RV-004](REVISIT.md#rv-004--goal-04-default-reference-renderer-availability).
 
+- Real diarization, enrollment, speaker matching, bleed calibration, and laptop model benchmarks are not available without the accepted local model and labeled recordings: [RV-005](REVISIT.md#rv-005--goal-05-hugging-face-gate-and-voice-enrollment-samples) and [RV-006](REVISIT.md#rv-006--goal-05-real-speech-attribution-quality-and-hardware-benchmark).
 ### Quick start for the offline runner
 
 Use Python 3.12 and provide a read-only `.veg`, its source media, validated timeline and words files, and normalized mono PCM16 WAV. The command writes to ignored `runs/`; it does not launch Vegas or ASR. See [the M4 checklist](docs/HUMAN_TESTS_M4.md).

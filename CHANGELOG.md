@@ -4,7 +4,13 @@ All notable project changes are recorded here. Contract version entries are chec
 
 ## [Unreleased] — Milestone 1
 
+### Added
+
+- Bumped words=2.1.0 for optional overlap markers and hybrid mode; bumped speakers=1.1.0 for track-mode and voice-profile metadata. Added deterministic offline speaker attribution, enrollment-quality helpers, confirmed ask_user handling, and synthetic fixtures. Real diarization and calibrated thresholds remain open under RV-005/RV-006.
+
 ### Changed
+
+- Updated Architecture to 1.2.4 and Setup to 1.1.4 for speaker attribution modes, local-only gates, unknown confirmation, and measured synthetic fixtures.
 
 - Bumped run_manifest=1.1.0 with optional per-file before/after integrity hashes for project and media inputs.
 
@@ -51,6 +57,8 @@ All notable project changes are recorded here. Contract version entries are chec
 - Cross-platform task runner, pinned dependency lock, valid/invalid fixture set, referential checks, and Milestone 0 docs.
 
 ### Changed
+
+- Updated Architecture to 1.2.4 and Setup to 1.1.4 for speaker attribution modes, local-only gates, unknown confirmation, and measured synthetic fixtures.
 
 - Architecture updated to version 1.1.0 to reconcile the words gap index, catalog entry kinds, and the executor operation union with the Milestone 0 contract deliverables.
 - Vegas notes moved to the canonical `docs/VEGAS_NOTES.md` path and bumped to 1.0.1. No Vegas behavior was verified.

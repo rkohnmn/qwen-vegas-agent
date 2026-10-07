@@ -33,3 +33,9 @@ M1 never writes source media or the VEGAS installation. The dry-run hashes sourc
 - Reject unaligned words as cut anchors; preserve their transcript text without fabricated timestamps.
 - Never execute content from a model, transcript, filename, asset, or fetched document.
 - Do not add telemetry or unrelated outbound calls.
+
+## Hugging Face and speaker data
+
+HF read tokens are credentials. The current speaker path does not read HF_TOKEN or a token from local config because no accepted diarization or embedding backend is configured. The enrollment command validates the local WAV and stops with the G2 / RV-005 explanation. Do not pass a token on the command line, write it to a tracked file, or copy it into an error, run artifact, transcript, speakers.json, or voice profile.
+
+When a backend is added, keep the token only in the orchestrator's secret-bearing process/config boundary, redact it from errors and request records, and remove token-like variables from every child process environment. Model-card terms and accepted model IDs may be recorded; token values may not. Voice profiles under ignored voices/ contain embeddings and metadata only. The root speakers.json is also gitignored because it holds user-maintained identities and track assignments.

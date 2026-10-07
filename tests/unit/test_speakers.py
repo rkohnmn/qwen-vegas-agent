@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+import tasks
 from orchestrator.childenv import safe_child_environment
 from orchestrator.contracts import redact, validate
 from orchestrator.stages import _has_pending_speaker_question
@@ -35,7 +36,6 @@ from perception.speakers import (
     select_speaker_mode,
     word_track_energies,
 )
-import tasks
 from tasks import task_answer_speaker, task_enroll
 
 

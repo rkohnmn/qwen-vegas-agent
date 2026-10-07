@@ -15,3 +15,7 @@ Goals 01b–03 and their human-gate artifacts were absent when this prompt run s
 ## Planner and credentials
 
 The current CLI does not contact the configured LLM endpoint. The endpoint client is outside this offline runner's goal. API credentials remain confined to orchestrator configuration and memory; no credential is passed to the Vegas executor.
+
+## Speaker attribution
+
+Mapped-track attribution and bleed comparisons have synthetic fixture coverage only. The checked-in example defaults to single-speaker mode; automatic mode is an explicit config choice. Mixed/hybrid attribution and enrollment stop because no accepted local model backend is configured. The 0.65 similarity and report thresholds plus bleed/overlap/enrollment thresholds are not calibrated on real speech. See the [speaker guide](SPEAKERS.md), [RV-005](../REVISIT.md#rv-005--goal-05-hugging-face-gate-and-voice-enrollment-samples), and [RV-006](../REVISIT.md#rv-006--goal-05-real-speech-attribution-quality-and-hardware-benchmark).

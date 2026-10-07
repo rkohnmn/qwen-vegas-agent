@@ -5,12 +5,12 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 ## Current state
 
 - Current goal: 05 — Speaker Attribution and Profiles.
-- Current phase: phases A–D are committed; phase E confirmed-answer, persistence, and timeout behavior has integration coverage and is ready for commit. Phases F–G follow.
-- Last commit: dbf9d78 (goal 05 phase D enrollment and speaker CLI); origin/main was updated through goal 04.
-- Goals completed in this run: 04 — done with assumptions; completion commit f7e88d0, pushed to origin/main. Goal 05 acceptance is mapped below and still needs its phase/archive commits.
+- Current phase: phases A–E are committed; phase F documentation is ready to commit. Final verification, sanitized prompt archival, privacy gate, and push are phase G.
+- Last commit: 60ec7a0 (goal 05 phase E confirmation persistence and timeout coverage); origin/main was updated through goal 04.
+- Goals completed in this run: 04 — done with assumptions; completion commit f7e88d0, pushed to origin/main. Goal 05 implementation phases A–E are committed; final documentation, archival, privacy gate, and push remain.
 - Goals blocked: 01b–03 — source prompts and prerequisite evidence are missing (RV-003); no claim of completion.
-- Retry counters: Goal 05 had one targeted timeout-test repair, one ruff repair cycle, and one mypy repair cycle; all were fixed and rerun. Final unit suite: 125 passed. Push attempts for goal 05: 0.
-- Next action: commit phase E confirmation-flow coverage, then finish documentation, final checks, prompt archive, privacy gate, and push.
+- Retry counters: Goal 05 had one targeted timeout-test repair, one ruff repair cycle, and one mypy repair cycle; all were fixed and rerun. Final unit suite: 126 passed. Push attempts for goal 05: 0.
+- Next action: commit the speaker docs and self-audit record, rerun checks, archive the sanitized Prompt 05, then run the final privacy gate and push.
 ## Ten-line plan for goal 05
 
 1. Re-read the full goal and inspect architecture, word/speaker contracts, security, setup, evaluation, config, ASR, and CLI boundaries.
@@ -59,7 +59,7 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 
 | Criterion | Status | Evidence or revisit |
 |---|---|---|
-| Standard checks | Met | setup, lint, unit (125 passed), schemas (10 schemas / 44 fixtures), docs-check, revisit-check, eval; see command record below. |
+| Standard checks | Met | setup, lint, unit (126 passed), schemas (10 schemas / 44 fixtures), docs-check, revisit-check, eval; see command record below. |
 | Token privacy | Met in the current offline path | Synthetic HF-token-shaped value stays out of enrollment CLI output; child environment filters HF_TOKEN; redaction helper and artifact-shape checks pass. Final independent privacy scan remains part of the push gate. |
 | Multitrack attribution and bleed | Met for synthetic fixtures | Track map and unmapped Unknown N tests; bleed fixture keeps both words and downranks the weaker candidate. |
 | Diarized assignment and overlap | Met for a deterministic fixture | Turn-overlap fixture selects the dominant turn, sets overlap, halves confidence, and surfaces the range. |
@@ -74,7 +74,7 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 
 | T3 check | Result | Evidence |
 |---|---|---|
-| Reproduce claims | Pass | setup, lint, 125 unit tests, schemas, docs-check, revisit-check, eval, and enroll/answer-speaker help were run. |
+| Reproduce claims | Pass | setup, lint, 126 unit tests, schemas, docs-check, revisit-check, eval, and enroll/answer-speaker help were run. |
 | Acceptance criteria | Pass or ASSUMED | Mapping above; only real-model/hardware claims remain under RV-005 and RV-006. |
 | Hard rules | Pass | No Vegas, LLM endpoint, model download, or user media run; dry-run default remains; auto speaker selection stays opt-in. |
 | Contract consistency | Pass | words=2.1.0 and speakers=1.1.0 schemas, specs, examples, fixtures, producers, consumers, and changelog agree. |
@@ -89,7 +89,7 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 
 - python tasks.py setup — passed; all pinned development packages were already installed.
 - python tasks.py lint — passed; ruff, formatting, and strict mypy clean.
-- python tasks.py test — passed; 125 unit tests.
+- python tasks.py test — passed; 126 unit tests.
 - python tasks.py schemas — passed; 10 schemas and 44 fixtures.
 - python tasks.py docs-check — passed; links, paths, versions, changelog, privacy scan, and revisit marker check.
 - python tasks.py revisit-check — passed; all six registered items resolve.

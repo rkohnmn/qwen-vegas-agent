@@ -1,7 +1,7 @@
 # ARCHITECTURE.md
 
 **Project (working title):** Local AI Video Editing Agent for VEGAS Pro 17
-**Document version:** 1.2.3
+**Document version:** 1.2.4
 **Status:** M1 offline rough-cut implementation is complete for now as a prototype. The 120-second English smoke run reached verification using an approved 30 fps CFR working copy, produced timing anchors for 210/210 transcript rows, and applied eight baseline silence-gap actions. Verification reported 12 level-step and four pacing failures, so the run does not support an editing-quality claim. M1 does not execute Vegas. The offline job runner consumes supplied timeline/word artifacts and exercises fakes; its runtime assumptions remain open under RV-001. Vegas-specific behaviors tagged `[UNVERIFIED]` must be confirmed on a throwaway Vegas Pro 17 project before code depends on them.
 
 ---
@@ -320,14 +320,14 @@ IDs are stable for a given `words.json` hash. If ASR is re-run, IDs may change a
 
 ```json
 {
-  "schema_version": "1.0.0",
+  "schema_version": "2.1.0",
   "source_hash": "sha256:...",
   "fps": "30000/1001",
   "asr": {"engine": "whisperx", "model": "medium", "align_model": "wav2vec2", "params_hash": "..."},
-  "speaker_mode": "multitrack | diarized | single",
+  "speaker_mode": "multitrack | diarized | hybrid | single",
   "words": [
     {"id": "w1", "text": "So", "start": 1.240, "end": 1.410,
-     "speaker": "mike", "speaker_conf": 0.97, "word_conf": 0.93, "track": "Mic 1"}
+     "speaker": "mike", "speaker_conf": 0.97, "word_conf": 0.93, "track": "Mic 1", "overlap": false}
   ],
   "segments": [
     {"id": "s1", "word_ids": ["w1","w2","w3"], "speaker": "mike"}
@@ -343,20 +343,9 @@ IDs are stable for a given `words.json` hash. If ASR is re-run, IDs may change a
 
 Times in seconds from source media start. Compile converts to timeline time and frames.
 
-### 8.3 `speakers.json` (user-maintained)
+### 8.3 speakers.json (user-maintained)
 
-```json
-{
-  "schema_version": "1.0.0",
-  "speakers": {
-    "mike": {"display": "Mike", "color": "#4FC3F7", "track": "Mic 1", "voice_profile": "voices/mike.npy"},
-    "sam":  {"display": "Sam",  "color": "#FFB74D", "voice_profile": "voices/sam.npy"}
-  },
-  "unknown_palette": ["#BDBDBD", "#CE93D8", "#A5D6A7"]
-}
-```
-
-`track` is optional and used only in multitrack mode. `voice_profile` is used for matching in diarized mode. The model sees only speaker keys, never the hex colors.
+Schema version: 1.1.0. The document maps speaker keys to display labels, subtitle colors, optional audio-track aliases, and optional local voice-profile metadata. Track modes distinguish a single-speaker track from a mixed track. Embedding metadata records the model ID, dimension, sample rate, sample duration, and quality status, but never raw audio or credentials. Profile files stay under ignored voices/. The model sees only speaker keys, never colors or profile paths. See docs/contracts/speakers.md for bounds and validation.
 
 ### 8.4 `timeline.json` (synthetic in M1; Vegas dump later)
 
@@ -452,29 +441,17 @@ The executor contract is a header plus an ordered operation array discriminated 
 - **Audio prep:** extract 16 kHz mono WAV per source track.
 - **Quality:** raw Whisper timestamps can drift by hundreds of milliseconds. Forced alignment is mandatory. The compiler additionally snaps cuts to detected silence gaps and zero-crossings, so residual error does not become an audible artifact.
 
-### 9.2 Speaker attribution (automatic mode selection)
+### 9.2 Speaker attribution (mode selection and local interfaces)
 
-```mermaid
-flowchart TD
-    S[Inspect Vegas project audio tracks] --> Q{Per-speaker tracks present\nand mapped in speakers.json?}
-    Q -- all tracks single-speaker --> M[Multitrack mode]
-    Q -- single or mixed track --> D[Diarized mode]
-    Q -- some tracks mixed --> H[Hybrid: apply rule per track]
-    M --> O[words.json]
-    D --> O
-    H --> O
-```
+Mode selection reads stream titles, Mic N / Track N aliases, and speakers.json track mappings. speakers.mode accepts auto, single, multitrack, diarized, or hybrid; the checked-in example keeps the existing single default. Explicit auto selects multitrack when every track maps to one speaker, hybrid for partial or mixed mappings, and diarized for an unmapped mixed stream.
 
-**Multitrack mode.** Transcribe each speaker's track separately and label words by track. Merge by timestamp. This is the most accurate path and is preferred whenever available. Overlapping speech is preserved correctly because each track is independent. Bleed between microphones is handled by gating the other speakers' tracks during ASR where needed, using VAD energy comparison.
+Multitrack mode transcribes each audio stream separately, merges words by start time, and compares temporally overlapping duplicate tokens using per-track RMS energy. Diarized assignment uses word/turn time intersection, flags overlap, and lowers confidence. Each word keeps a speaker key or unknown_N, confidence, and optional track ID. Segments split at speaker or overlap changes.
 
-**Diarized mode.** Run speaker diarization on the mixed audio, then match each diarized cluster to enrolled voice profiles by embedding similarity. Clusters below a similarity threshold become `Unknown N` and trigger an `ask_user` identification prompt. Answers are saved so the same voice is recognized next time. Diarization models may require a free model-hub token supplied in config. Weakness: overlapping speech and crosstalk. Low-confidence attributions are flagged, not silently colored.
-
-**Hybrid.** Apply the multitrack rule to single-speaker tracks and the diarized rule to mixed tracks, then merge.
-
-Both modes output the same `words.json` shape. Downstream components do not know which mode produced it. Each word carries `speaker` and `speaker_conf`.
+The diarization and embedding interfaces have deterministic fixture coverage only. No accepted local model backend is configured, so diarized and hybrid runs stop with RV-005. The multitrack bleed heuristic and its thresholds are ASSUMED for real speech under RV-006. See the detailed speaker guide in docs/SPEAKERS.md.
 
 ### 9.3 Voice enrollment
-A short clean sample per person creates a voice embedding stored in `voices/`. Enrollment is a one-time command. The embedding files are local only.
+
+The local enrollment helper checks duration, estimated SNR, and consistency between sample windows, then saves a normalized embedding and metadata under ignored voices/. Synthetic fake-encoder tests cover those checks. The CLI currently stops because the accepted local encoder is unavailable; real enrollment and model matching remain ASSUMED under RV-005 and RV-006. No token or model weights were read or downloaded for this goal.
 
 ### 9.4 Audio analysis (`analysis.json`)
 - Silence/gap map with precise bounds and noise-floor-relative thresholds

@@ -1,6 +1,6 @@
 # Setup
 
-**Document version:** 1.1.3
+**Document version:** 1.1.4
 
 This guide covers the local Milestone 1 rough-cut pipeline on Windows. It never starts VEGAS or contacts an inference endpoint.
 
@@ -98,3 +98,18 @@ WhisperX produced 298 timed subword rows for 30 Japanese ASR segments, and norma
 - **`llama-server`:** M1 never contacts the inference endpoint. A future configured server must use schema-constrained output and a bounded context.
 - **Tailscale:** M1 has no remote worker or endpoint route.
 - **VEGAS Pro 17:** M1 only inspects installation metadata and compiles probes; a human must run probes on a throwaway project. Vegas behavior remains `UNVERIFIED`.
+
+## Speaker setup and Hugging Face gate
+
+The example config keeps speakers.mode at single. Set it to auto in the ignored local config.json when using mapped per-speaker tracks. speakers.json can map each stream title or Mic N / Track N alias to a speaker.
+
+Before any gated model download, complete G2: read the current model-card terms, confirm the exact model IDs the human accepted, and keep the read token in a gitignored secret location. Do not put a token in command arguments, logs, run artifacts, manifests, speakers.json, or voice profiles. No speaker model card or weights were fetched for this goal, and the current code does not consume a Hugging Face token. The enrollment command currently validates the WAV and stops with the missing-backend reason recorded in RV-005:
+
+- python tasks.py enroll --name <speaker> --audio <approved.wav>
+
+For an unknown speaker in a transcription run, inspect the relative snippet in ask_user.json, then confirm a proposed map change:
+
+- python tasks.py answer-speaker --job-dir <run-dir> --speaker-key unknown_1 --name <display-name>
+- python tasks.py plan --words <run-dir>/words.json
+
+The command pauses for a confirmation after showing the diff. A question remains unresolved for 24 hours; the next planning or compilation command marks it timed out and retains Unknown N with a warning. See speaker modes and limits in SPEAKERS.md, human verification in HUMAN_TESTS_M5.md, and the security boundary in SECURITY.md.
