@@ -28,6 +28,19 @@ from perception.asr import AsrResult, AsrWord, WhisperXConfig, WhisperXEngine
 from perception.audio import extract_audio_stream, hash_media_file, read_pcm16_mono
 from perception.gaps import GapThresholds
 from perception.preflight import MediaToolError, probe_media
+from perception.speakers import (
+    AudioTrack,
+    apply_bleed_confidence,
+    attribute_multitrack_words,
+    build_speaker_report,
+    ensure_unknown_speaker,
+    expire_pending_questions,
+    make_identify_question,
+    rebuild_segments_by_speaker,
+    select_speaker_mode,
+    word_track_energies_from_wavs,
+    write_wav_snippet,
+)
 from perception.words import build_words_document
 
 
@@ -39,6 +52,86 @@ def _new_output(value: str | Path | None, label: str) -> Path:
     output = _workspace_path(value or default, "output directory")
     output.mkdir(parents=True, exist_ok=False)
     return output
+
+
+def _load_speakers_document(settings: dict[str, Any]) -> dict[str, Any]:
+    """Read only the configured speaker map; never inspect local secret config."""
+    speaker_settings = settings.get("speakers", {})
+    speaker_path = _workspace_path(speaker_settings.get("file", "speakers.json"), "speakers file")
+    empty_document: dict[str, Any] = {
+        "schema_version": "1.1.0",
+        "speakers": {},
+        "unknown_palette": ["#BDBDBD", "#CE93D8", "#A5D6A7"],
+    }
+    if not speaker_path.is_file():
+        return empty_document
+    try:
+        document = json.loads(speaker_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        raise DryRunError("speaker map could not be read") from None
+    if not isinstance(document, dict):
+        raise DryRunError("speaker map has an invalid shape")
+    if document.get("schema_version") == "1.0.0":
+        document["schema_version"] = "1.1.0"
+    if validate("speakers", document):
+        raise DryRunError("speaker map failed contract validation")
+    return document
+
+
+def _audio_tracks(streams: list[Any], speakers_doc: dict[str, Any]) -> list[AudioTrack]:
+    """Build deterministic stream IDs and human-facing mapping aliases."""
+    tracks: list[AudioTrack] = []
+    mixed_labels = {
+        str(row.get("track", "")).casefold().strip()
+        for row in speakers_doc.get("speakers", {}).values()
+        if isinstance(row, dict) and row.get("track_mode") == "mixed"
+    }
+    for ordinal, stream in enumerate(streams):
+        key = f"audio_{ordinal}"
+        label = (
+            stream.title.strip() if isinstance(stream.title, str) and stream.title.strip() else key
+        )
+        aliases = (f"Mic {ordinal + 1}", f"Track {ordinal + 1}", f"audio {ordinal}")
+        mixed = label.casefold().strip() in mixed_labels or key.casefold() in mixed_labels
+        tracks.append(AudioTrack(key, label, aliases, mixed))
+    return tracks
+
+
+def _has_pending_speaker_question(words_path: str | Path, *, now_epoch: float) -> bool:
+    """Return whether a sibling ask_user artifact still blocks planning."""
+    ask_path = Path(words_path).with_name("ask_user.json")
+    if not ask_path.is_file():
+        return False
+    try:
+        ask_user = json.loads(ask_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        raise DryRunError("speaker identification status could not be read") from None
+    if ask_user.get("status") != "awaiting_user":
+        return False
+    try:
+        warnings = expire_pending_questions(
+            ask_user,
+            now_epoch=now_epoch,
+            timeout_s=int(ask_user.get("timeout_s", 86400)),
+        )
+    except (TypeError, ValueError):
+        raise DryRunError("speaker identification timeout metadata is invalid") from None
+    if warnings:
+        write_json(ask_path, ask_user)
+    return ask_user.get("status") == "awaiting_user" and any(
+        question.get("status") == "pending"
+        for question in ask_user.get("questions", [])
+        if isinstance(question, dict)
+    )
+
+
+def _unknown_words(words: list[dict[str, Any]]) -> list[str]:
+    keys: list[str] = []
+    for word in words:
+        key = word.get("speaker")
+        if isinstance(key, str) and key.startswith("unknown_") and key not in keys:
+            keys.append(key)
+    return keys
 
 
 def run_transcribe(
@@ -65,6 +158,12 @@ def run_transcribe(
     write_json(output / "timeline.json", timeline)
 
     settings = _load_settings()
+    speakers_doc = _load_speakers_document(settings)
+    tracks = _audio_tracks(list(probe.audio_streams), speakers_doc)
+    speaker_settings = settings.get("speakers", {})
+    selection = select_speaker_mode(speaker_settings.get("mode", "single"), tracks, speakers_doc)
+    if selection.mode in {"diarized", "hybrid"}:
+        raise DryRunError("diarization requires an accepted local model backend; see RV-005")
     cache = _workspace_path(settings["paths"]["cache"], "cache")
     artifacts = [
         extract_audio_stream(source, stream.index, cache, duration_limit_s=max_seconds)
@@ -109,7 +208,9 @@ def run_transcribe(
         gap_sources.append((result, str(artifact.path)))
         max_segment = max((word.segment_index for word in result.words), default=-1)
         merged_words.extend(
-            replace(word, segment_index=word.segment_index + segment_offset, track=f"audio_{index}")
+            replace(
+                word, segment_index=word.segment_index + segment_offset, track=tracks[index].key
+            )
             for word in result.words
         )
         segment_offset += max_segment + 1
@@ -129,13 +230,73 @@ def run_transcribe(
         str(artifacts[0].path),
         before,
         timeline["fps"],
-        speaker_mode="single" if len(artifacts) == 1 else "multitrack",
+        speaker_mode=selection.mode,
         thresholds=thresholds,
         gap_sources=gap_sources,
     )
+    if selection.mode == "multitrack":
+        attribute_multitrack_words(words["words"], selection.track_speakers)
+        energy_map = word_track_energies_from_wavs(
+            words["words"],
+            {track.key: artifacts[index].path for index, track in enumerate(tracks)},
+        )
+        bleed_reasons = apply_bleed_confidence(words["words"], energy_map)
+    else:
+        for word in words["words"]:
+            word["speaker"] = "unknown_1"
+            word["speaker_conf"] = 0.25
+            word["overlap"] = False
+        bleed_reasons = {}
+    unknown_keys = _unknown_words(words["words"])
+    for unknown_key in unknown_keys:
+        ensure_unknown_speaker(speakers_doc, unknown_key)
+    words["segments"] = rebuild_segments_by_speaker(words["words"])
+    if validate("speakers", speakers_doc):
+        raise DryRunError("speaker attribution output failed contract validation")
+    speaker_report = build_speaker_report(words["words"], bleed_reasons)
     if validate("words", words) or check_words(words):
         raise DryRunError("ASR output failed words contract validation")
     write_json(output / "words.json", words)
+    write_json(output / "speakers.json", speakers_doc)
+    write_json(output / "speaker_report.json", speaker_report)
+    if unknown_keys:
+        questions: list[dict[str, Any]] = []
+        for question_index, unknown_key in enumerate(unknown_keys, start=1):
+            first_word = next(row for row in words["words"] if row.get("speaker") == unknown_key)
+            track_key = (
+                first_word.get("track")
+                if isinstance(first_word.get("track"), str)
+                else tracks[0].key
+            )
+            track_index = next((i for i, track in enumerate(tracks) if track.key == track_key), 0)
+            samples, sample_rate = read_pcm16_mono(artifacts[track_index].path)
+            start_s = (
+                max(0.0, float(first_word["start"]) - 0.5)
+                if isinstance(first_word.get("start"), int | float)
+                else 0.0
+            )
+            end_s = min(len(samples) / sample_rate, start_s + 5.0)
+            snippet = output / "ask_user" / f"{unknown_key}.wav"
+            write_wav_snippet(samples, sample_rate, start_s, end_s, snippet)
+            question = make_identify_question(
+                f"identify_speaker_{question_index}",
+                unknown_key,
+                snippet.relative_to(output).as_posix(),
+                speakers_doc,
+            )
+            question["status"] = "pending"
+            questions.append(question)
+        write_json(
+            output / "ask_user.json",
+            {
+                "schema_version": "1.0.0",
+                "status": "awaiting_user",
+                "created_at_epoch": time.time(),
+                "timeout_s": 86400,
+                "questions": questions,
+                "warnings": [],
+            },
+        )
     pack = build_pack(words)
     (output / "pack.txt").write_text(pack.text, encoding="utf-8")
     write_json(
@@ -172,6 +333,8 @@ def run_plan(
         words = json.loads(Path(words_path).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         raise DryRunError("words input could not be read") from None
+    if _has_pending_speaker_question(words_path, now_epoch=time.time()):
+        raise DryRunError("speaker identification is pending; answer ask_user before planning")
     if not isinstance(words, dict) or validate("words", words) or check_words(words):
         raise DryRunError("words input failed contract validation")
     output = _new_output(output_root, "plan")
@@ -186,7 +349,17 @@ def run_plan(
     }
     planner = RecordedPlanner.from_file(recorded_edl) if recorded_edl else BaselinePlanner()
     edl = planner.plan(pack.text, words, catalog)
-    if validate("edl", edl) or check_edl_against(edl, words, {"speakers": {}}, catalog):
+    speakers_path = Path(words_path).with_name("speakers.json")
+    speakers_doc: dict[str, Any] = {"speakers": {}}
+    if speakers_path.is_file():
+        try:
+            loaded_speakers = json.loads(speakers_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            raise DryRunError("speaker map could not be read") from None
+        if not isinstance(loaded_speakers, dict) or validate("speakers", loaded_speakers):
+            raise DryRunError("speaker map failed contract validation")
+        speakers_doc = loaded_speakers
+    if validate("edl", edl) or check_edl_against(edl, words, speakers_doc, catalog):
         raise DryRunError("planner output failed EDL validation")
     write_json(output / "edl.json", edl)
     return output
@@ -207,6 +380,8 @@ def run_compile(
         edl = json.loads(Path(edl_path).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         raise DryRunError("compile input could not be read") from None
+    if _has_pending_speaker_question(words_path, now_epoch=time.time()):
+        raise DryRunError("speaker identification is pending; answer ask_user before compilation")
     if not all(isinstance(item, dict) for item in (words, timeline, edl)):
         raise DryRunError("compile input has an invalid shape")
     if (
@@ -226,14 +401,14 @@ def run_compile(
     if validate("edl", edl) or check_edl_against(edl, words, {"speakers": {}}, catalog, timeline):
         raise DryRunError("EDL input failed schema or referential validation")
     output = _new_output(output_root, "compile")
-    settings = _load_settings()["compile"]
+    compile_settings = _load_settings()["compile"]
     config = CompileConfig(
-        head_pad_ms=settings["head_pad_ms"],
-        tail_pad_ms=settings["tail_pad_ms"],
-        min_gap_after_cut_ms=settings["min_gap_after_cut_ms"],
-        audio_crossfade_ms=settings["audio_crossfade_ms"],
-        max_removed_percent=settings["max_removed_percent"],
-        snap_zero_crossing=settings["snap_zero_crossing"],
+        head_pad_ms=compile_settings["head_pad_ms"],
+        tail_pad_ms=compile_settings["tail_pad_ms"],
+        min_gap_after_cut_ms=compile_settings["min_gap_after_cut_ms"],
+        audio_crossfade_ms=compile_settings["audio_crossfade_ms"],
+        max_removed_percent=compile_settings["max_removed_percent"],
+        snap_zero_crossing=compile_settings["snap_zero_crossing"],
     )
     audio_samples = None
     sample_rate = None

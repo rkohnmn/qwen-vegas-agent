@@ -5,12 +5,12 @@ Use this file to resume the attached prompt run; `REVISIT.md` is the source of o
 ## Current state
 
 - Current goal: 05 — Speaker Attribution and Profiles.
-- Current phase: phase A is ready for its contracts/core commit; integration, final docs, archive, privacy gate, and push follow.
-- Last commit: f7e88d0 (goal 04 completion); origin/main was updated by the prior authorized push.
+- Current phase: phase A committed as d52f812; phase B multitrack and pause integration is ready for its commit. Phases C–G follow.
+- Last commit: d52f812 (goal 05 phase A contracts and attribution core); origin/main was updated through goal 04.
 - Goals completed in this run: 04 — done with assumptions; completion commit f7e88d0, pushed to origin/main. Goal 05 acceptance is mapped below and still needs its phase/archive commits.
 - Goals blocked: 01b–03 — source prompts and prerequisite evidence are missing (RV-003); no claim of completion.
 - Retry counters: Goal 05 had one targeted timeout-test repair, one ruff repair cycle, and one mypy repair cycle; all were fixed and rerun. Final unit suite: 125 passed. Push attempts for goal 05: 0.
-- Next action: commit phase A contracts and deterministic core, then proceed through phases B–G with an updated progress record in each phase commit.
+- Next action: commit phase B integration, then complete overlap/reporting, CLI enrollment and confirmation, documentation, and final archive/privacy/push phases.
 ## Ten-line plan for goal 05
 
 1. Re-read the full goal and inspect architecture, word/speaker contracts, security, setup, evaluation, config, ASR, and CLI boundaries.

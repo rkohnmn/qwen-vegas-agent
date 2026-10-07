@@ -126,7 +126,7 @@ def _status_manifest(
         "schema_version": "1.1.0",
         "job_id": job_id,
         "inputs": [{"id": "source_0", "sha256": source_hash_before.removeprefix("sha256:")}],
-        "schemas": {"timeline": "1.0.0", "words": "2.0.0", "edl": "1.2.0", "ops": "1.1.0"},
+        "schemas": {"timeline": "1.0.0", "words": "2.1.0", "edl": "1.2.0", "ops": "1.1.0"},
         "tools": {
             "python": sys.version.split()[0],
             "ffmpeg": _tool_version("ffmpeg"),
@@ -214,6 +214,42 @@ def run_dry_run(
     if timeline_issues:
         raise DryRunError("generated timeline failed contract validation")
     write_json(root / "timeline.json", timeline)
+    from orchestrator.stages import _audio_tracks, _load_speakers_document
+    from perception.speakers import (
+        apply_bleed_confidence,
+        attribute_multitrack_words,
+        build_speaker_report,
+        ensure_unknown_speaker,
+        make_identify_question,
+        rebuild_segments_by_speaker,
+        select_speaker_mode,
+        word_track_energies_from_wavs,
+        write_wav_snippet,
+    )
+
+    speakers_doc = _load_speakers_document(settings)
+    audio_tracks = _audio_tracks(list(probe.audio_streams), speakers_doc)
+    selection = select_speaker_mode(
+        settings.get("speakers", {}).get("mode", "single"), audio_tracks, speakers_doc
+    )
+    if selection.mode in {"diarized", "hybrid"}:
+        source_hash_after = hash_media_file(source)
+        manifest = _status_manifest(
+            job_id=job_id,
+            source_hash_before=source_hash_before,
+            source_hash_after=source_hash_after,
+            status="blocked",
+            code="E_SPEAKER_MODEL",
+            message="diarization requires an accepted local model backend; see RV-005",
+            stage_name="speaker_mode",
+            stage_wall_ms=round((time.perf_counter() - preflight_started) * 1000),
+        )
+        manifest["stages"] = [*stage_timings, *manifest["stages"]]
+        if validate("run_manifest", manifest) or check_run_manifest(manifest):
+            raise DryRunError("blocked speaker manifest failed validation")
+        write_json(root / "run_manifest.json", manifest)
+        raise DryRunError("diarization requires an accepted local model backend; see RV-005")
+
     stage_timings.append(
         {
             "name": "preflight",
@@ -284,7 +320,7 @@ def run_dry_run(
             replace(
                 word,
                 segment_index=word.segment_index + segment_offset,
-                track=f"audio_{index}",
+                track=audio_tracks[index].key,
             )
             for word in result.words
         )
@@ -318,16 +354,87 @@ def run_dry_run(
         str(artifacts[0].path),
         source_hash_before,
         timeline["fps"],
-        speaker_mode="single" if len(artifacts) == 1 else "multitrack",
+        speaker_mode=selection.mode,
         thresholds=gap_limits,
         gap_sources=gap_sources,
     )
+    if selection.mode == "multitrack":
+        attribute_multitrack_words(words_doc["words"], selection.track_speakers)
+        energy_map = word_track_energies_from_wavs(
+            words_doc["words"],
+            {track.key: artifacts[index].path for index, track in enumerate(audio_tracks)},
+        )
+        bleed_reasons = apply_bleed_confidence(words_doc["words"], energy_map)
+    else:
+        for word in words_doc["words"]:
+            word["speaker"] = "unknown_1"
+            word["speaker_conf"] = 0.25
+            word["overlap"] = False
+        bleed_reasons = {}
+    unknown_keys = sorted(
+        {
+            word["speaker"]
+            for word in words_doc["words"]
+            if isinstance(word.get("speaker"), str) and word["speaker"].startswith("unknown_")
+        }
+    )
+    for unknown_key in unknown_keys:
+        ensure_unknown_speaker(speakers_doc, unknown_key)
+    words_doc["segments"] = rebuild_segments_by_speaker(words_doc["words"])
+    if validate("speakers", speakers_doc):
+        raise DryRunError("speaker attribution output failed contract validation")
+    speaker_report = build_speaker_report(words_doc["words"], bleed_reasons)
     from orchestrator.contracts import check_words
 
     words_issues = [*validate("words", words_doc), *check_words(words_doc)]
     if words_issues:
         raise DryRunError("ASR output failed words contract validation")
     write_json(root / "words.json", words_doc)
+    write_json(root / "speakers.json", speakers_doc)
+    write_json(root / "speaker_report.json", speaker_report)
+    if unknown_keys:
+        questions: list[dict[str, Any]] = []
+        for question_index, unknown_key in enumerate(unknown_keys, start=1):
+            first_word = next(
+                row for row in words_doc["words"] if row.get("speaker") == unknown_key
+            )
+            track_key = (
+                first_word.get("track")
+                if isinstance(first_word.get("track"), str)
+                else audio_tracks[0].key
+            )
+            track_index = next(
+                (i for i, track in enumerate(audio_tracks) if track.key == track_key), 0
+            )
+            samples, sample_rate = read_pcm16_mono(artifacts[track_index].path)
+            start_s = (
+                max(0.0, float(first_word["start"]) - 0.5)
+                if isinstance(first_word.get("start"), int | float)
+                else 0.0
+            )
+            end_s = min(len(samples) / sample_rate, start_s + 5.0)
+            snippet = root / "ask_user" / f"{unknown_key}.wav"
+            write_wav_snippet(samples, sample_rate, start_s, end_s, snippet)
+            question = make_identify_question(
+                f"identify_speaker_{question_index}",
+                unknown_key,
+                snippet.relative_to(root).as_posix(),
+                speakers_doc,
+            )
+            question["status"] = "pending"
+            questions.append(question)
+        write_json(
+            root / "ask_user.json",
+            {
+                "schema_version": "1.0.0",
+                "status": "awaiting_user",
+                "created_at_epoch": time.time(),
+                "timeout_s": 86400,
+                "questions": questions,
+                "warnings": [],
+            },
+        )
+
     write_json(
         root / "asr_benchmark.json",
         {
@@ -336,6 +443,42 @@ def run_dry_run(
             "streams": asr_measurements,
         },
     )
+    if unknown_keys:
+        stage_timings.append(
+            {
+                "name": "transcript",
+                "wall_clock_ms": round((time.perf_counter() - words_started) * 1000),
+                "outcome": "complete",
+            }
+        )
+        stage_timings.append(
+            {
+                "name": "speaker_identification",
+                "wall_clock_ms": 0,
+                "outcome": "partial",
+                "error_code": "E_SPEAKER_CONFIRMATION",
+            }
+        )
+        source_hash_after = hash_media_file(source)
+        manifest = _status_manifest(
+            job_id=job_id,
+            source_hash_before=source_hash_before,
+            source_hash_after=source_hash_after,
+            status="partial",
+            code="E_SPEAKER_CONFIRMATION",
+            message="speaker identification is pending before planning can continue",
+            stage_name="speaker_identification",
+            stage_wall_ms=0,
+            asr_model=primary.model,
+            align_model=primary.align_model,
+        )
+        manifest["stages"] = stage_timings
+        if validate("run_manifest", manifest) or check_run_manifest(manifest):
+            raise DryRunError("pending speaker manifest failed validation")
+        write_json(root / "run_manifest.json", manifest)
+        if source_hash_before != source_hash_after:
+            raise DryRunError("source integrity check failed")
+        return root
     stage_timings.append(
         {
             "name": "transcript",
@@ -361,7 +504,7 @@ def run_dry_run(
         "text_presets": [],
         "sfx": [],
     }
-    speakers: dict[str, Any] = {"speakers": {}}
+    speakers: dict[str, Any] = speakers_doc
     planner_started = time.perf_counter()
     planner: Planner
     if planner_name == "baseline":
