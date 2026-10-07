@@ -15,6 +15,7 @@ All notable project changes are recorded here. Contract version entries are chec
 - Added per-join click and level-step measurements for all 16 English joins; all 32 clipped-word checks passed. Retained the existing verifier thresholds because one unlabelled recording is insufficient for calibration.
 - Recorded the user-approved 30 fps CFR working copy and the PyTorch-hosted English alignment checkpoint with its byte size, checksum, source, and stated MIT license.
 - Recorded the English source by SHA-256 prefix while keeping its filename and path out of tracked files.
+- Added a guarded rerun audit: original source hash and recursive video/VEGAS directory listings matched before and after; the real-media verifier still reported the same failures.
 - Added timeline=1.0.0, verify_report=1.0.0, and run_manifest=1.0.0; bumped compile_report=2.0.0 for required per-cut/gap outcomes and ops=1.1.0 for optional source item IDs on final delete operations. Existing versions: edl=1.2.0, words=2.0.0, speakers=1.0.0, catalog=1.0.0.
 - Updated Architecture to 1.2.0 for the M1 synthetic timeline, ID-only gap intent, and report contracts.
 
