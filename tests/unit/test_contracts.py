@@ -304,6 +304,8 @@ def test_repo_examples_have_no_personal_paths_hosts_or_real_keys() -> None:
         "__pycache__",
         ".pytest_cache",
         ".pytest-temp",
+        ".mypy_cache",
+        ".ruff_cache",
         "config.local.json",
     }
     for path in ROOT.rglob("*"):
