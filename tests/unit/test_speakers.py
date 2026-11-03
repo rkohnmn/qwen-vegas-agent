@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import struct
-import tempfile
 import time
 import wave
 from collections.abc import Sequence
@@ -163,23 +162,24 @@ def _speech_sample() -> list[int]:
     return [0] * 16000 + [12000] * (16000 * 3)
 
 
-def test_enrollment_rejects_short_and_inconsistent_samples_and_saves_only_embedding() -> None:
+def test_enrollment_rejects_short_and_inconsistent_samples_and_saves_only_embedding(
+    tmp_path: Path,
+) -> None:
     with pytest.raises(EnrollmentError, match="too short"):
         enroll_samples([100] * 16000, 16000, _StableEncoder())
     with pytest.raises(EnrollmentError, match="multiple speakers") as error:
         enroll_samples(_speech_sample(), 16000, _AlternatingEncoder())
     assert "12000" not in str(error.value)
     result = enroll_samples(_speech_sample(), 16000, _StableEncoder())
-    with tempfile.TemporaryDirectory(dir="runs", prefix="speaker-test-") as temporary_dir:
-        voices_root = Path(temporary_dir) / "voices"
-        path = save_voice_profile("host.json", result, voices_root=voices_root)
-        model, vector = read_embedding_profile(path)
-        assert model == "fixture-speaker-encoder"
-        assert vector == pytest.approx((1.0, 0.0))
-        assert "embedding" in path.read_text(encoding="utf-8")
-        assert not list(path.parent.glob("*.wav"))
-        with pytest.raises(SpeakerError, match="inside the voices directory"):
-            save_voice_profile("../escape.json", result, voices_root=voices_root)
+    voices_root = tmp_path / "voices"
+    path = save_voice_profile("host.json", result, voices_root=voices_root)
+    model, vector = read_embedding_profile(path)
+    assert model == "fixture-speaker-encoder"
+    assert vector == pytest.approx((1.0, 0.0))
+    assert "embedding" in path.read_text(encoding="utf-8")
+    assert not list(path.parent.glob("*.wav"))
+    with pytest.raises(SpeakerError, match="inside the voices directory"):
+        save_voice_profile("../escape.json", result, voices_root=voices_root)
 
 
 def test_unknown_question_answer_and_timeout_remain_explicit() -> None:
