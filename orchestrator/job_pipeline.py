@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
+import tempfile
 import sys
 import time
 import uuid
@@ -192,11 +194,19 @@ def _stable_hash(value: Any) -> str:
 
 def _atomic_json(path: Path, document: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(path.name + ".tmp")
-    temporary.write_text(
-        json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
-    temporary.replace(path)
+    serialized = json.dumps(document, ensure_ascii=False, indent=2) + "\n"
+    # mkstemp creates a uniquely named file with O_EXCL, so an existing .tmp
+    # symlink cannot redirect a state write outside the job directory.
+    fd, name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    temporary = Path(name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as output:
+            output.write(serialized)
+            output.flush()
+            os.fsync(output.fileno())
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def _load_object(path: Path, stage: str, label: str) -> dict[str, Any]:
