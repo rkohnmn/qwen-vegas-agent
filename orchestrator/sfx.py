@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from orchestrator.catalog import catalog_key, normalize_catalog_name
+from orchestrator.childenv import safe_child_environment
 
 SUPPORTED_EXTENSIONS = {".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac", ".aiff", ".aif"}
 SUPPORTED_SAMPLE_RATES = {32000, 44100, 48000, 88200, 96000}
@@ -34,9 +35,18 @@ class SfxIndexError(ValueError):
 
 def _run(command: list[str]) -> subprocess.CompletedProcess[str]:
     try:
-        return subprocess.run(command, check=False, capture_output=True, text=True, timeout=120)
-    except (OSError, subprocess.TimeoutExpired) as error:
-        raise SfxIndexError("local audio measurement tool failed") from error
+        return subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            stdin=subprocess.DEVNULL,
+            shell=False,
+            env=safe_child_environment(),
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        raise SfxIndexError("local audio measurement tool failed") from None
 
 
 def _ffprobe_measure(path: Path) -> dict[str, Any]:
@@ -114,6 +124,9 @@ def _license_is_valid(value: Any) -> bool:
 
 def _read_sidecar(path: Path) -> tuple[str, str, list[str]]:
     sidecar = path.with_suffix(".json")
+    # A same-stem sidecar is untrusted metadata, not permission to read elsewhere.
+    if sidecar.is_symlink():
+        raise SfxIndexError("SFX sidecar must not be a symbolic link")
     if not sidecar.exists():
         return "UNLICENSED", "local", []
     try:
