@@ -11,8 +11,8 @@ import hashlib
 import json
 import os
 import shutil
-import tempfile
 import sys
+import tempfile
 import time
 import uuid
 import wave

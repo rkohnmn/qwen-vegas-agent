@@ -1,4 +1,5 @@
 """Security regressions for SFX measurement, sidecar confinement, and job state writes."""
+
 from __future__ import annotations
 
 import json
@@ -42,13 +43,17 @@ def test_sfx_sidecar_symlink_cannot_read_outside_library(tmp_path: Path) -> None
     audio = library / "tone.wav"
     audio.write_bytes(b"RIFF-test-bytes")
     outside = tmp_path / "outside.json"
-    outside.write_text(json.dumps({"license": "CC0-1.0", "source": "private-label"}), encoding="utf-8")
+    outside.write_text(
+        json.dumps({"license": "CC0-1.0", "source": "private-label"}), encoding="utf-8"
+    )
     try:
         audio.with_suffix(".json").symlink_to(outside)
     except (OSError, NotImplementedError):
         pytest.skip("symlink creation is not available for this runner")
+
     def fake_measure(_path: Path) -> dict[str, float | int]:
         return {"duration": 1.0, "sample_rate": 48000, "loudness_lufs": -23.0, "peak_dbfs": -20.0}
+
     with pytest.raises(SfxIndexError, match="symbolic link"):
         index_sfx_directory(library, measure=fake_measure)
 
